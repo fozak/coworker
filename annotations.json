@@ -1,0 +1,451 @@
+{
+  "pdfjs_internal_editor_0": {
+    "_isCopy": false,
+    "_editToolbar": {},
+    "_initialOptions": {
+      "isCentered": false
+    },
+    "_initialData": null,
+    "_isVisible": true,
+    "_uiManager": {
+      "_editorUndoBar": {
+        "isOpen": false
+      },
+      "_signal": {},
+      "_eventBus": {},
+      "viewParameters": {
+        "realScale": 1.0964052287581698,
+        "rotation": 0
+      },
+      "isShiftKeyDown": false,
+      "_supportsPinchToZoom": true,
+      "highlightColors": {},
+      "direction": "ltr",
+      "imageManager": {},
+      "hcmFilter": "none"
+    },
+    "_focusEventsAllowed": true,
+    "parent": {
+      "pageIndex": 0,
+      "div": {},
+      "viewport": {
+        "viewBox": [
+          0,
+          0,
+          612,
+          792
+        ],
+        "userUnit": 1,
+        "scale": 1.0964052287581698,
+        "rotation": 0,
+        "offsetX": 0,
+        "offsetY": 0,
+        "transform": [
+          1.0964052287581698,
+          0,
+          0,
+          1.0964052287581698,
+          0,
+          0
+        ],
+        "width": 670.9999999999999,
+        "height": 868.3529411764705
+      },
+      "drawLayer": {
+        "pageIndex": 1
+      },
+      "_structTree": {}
+    },
+    "id": "pdfjs_internal_editor_0",
+    "height": 0.1017952710390091,
+    "width": 0.4017173945903778,
+    "pageIndex": 0,
+    "name": "inkEditor",
+    "div": {},
+    "annotationElementId": null,
+    "_willKeepAspectRatio": true,
+    "_structTreeParentId": null,
+    "rotation": 0,
+    "pageRotation": 0,
+    "pageDimensions": [
+      612,
+      792
+    ],
+    "pageTranslation": [
+      0,
+      0
+    ],
+    "x": 0.23339129984378815,
+    "y": 0.04720236361026764,
+    "isAttachedToDOM": true,
+    "deleted": false,
+    "_drawId": 0,
+    "_drawingOptions": {
+      "_viewParameters": {
+        "realScale": 1.0964052287581698,
+        "rotation": 0
+      },
+      "fill": "none",
+      "stroke": "#000000",
+      "stroke-opacity": 1,
+      "stroke-width": 1,
+      "stroke-linecap": "round",
+      "stroke-linejoin": "round",
+      "stroke-miterlimit": 10
+    },
+    "defaultL10nId": "pdfjs-editor-ink-editor"
+  },
+  "pdfjs_internal_editor_2": {
+    "_isCopy": false,
+    "_editToolbar": {},
+    "_initialOptions": null,
+    "_initialData": null,
+    "_isVisible": true,
+    "_uiManager": {
+      "_editorUndoBar": {
+        "isOpen": false
+      },
+      "_signal": {},
+      "_eventBus": {},
+      "viewParameters": {
+        "realScale": 1.0964052287581698,
+        "rotation": 0
+      },
+      "isShiftKeyDown": false,
+      "_supportsPinchToZoom": true,
+      "highlightColors": {},
+      "direction": "ltr",
+      "imageManager": {},
+      "hcmFilter": "none"
+    },
+    "_focusEventsAllowed": true,
+    "parent": {
+      "pageIndex": 0,
+      "div": {},
+      "viewport": {
+        "viewBox": [
+          0,
+          0,
+          612,
+          792
+        ],
+        "userUnit": 1,
+        "scale": 1.0964052287581698,
+        "rotation": 0,
+        "offsetX": 0,
+        "offsetY": 0,
+        "transform": [
+          1.0964052287581698,
+          0,
+          0,
+          1.0964052287581698,
+          0,
+          0
+        ],
+        "width": 670.9999999999999,
+        "height": 868.3529411764705
+      },
+      "drawLayer": {
+        "pageIndex": 1
+      },
+      "_structTree": {}
+    },
+    "id": "pdfjs_internal_editor_2",
+    "height": 0.2292,
+    "width": 0.7496,
+    "pageIndex": 0,
+    "name": "stampEditor",
+    "div": {},
+    "annotationElementId": null,
+    "_willKeepAspectRatio": false,
+    "_structTreeParentId": null,
+    "rotation": 0,
+    "pageRotation": 0,
+    "pageDimensions": [
+      612,
+      792
+    ],
+    "pageTranslation": [
+      0,
+      0
+    ],
+    "x": 0.1242,
+    "y": 0.25460000000000005,
+    "isAttachedToDOM": true,
+    "deleted": false,
+    "defaultL10nId": "pdfjs-editor-stamp-editor"
+  },
+  "pdfjs_internal_editor_3": {
+    "_isCopy": false,
+    "_editToolbar": {},
+    "_initialOptions": {
+      "isCentered": false
+    },
+    "_initialData": null,
+    "_isVisible": true,
+    "_uiManager": {
+      "_editorUndoBar": {
+        "isOpen": false
+      },
+      "_signal": {},
+      "_eventBus": {},
+      "viewParameters": {
+        "realScale": 1.0964052287581698,
+        "rotation": 0
+      },
+      "isShiftKeyDown": false,
+      "_supportsPinchToZoom": true,
+      "highlightColors": {},
+      "direction": "ltr",
+      "imageManager": {},
+      "hcmFilter": "none"
+    },
+    "_focusEventsAllowed": true,
+    "parent": {
+      "pageIndex": 0,
+      "div": {},
+      "viewport": {
+        "viewBox": [
+          0,
+          0,
+          612,
+          792
+        ],
+        "userUnit": 1,
+        "scale": 1.0964052287581698,
+        "rotation": 0,
+        "offsetX": 0,
+        "offsetY": 0,
+        "transform": [
+          1.0964052287581698,
+          0,
+          0,
+          1.0964052287581698,
+          0,
+          0
+        ],
+        "width": 670.9999999999999,
+        "height": 868.3529411764705
+      },
+      "drawLayer": {
+        "pageIndex": 1
+      },
+      "_structTree": {}
+    },
+    "id": "pdfjs_internal_editor_3",
+    "height": 0.022095268592238426,
+    "width": 0.3464173972606659,
+    "pageIndex": 0,
+    "name": "inkEditor",
+    "div": {},
+    "annotationElementId": null,
+    "_willKeepAspectRatio": true,
+    "_structTreeParentId": null,
+    "rotation": 0,
+    "pageRotation": 0,
+    "pageDimensions": [
+      612,
+      792
+    ],
+    "pageTranslation": [
+      0,
+      0
+    ],
+    "x": 0.2268037348985672,
+    "y": 0.1501818299293518,
+    "isAttachedToDOM": true,
+    "deleted": false,
+    "_drawId": 1,
+    "_drawingOptions": {
+      "_viewParameters": {
+        "realScale": 1.0964052287581698,
+        "rotation": 0
+      },
+      "fill": "none",
+      "stroke": "#ff1414",
+      "stroke-opacity": 1,
+      "stroke-width": 12,
+      "stroke-linecap": "round",
+      "stroke-linejoin": "round",
+      "stroke-miterlimit": 10
+    },
+    "defaultL10nId": "pdfjs-editor-ink-editor"
+  },
+  "pdfjs_internal_editor_4": {
+    "_isCopy": false,
+    "_editToolbar": {},
+    "_initialOptions": {
+      "isCentered": false
+    },
+    "_initialData": null,
+    "_isVisible": true,
+    "_uiManager": {
+      "_editorUndoBar": {
+        "isOpen": false
+      },
+      "_signal": {},
+      "_eventBus": {},
+      "viewParameters": {
+        "realScale": 1.0964052287581698,
+        "rotation": 0
+      },
+      "isShiftKeyDown": false,
+      "_supportsPinchToZoom": true,
+      "highlightColors": {},
+      "direction": "ltr",
+      "imageManager": {},
+      "hcmFilter": "none"
+    },
+    "_focusEventsAllowed": true,
+    "parent": {
+      "pageIndex": 0,
+      "div": {},
+      "viewport": {
+        "viewBox": [
+          0,
+          0,
+          612,
+          792
+        ],
+        "userUnit": 1,
+        "scale": 1.0964052287581698,
+        "rotation": 0,
+        "offsetX": 0,
+        "offsetY": 0,
+        "transform": [
+          1.0964052287581698,
+          0,
+          0,
+          1.0964052287581698,
+          0,
+          0
+        ],
+        "width": 670.9999999999999,
+        "height": 868.3529411764705
+      },
+      "drawLayer": {
+        "pageIndex": 1
+      },
+      "_structTree": {}
+    },
+    "id": "pdfjs_internal_editor_4",
+    "height": 0.361242413520813,
+    "width": 0.22010810673236847,
+    "pageIndex": 0,
+    "name": "inkEditor",
+    "div": {},
+    "annotationElementId": null,
+    "_willKeepAspectRatio": true,
+    "_structTreeParentId": null,
+    "rotation": 0,
+    "pageRotation": 0,
+    "pageDimensions": [
+      612,
+      792
+    ],
+    "pageTranslation": [
+      0,
+      0
+    ],
+    "x": 0.4745106101036072,
+    "y": 0.2003163993358612,
+    "isAttachedToDOM": true,
+    "deleted": false,
+    "_drawId": 2,
+    "_drawingOptions": {
+      "_viewParameters": {
+        "realScale": 1.0964052287581698,
+        "rotation": 0
+      },
+      "fill": "none",
+      "stroke": "#ff1414",
+      "stroke-opacity": 1,
+      "stroke-width": 12,
+      "stroke-linecap": "round",
+      "stroke-linejoin": "round",
+      "stroke-miterlimit": 10
+    },
+    "defaultL10nId": "pdfjs-editor-ink-editor"
+  },
+  "pdfjs_internal_editor_5": {
+    "_isCopy": false,
+    "_editToolbar": null,
+    "_initialOptions": null,
+    "_initialData": null,
+    "_isVisible": true,
+    "_uiManager": {
+      "_editorUndoBar": {
+        "isOpen": false
+      },
+      "_signal": {},
+      "_eventBus": {},
+      "viewParameters": {
+        "realScale": 1.0964052287581698,
+        "rotation": 0
+      },
+      "isShiftKeyDown": false,
+      "_supportsPinchToZoom": true,
+      "highlightColors": {},
+      "direction": "ltr",
+      "imageManager": {},
+      "hcmFilter": "none"
+    },
+    "_focusEventsAllowed": false,
+    "parent": {
+      "pageIndex": 0,
+      "div": {},
+      "viewport": {
+        "viewBox": [
+          0,
+          0,
+          612,
+          792
+        ],
+        "userUnit": 1,
+        "scale": 1.0964052287581698,
+        "rotation": 0,
+        "offsetX": 0,
+        "offsetY": 0,
+        "transform": [
+          1.0964052287581698,
+          0,
+          0,
+          1.0964052287581698,
+          0,
+          0
+        ],
+        "width": 670.9999999999999,
+        "height": 868.3529411764705
+      },
+      "drawLayer": {
+        "pageIndex": 1
+      },
+      "_structTree": {}
+    },
+    "id": "pdfjs_internal_editor_5",
+    "height": 0.027083026373950197,
+    "width": 0.031182469966152693,
+    "pageIndex": 0,
+    "name": "freeTextEditor",
+    "div": {},
+    "annotationElementId": null,
+    "_willKeepAspectRatio": false,
+    "_structTreeParentId": null,
+    "rotation": 0,
+    "pageRotation": 0,
+    "pageDimensions": [
+      612,
+      792
+    ],
+    "pageTranslation": [
+      0,
+      0
+    ],
+    "x": 0.7309297571000307,
+    "y": 0.16936792197826306,
+    "isAttachedToDOM": true,
+    "deleted": false,
+    "editorDiv": {},
+    "overlayDiv": {}
+  }
+}

@@ -1,0 +1,945 @@
+File: saveSession.js
+Comments: Truncated to 6000 bytes due to size > 6000
+Mime Type: text/javascript
+Size: 8441 bytes
+Content:
+/*
+	***** BEGIN LICENSE BLOCK *****
+	
+	Copyright Â© 2024 Corporation for Digital Scholarship
+					Vienna, Virginia, USA
+					http://zotero.org
+	
+	This file is part of Zotero.
+	
+	Zotero is free software: you can redistribute it and/or modify
+	it under the terms of the GNU Affero General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+	
+	Zotero is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU Affero General Public License for more details.
+
+	You should have received a copy of the GNU Affero General Public License
+	along with Zotero.  If not, see <http://www.gnu.org/licenses/>.
+	
+	***** END LICENSE BLOCK *****
+*/
+
+Zotero.Server.Connector.SessionManager = {
+	_sessions: new Map(),
+
+	get: function (id) {
+		return this._sessions.get(id);
+	},
+
+	create: function (id, action, requestData) {
+		if (typeof id === 'undefined') {
+			id = Zotero.Utilities.randomString();
+		}
+		if (this._sessions.has(id)) {
+			throw new Error(`Session ID ${id} exists`);
+		}
+		Zotero.debug(`Creating connector save session ${id}`);
+		var session = new Zotero.Server.Connector.SaveSession(id, action, requestData);
+		this._sessions.set(id, session);
+		this.gc();
+		return session;
+	},
+
+	gc: function () {
+		// Delete sessions older than 10 minutes, or older than 1 minute if more than 10 sessions
+		var ttl = this._sessions.size >= 10 ? 60 : 600;
+		var deleteBefore = new Date() - ttl * 1000;
+
+		for (let session of this._sessions) {
+			if (session.created < deleteBefore) {
+				this._session.delete(session.id);
+			}
+		}
+	}
+};
+
+
+
+Zotero.Server.Connector.SaveSession = class {
+	constructor(id, action, requestData) {
+		this.id = id;
+		this.created = new Date();
+		this._action = action;
+		this._requestData = requestData;
+		this._items = {};
+		
+		this._progressItems = {};
+		this._orderedProgressItems = [];
+	}
+
+	async saveItems(target) {
+		var { library, collection } = Zotero.Server.Connector.resolveTarget(target);
+		var data = this._requestData.data;
+		var headers = this._requestData.headers;
+		var cookieSandbox = data.uri
+			? new Zotero.CookieSandbox(
+				null,
+				data.uri,
+				data.detailedCookies ? "" : data.cookie || "",
+				headers["User-Agent"]
+			)
+			: null;
+		if (cookieSandbox && data.detailedCookies) {
+			cookieSandbox.addCookiesFromHeader(data.detailedCookies);
+		}
+		
+		var proxy = data.proxy && new Zotero.Proxy(data.proxy);
+		
+		this.itemSaver = new Zotero.Translate.ItemSaver({
+			libraryID: library.libraryID,
+			collections: collection ? [collection.id] : undefined,
+			// All attachments come from the Connector
+			attachmentMode: Zotero.Translate.ItemSaver.ATTACHMENT_MODE_IGNORE,
+			forceTagType: 1,
+			referrer: data.uri,
+			cookieSandbox,
+			proxy
+		});
+		let items = await this.itemSaver.saveItems(data.items, () => 0, () => 0);
+		// If more itemSaver calls are made, it means we are saving attachments explicitly (like
+		// a snapshot) and we don't want to ignore those.
+		this.itemSaver.attachmentMode = Zotero.Translate.ItemSaver.ATTACHMENT_MODE_DOWNLOAD;
+		items.forEach((item, index) => {
+			this.addItem(data.items[index].id, item);
+		});
+		
+		return items;
+	}
+
+	async saveSnapshot(target) {
+		var { library, collection } = Zotero.Server.Connector.resolveTarget(target);
+		var libraryID = library.libraryID;
+		var data = this._requestData.data;
+		
+		let title = data.title || data.url;
+		
+		// Create new webpage item
+		let item = new Zotero.Item("webpage");
+		item.libraryID = libraryID;
+		item.setField("title", title);
+		item.setField("url", data.url);
+		item.setField("accessDate", "CURRENT_TIMESTAMP");
+		if (collection) {
+			item.setCollections([collection.id]);
+		}
+		await item.saveTx();
+
+		// SingleFile snapshot may be coming later
+		this.addItem(data.url, item);
+		
+		return item;
+	}
+
+	async addItem(key, item) {
+		return this.addItems({ [key]: item });
+	}
+
+	async addItems(items) {
+		this._items = Object.assign(this._items, items);
+		
+		// Update the items with the current target data, in case it changed since the save began
+		await this._updateItems(items);
+	}
+	
+	getItemByConnectorKey(key) {
+		return this._items[key];
+	}
+
+	// documentRecognizer doesn't return recognized items and it's complicated to make it
+	// do it, so we just retrieve the parent item which is a little hacky but does the job
+	getRecognizedItem() {
+		try {
+			return Object.values(this._items)[0].parentItem;
+		}
+		catch (_) {}
+	}
+
+	remove() {
+		delete Zotero.Server.Connector.SessionManager._sessions[this.id];
+	}
+
+	/**
+	 * Change the target data for this session and update any items that have already been saved
+	 */
+	async update(targetID, tags) {
+		var previousTargetID = this._currentTargetID;
+		this._currentTargetID = targetID;
+		this._currentTags = tags || "";
+		
+		// Select new destination in collections pane
+		var zp = Zotero.getActiveZoteroPane();
+		if (zp && zp.collectionsView) {
+			await zp.collectionsView.selectByID(targetID);
+		}
+		// If window is closed, select target collection re-open
+		else {
+			Zotero.Prefs.set('lastViewedFolder', targetID);
+		}
+		
+		await this._updateItems(this._items);
+		
+		// If a single item was saved, select it (or its parent, if it now has one)
+		if (zp && zp.collectionsView && Object.values(this._items).length == 1) {
+			let item = Object.values(this._items)[0];
+			item = item.isTopLevelItem() ? item : item.parentItem;
+			// Don't select if in trash
+			if (!item.deleted) {
+				await zp.selectItem(item.id);
+			}
+		}
+	}
+
+	/**
+	 * Update the passed items with the current target and tags
+	 */
+	_updateItems = Zotero.serial(async function (items) {
+		if (Object.values(items).length == 0) {
+			return;
+		}
+		
+		var { library, collection } = Zotero.Server.Connector.resolveTarget(this._currentTargetID);
+		var libraryID = library.libraryID;
+		
+		var tags = this._currentTags.trim();
+		tags = tags ? tags.split(/\s*,\
+--------------------------------------------------------------------------------
+
+File: server.js
+Comments: Truncated to 6000 bytes due to size > 6000
+Mime Type: text/javascript
+Size: 18278 bytes
+Content:
+/*
+    ***** BEGIN LICENSE BLOCK *****
+    
+    Copyright Â© 2011 Center for History and New Media
+                     George Mason University, Fairfax, Virginia, USA
+                     http://zotero.org
+    
+    This file is part of Zotero.
+    
+    Zotero is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+    
+    Zotero is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+    
+    You should have received a copy of the GNU Affero General Public License
+    along with Zotero.  If not, see <http://www.gnu.org/licenses/>.
+    
+    ***** END LICENSE BLOCK *****
+*/
+
+var { HttpServer } = ChromeUtils.importESModule("chrome://remote/content/server/httpd.sys.mjs");
+Components.utils.import("resource://gre/modules/NetUtil.jsm");
+
+Zotero.Server = new function() {
+	var _onlineObserverRegistered, serv;
+	this.responseCodes = {
+		200:"OK",
+		201:"Created",
+		204:"No Content",
+		300:"Multiple Choices",
+		304:"Not Modified",
+		400:"Bad Request",
+		403:"Forbidden",
+		404:"Not Found",
+		409:"Conflict",
+		412:"Precondition Failed",
+		500:"Internal Server Error",
+		501:"Not Implemented",
+		503:"Service Unavailable",
+		504:"Gateway Timeout"
+	};
+	
+	Object.defineProperty(this, 'port', {
+		get() {
+			if (!serv) {
+				throw new Error('Server not initialized');
+			}
+			return serv.identity.primaryPort;
+		}
+	});
+	
+	/**
+	 * initializes a very rudimentary web server
+	 */
+	this.init = function (port) {
+		if (serv) {
+			Zotero.debug("Already listening on port " + serv.port);
+			return;
+		}
+		
+		port = port || Zotero.Prefs.get('httpServer.port');
+		try {
+			serv = new HttpServer();
+			serv.registerPrefixHandler('/', this.handleRequest)
+			serv.start(port);
+			
+			Zotero.debug(`HTTP server listening on 127.0.0.1:${serv.identity.primaryPort}`);
+				
+			// Close port on Zotero shutdown (doesn't apply to translation-server)
+			if (Zotero.addShutdownListener) {
+				Zotero.addShutdownListener(this.close.bind(this));
+			}
+		}
+		catch (e) {
+			Zotero.logError(e);
+			Zotero.debug("Not initializing HTTP server");
+			serv = undefined;
+		}
+	};
+	
+	this.handleRequest = function (request, response) {
+		let requestHandler = new Zotero.Server.RequestHandler(request, response);
+		return requestHandler.handleRequest();
+	}
+	
+	/**
+	 * releases bound port
+	 */
+	this.close = function () {
+		if (!serv) return;
+		serv.stop();
+		serv = undefined;
+	};
+	
+	/**
+	 * Parses a query string into a key => value object
+	 * @param {String} queryString Query string
+	 */
+	this.decodeQueryString = function(queryString) {
+		var splitData = queryString.split("&");
+		var decodedData = {};
+		for (let variable of splitData) {
+			var splitIndex = variable.indexOf("=");
+			decodedData[decodeURIComponent(variable.substr(0, splitIndex))] = decodeURIComponent(variable.substr(splitIndex+1));
+		}
+		return decodedData;
+	}
+}
+
+
+// A proxy headers class to make header retrieval case-insensitive
+Zotero.Server.Headers = class {
+	constructor() {
+		return new Proxy(this, {
+			get(target, name, receiver) {
+				if (typeof name !== 'string') {
+					return Reflect.get(target, name, receiver);
+				}
+				return Reflect.get(target, name.toLowerCase(), receiver);
+			},
+			has(target, name, receiver) {
+				if (typeof name !== 'string') {
+					return Reflect.has(target, name, receiver);
+				}
+				return Reflect.has(target, name.toLowerCase(), receiver);
+			},
+			set(target, name, value, receiver) {
+				return Reflect.set(target, name.toLowerCase(), value, receiver);
+			}
+		});
+	}
+};
+
+
+Zotero.Server.networkStreamToString = function (stream, length) {
+	let data = NetUtil.readInputStreamToString(stream, length);
+	return Zotero.Utilities.Internal.decodeUTF8(data);
+};
+
+
+Zotero.Server.RequestHandler = function (request, response) {
+	this.body = "";
+	this.bodyLength = 0;
+	
+	this.foundReturn = false;
+	this.request = request;
+	this.response = response;
+}
+
+/*
+ * checks to see if Content-Length bytes of body have been read and, if so, processes the body
+ */
+Zotero.Server.RequestHandler.prototype._bodyData = function () {
+	const PLAIN_TEXT_CONTENT_TYPES = new Set([
+		'text/plain',
+		'application/json',
+		'application/x-www-form-urlencoded'
+	]);
+	
+	let data = null;
+	if (this.bodyLength > 0) {
+		if (PLAIN_TEXT_CONTENT_TYPES.has(this.contentType)) {
+			this.body = data = Zotero.Server.networkStreamToString(this.request.bodyInputStream, this.bodyLength);
+		}
+		else if (this.contentType === 'multipart/form-data') {
+			data = NetUtil.readInputStreamToString(this.request.bodyInputStream, this.bodyLength);
+			try {
+				data = this._decodeMultipartData(data);
+			}
+			catch (e) {
+				return this._requestFinished(this._generateResponse(400, "text/plain", "Invalid multipart/form-data provided\n"));
+			}
+		}
+	}
+	if (this.body.length >= this.bodyLength) {
+		let noLogEndpoints = [
+			'/connector/saveSingleFile'
+		];
+		if (this.body != '{}'
+				&& PLAIN_TEXT_CONTENT_TYPES.has(this.contentType)
+				&& !noLogEndpoints.includes(this.pathname)) {
+			Zotero.debug(Zotero.Utilities.ellipsize(this.body, 1000, false, true), 5);
+		}
+	}
+	// handle envelope
+	this._processEndpoint("POST", data); // async
+}
+
+
+/**
+ * Generates the response to an HTTP request
+ */
+Zotero.Server.RequestHandler.prototype._generateResponse = function (status, contentTypeOrHeaders, body) {
+	var response = "HTTP/1.0 "+status+" "+Zotero.Server.responseCodes[status]+"\r\n";
+	response += "X-Zotero-Version: "+Zotero.version+"\r\n";
+	response += "X-Zotero-Connector-API-Version: "+CONNECTOR_API_VERSION+"\r\n";
+		
+	if (this.origin === ZOTERO_CONFIG.BOOKMARKLET_ORIGIN) {
+		response += "Access-Control-Allow-Origin: " + this.origin + "\r\n";
+		response += "Access-Control-Allow-Methods
+--------------------------------------------------------------------------------
+
+File: server_connector.js
+Comments: Truncated to 6000 bytes due to size > 6000
+Mime Type: text/javascript
+Size: 37973 bytes
+Content:
+/*
+    ***** BEGIN LICENSE BLOCK *****
+    
+    Copyright Â© 2011 Center for History and New Media
+                     George Mason University, Fairfax, Virginia, USA
+                     http://zotero.org
+    
+    This file is part of Zotero.
+    
+    Zotero is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+    
+    Zotero is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+    
+    You should have received a copy of the GNU Affero General Public License
+    along with Zotero.  If not, see <http://www.gnu.org/licenses/>.
+    
+    ***** END LICENSE BLOCK *****
+*/
+const CONNECTOR_API_VERSION = 3;
+
+Zotero.Server.Connector = {
+	_waitingForSelection: {},
+	
+	getSaveTarget: function (allowReadOnly, allowFilesReadOnly=true) {
+		var zp = Zotero.getActiveZoteroPane();
+		var library = null;
+		var collection = null;
+		var editable = null;
+		
+		if (zp && zp.collectionsView) {
+			if (allowReadOnly || zp.collectionsView.editable && allowFilesReadOnly || zp.collectionsView.filesEditable) {
+				library = Zotero.Libraries.get(zp.getSelectedLibraryID());
+				collection = zp.getSelectedCollection();
+				editable = zp.collectionsView.editable;
+			}
+			// If not editable, switch to My Library if it exists and is editable
+			else {
+				let userLibrary = Zotero.Libraries.userLibrary;
+				if (userLibrary && userLibrary.editable) {
+					Zotero.debug("Save target isn't editable -- switching to My Library");
+					
+					// Don't wait for this, because we don't want to slow down all conenctor
+					// requests by making this function async
+					zp.collectionsView.selectByID(userLibrary.treeViewID);
+					
+					library = userLibrary;
+					collection = null;
+					editable = true;
+				}
+			}
+		}
+		else {
+			let id = Zotero.Prefs.get('lastViewedFolder');
+			if (id) {
+				({ library, collection, editable } = this.resolveTarget(id));
+				if (!editable && !allowReadOnly) {
+					let userLibrary = Zotero.Libraries.userLibrary;
+					if (userLibrary && userLibrary.editable) {
+						Zotero.debug("Save target isn't editable -- switching lastViewedFolder to My Library");
+						let treeViewID = userLibrary.treeViewID;
+						Zotero.Prefs.set('lastViewedFolder', treeViewID);
+						({ library, collection, editable } = this.resolveTarget(treeViewID));
+					}
+				}
+			}
+		}
+		
+		// Default to My Library if present if pane not yet opened
+		// (which should never be the case anymore)
+		if (!library) {
+			let userLibrary = Zotero.Libraries.userLibrary;
+			if (userLibrary && userLibrary.editable) {
+				library = userLibrary;
+			}
+		}
+		
+		return { library, collection, editable };
+	},
+	
+	resolveTarget: function (targetID) {
+		var library;
+		var collection;
+		var editable;
+		
+		var type = targetID[0];
+		var id = parseInt(('' + targetID).substr(1));
+		
+		switch (type) {
+		case 'L':
+			library = Zotero.Libraries.get(id);
+			editable = library.editable;
+			break;
+		
+		case 'C':
+			collection = Zotero.Collections.get(id);
+			library = collection.library;
+			editable = collection.editable;
+			break;
+		
+		default:
+			throw new Error(`Unsupported target type '${type}'`);
+		}
+		
+		return { library, collection, editable };
+	},
+
+	/**
+	 * Warn on outdated connector version
+	 */
+	versionWarning: function (req, force=false) {
+		try {
+			if (!force) {
+				if (!Zotero.Prefs.get('showConnectorVersionWarning')) return;
+				if (Zotero.Server.Connector.skipVersionWarning) return;
+			}
+			if (!req.headers || !req.headers['X-Zotero-Connector-API-Version']) return;
+			
+			const appName = ZOTERO_CONFIG.CLIENT_NAME;
+			const domain = ZOTERO_CONFIG.DOMAIN_NAME;
+			
+			const apiVersion = req.headers['X-Zotero-Connector-API-Version'];
+			// We are up to date
+			if (apiVersion >= CONNECTOR_API_VERSION) return;
+			
+			var message = Zotero.getString("connector-version-warning");
+			
+			if (!force) {
+				var showNext = Zotero.Prefs.get('nextConnectorVersionWarning');
+				if (showNext && new Date() < new Date(showNext * 1000)) return;
+			}
+			
+			// Don't show again for this browser until restart (unless forced)
+			Zotero.Server.Connector.skipVersionWarning = true;
+			setTimeout(function () {
+				if (this.versionWarningShowing) return;
+				
+				var remindLater = {};
+				let options = {
+					title: Zotero.getString('general.updateAvailable'),
+					text: message,
+					button0: Zotero.getString('general.upgrade'),
+					button1: Zotero.getString('general.notNow'),
+				}
+				if (!force) {
+					const SHOW_AGAIN_DAYS = 7;
+					options.checkLabel = Zotero.getString(
+						'general.dontShowAgainFor',
+						SHOW_AGAIN_DAYS,
+						SHOW_AGAIN_DAYS
+					);
+					options.checkbox = remindLater;
+				}
+				this.versionWarningShowing = true;
+				const index = Zotero.Prompt.confirm(options)
+				this.versionWarningShowing = false;
+				
+				var nextShowDays;
+				// Remind in a week if checked remind me later
+				if (remindLater.value) {
+					nextShowDays = 7;
+				}
+				// Don't show again for at least a day, even after a restart
+				else {
+					nextShowDays = 1;
+				}
+				Zotero.Prefs.set('nextConnectorVersionWarning', Math.round(Date.now() / 1000) + 24*60*60 * nextShowDays);
+				
+				if (index == 0) {
+					Zotero.launchURL(ZOTERO_CONFIG.CONNECTORS_URL);
+				}
+			}.bind(this), 0);
+
+			return [400, "application/json", JSON.stringify({ error: "CONNECTOR_VERSION_OUTDATED" })];
+		}
+		catch (e) {
+			Zotero.debug(e, 2);
+		}
+	}
+};
+
+/**
+ * Lists all available translators, including code for translators that should be run on every page
+ *
+ * Accepts:
+ *		Nothing
+ * Returns:
+ *		Array of Zotero.Translator objects
+ */
+Zotero.Server.Connector.GetTranslators = function() {};
+Zotero.Server.Endpoints["/connector/getTranslators"] = Z
+--------------------------------------------------------------------------------
+
+File: server_connectorIntegration.js
+Comments: Included
+Mime Type: text/javascript
+Size: 3791 bytes
+Content:
+/*
+	***** BEGIN LICENSE BLOCK *****
+	
+	Copyright Â© 2017 Center for History and New Media
+					George Mason University, Fairfax, Virginia, USA
+					http://zotero.org
+	
+	This file is part of Zotero.
+	
+	Zotero is free software: you can redistribute it and/or modify
+	it under the terms of the GNU Affero General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+	
+	Zotero is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU Affero General Public License for more details.
+
+	You should have received a copy of the GNU Affero General Public License
+	along with Zotero.  If not, see <http://www.gnu.org/licenses/>.
+	
+	***** END LICENSE BLOCK *****
+*/
+
+/**
+ * Adds integration endpoints related to doc integration via HTTP/connector.
+ * 
+ * document/execCommand initiates an integration command and responds with the
+ * next request for the http client (e.g. 'Application.getDocument').
+ * The client should respond to document/respond with the payload and expect
+ * another response with the next request, until it receives 'Document.complete'
+ * at which point the integration transaction is considered complete.
+ */
+Zotero.Server.Endpoints['/connector/document/execCommand'] = function() {};
+Zotero.Server.Endpoints['/connector/document/execCommand'].prototype = {
+	supportedMethods: ["POST"],
+	supportedDataTypes: ["application/json"],
+	permitBookmarklet: true,
+	init: function(data, sendResponse) {
+		if (Zotero.HTTPIntegrationClient.inProgress) {
+			// This will focus the last integration window if present
+			Zotero.Integration.execCommand('http', data.command, data.docId);
+			sendResponse(503, 'text/plain', 'Integration transaction is already in progress')
+			return;
+		}
+		Zotero.HTTPIntegrationClient.inProgress = true;
+		Zotero.HTTPIntegrationClient.sendResponse = sendResponse;
+		Zotero.Integration.execCommand('http', data.command, data.docId);
+	},
+};
+
+Zotero.Server.Endpoints['/connector/document/respond'] = function() {};
+Zotero.Server.Endpoints['/connector/document/respond'].prototype = {
+	supportedMethods: ["POST"],
+	supportedDataTypes: ["application/json"],
+	permitBookmarklet: true,
+	
+	init: function (data, sendResponse) {
+		// Earlier version of the gdocs plugin used to double-encode the JSON data
+		try {
+			data = JSON.parse(data);
+		}
+		catch (e) {}
+		if (data && data.error) {
+			// Apps Script stack is a JSON object
+			let error = new Error("HTTP Integration Error");
+			if (typeof data.stack != "string") {
+				data.stack = JSON.stringify(data.stack);
+			}
+			if (data.error == 'Alert') {
+				error = new Zotero.Exception.Alert(data.message);
+				error.stack = data.stack;
+			}
+			else if (data.error == 'Tab Not Available Error') {
+				let client = Zotero.Integration.currentDoc.processorName || 'Google Docs';
+				error = new Zotero.Exception.Alert(Zotero.getString('integration.error.tabUnavailable', client));
+				error.stack = data.stack;
+			}
+			Zotero.HTTPIntegrationClient.deferredResponse.reject(error);
+		} else {
+			Zotero.HTTPIntegrationClient.deferredResponse.resolve(data);
+		}
+		Zotero.HTTPIntegrationClient.sendResponse = sendResponse;
+	}
+};
+
+// For managing macOS integration and progress window focus
+Zotero.Server.Endpoints['/connector/sendToBack'] = function() {};
+Zotero.Server.Endpoints['/connector/sendToBack'].prototype = {
+	supportedMethods: ["POST", "GET"],
+	supportedDataTypes: ["application/json"],
+	permitBookmarklet: true,
+	init: function (requestData) {
+		Zotero.Utilities.Internal.sendToBack();
+		return 200;
+	},
+};
+
+--------------------------------------------------------------------------------
+
+File: server_integration.js
+Comments: Included
+Mime Type: text/javascript
+Size: 1918 bytes
+Content:
+/*
+	***** BEGIN LICENSE BLOCK *****
+	
+	Copyright Â© 2023 Corporation for Digital Scholarship
+					 Vienna, Virginia, USA
+					 https://digitalscholar.org
+	
+	This file is part of Zotero.
+	
+	Zotero is free software: you can redistribute it and/or modify
+	it under the terms of the GNU Affero General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+	
+	Zotero is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU Affero General Public License for more details.
+	
+	You should have received a copy of the GNU Affero General Public License
+	along with Zotero.  If not, see <http://www.gnu.org/licenses/>.
+	
+	***** END LICENSE BLOCK *****
+*/
+
+Zotero.Server.Endpoints['/integration/macWordCommand'] = function () {};
+Zotero.Server.Endpoints['/integration/macWordCommand'].prototype = {
+	supportedMethods: ["GET"],
+	supportedDataTypes: ["application/json"],
+	permitBookmarklet: true,
+	init: function (data) {
+		// Some dark magic to fix incorrectly encoded unicode characters here
+		// from https://stackoverflow.com/questions/5396560/how-do-i-convert-special-utf-8-chars-to-their-iso-8859-1-equivalent-using-javasc
+		const document = decodeURIComponent(escape(data.searchParams.get('document')));
+		
+		// Run this in the next event loop (making sure we first send the 200 response)
+		// otherwise if a blocking command (alert) runs in execCommand before an await call
+		// it makes the Word call to Zotero timeout and display an error
+		setTimeout(() => {
+			Zotero.Integration.execCommand(
+				data.searchParams.get('agent'),
+				data.searchParams.get('command'),
+				document,
+				data.searchParams.get('templateVersion')
+			);
+		});
+		
+		return 200;
+	},
+};
+
+--------------------------------------------------------------------------------
+
+File: server_localAPI.js
+Comments: Truncated to 6000 bytes due to size > 6000
+Mime Type: text/javascript
+Size: 37727 bytes
+Content:
+/*
+	***** BEGIN LICENSE BLOCK *****
+	
+	Copyright Â© 2022 Corporation for Digital Scholarship
+                     Vienna, Virginia, USA
+					http://zotero.org
+	
+	This file is part of Zotero.
+	
+	Zotero is free software: you can redistribute it and/or modify
+	it under the terms of the GNU Affero General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+	
+	Zotero is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU Affero General Public License for more details.
+
+	You should have received a copy of the GNU Affero General Public License
+	along with Zotero.  If not, see <http://www.gnu.org/licenses/>.
+	
+	***** END LICENSE BLOCK *****
+*/
+
+/*
+
+This file provides a reasonably complete local implementation of the Zotero API (api.zotero.org).
+Endpoints are accessible on the local server (localhost:23119 by default) under /api/.
+
+Limitations compared to api.zotero.org:
+
+- Only API version 3 (https://www.zotero.org/support/dev/web_api/v3/basics) is supported, and only
+  one API version will ever be supported at a time. If a new API version is released and your
+  client needs to maintain support for older versions, first query /api/ and read the
+  Zotero-API-Version response header, then make requests conditionally.
+- Write access is not yet supported.
+- No authentication.
+- No access to user data for users other than the local logged-in user. Use user ID 0 or the user's
+  actual API user ID (https://www.zotero.org/settings/keys).
+- Minimal access to metadata about groups.
+- Atom is not supported.
+- Item type/field endpoints (https://www.zotero.org/support/dev/web_api/v3/types_and_fields) will
+  return localized names in the user's locale. The locale query parameter is not supported. The
+  single exception is /api/creatorFields, which follows the web API's behavior in always returning
+  results in English, *not* the user's locale.
+- If your code relies on any undefined behavior or especially unusual corner cases in the web API,
+  it'll probably work differently when using the local API. This implementation is primarily
+  concerned with matching the web API's spec and secondarily with matching its observed behavior,
+  but it does not make any attempt to replicate implementation details that your code might rely on.
+  Sort orders might differ, quicksearch results will probably differ, and JSON you get from the
+  local API is never going to be exactly identical to what you would get from the web API.
+
+That said, there are benefits:
+
+- Pagination is often unnecessary because the API doesn't mind sending you many megabytes of data
+  at a time - nothing ever touches the network. For that reason, returned results are not limited
+  by default (unlike in the web API, which has a default limit of 25 and will not return more than
+  100 results at a time).
+- For the same reason, no rate limits, and it's really fast.
+- <userOrGroupPrefix>/searches/:searchKey/items returns the set of items matching a saved search
+  (unlike in the web API, which doesn't support actually executing searches).
+
+*/
+
+const LOCAL_API_VERSION = 3;
+
+const exportFormats = new Map([
+	['bibtex', '9cb70025-a888-4a29-a210-93ec52da40d4'],
+	['biblatex', 'b6e39b57-8942-4d11-8259-342c46ce395f'],
+	['bookmarks', '4e7119e0-02be-4848-86ef-79a64185aad8'],
+	['coins', '05d07af9-105a-4572-99f6-a8e231c0daef'],
+	['csljson', 'bc03b4fe-436d-4a1f-ba59-de4d2d7a63f7'],
+	['csv', '25f4c5e2-d790-4daa-a667-797619c7e2f2'],
+	['mods', '0e2235e7-babf-413c-9acf-f27cce5f059c'],
+	['refer', '881f60f2-0802-411a-9228-ce5f47b64c7d'],
+	['rdf_bibliontology', '14763d25-8ba0-45df-8f52-b8d1108e7ac9'],
+	['rdf_dc', '6e372642-ed9d-4934-b5d1-c11ac758ebb7'],
+	['rdf_zotero', '14763d24-8ba0-45df-8f52-b8d1108e7ac9'],
+	['ris', '32d59d2d-b65a-4da4-b0a3-bdd3cfb979e7'],
+	['tei', '032ae9b7-ab90-9205-a479-baf81f49184a'],
+	['wikipedia', '3f50aaac-7acc-4350-acd0-59cb77faf620'],
+]);
+
+/**
+ * Base class for all local API endpoints. Implements pre- and post-processing steps.
+ */
+class LocalAPIEndpoint {
+	async init(requestData) {
+		try {
+			return await this._initInternal(requestData);
+		}
+		catch (e) {
+			if (!(e instanceof BadRequestError)) {
+				throw e;
+			}
+			return this.makeResponse(400, 'text/plain', e.message);
+		}
+	}
+	
+	async _initInternal(requestData) {
+		if (!Zotero.Prefs.get('httpServer.localAPI.enabled')) {
+			return this.makeResponse(403, 'text/plain', 'Local API is not enabled');
+		}
+		
+		requestData.headers = new Headers(requestData.headers);
+		
+		let apiVersion = parseInt(
+			requestData.headers.get('Zotero-API-Version')
+				|| requestData.searchParams.get('v')
+				|| LOCAL_API_VERSION
+		);
+		// Only allow mismatched version on /api/ no-op endpoint
+		if (apiVersion !== LOCAL_API_VERSION && requestData.pathname != '/api/') {
+			return this.makeResponse(501, 'text/plain', `API version not implemented: ${apiVersion}`);
+		}
+		
+		let userID = requestData.pathParams.userID && parseInt(requestData.pathParams.userID);
+		if (userID !== undefined
+				&& userID != 0
+				&& userID != Zotero.Users.getCurrentUserID()) {
+			let suffix = "";
+			let currentUserID = Zotero.Users.getCurrentUserID();
+			if (currentUserID) {
+				suffix += " or " + currentUserID;
+			}
+			return this.makeResponse(400, 'text/plain', 'Only data for the logged-in user is available locally -- use userID 0' + suffix);
+		}
+		
+		if (requestData.pathParams.groupID) {
+			let groupID = requestData.pathParams.groupID;
+			let libraryID = Zotero.Groups.getLibraryIDFromGroupID(parseInt(groupID));
+			if (!libraryID) {
+				return this.makeResponse(404, 'text/plain', 'Not found');
+			}
+			requestData.libraryID = libraryID;
+		}
+		else {
+			requestData.libraryID = Zotero.Libraries.userLibraryID;
+		}
+		
+		let library = Zotero.Libraries.get(requestData.libraryID);
+		if (!library.getDataLoaded('item')) {
+			Zotero.debug("Waiting for i
+--------------------------------------------------------------------------------
+

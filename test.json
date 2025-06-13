@@ -1,0 +1,12 @@
+[
+  {
+    "type": "article-journal",
+    "id": "smith2025",
+    "title": "Example Article",
+    "author": [
+      {"family": "Smith", "given": "John"}
+    ],
+    "issued": {"date-parts": [[2025, 5, 27]]},
+    "my_custom_field": "This field is ignored by Zotero formatting"
+  }
+]

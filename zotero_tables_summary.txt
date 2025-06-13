@@ -1,0 +1,244 @@
+Table: fieldFormats
+Headers: ['fieldFormatID', 'regex', 'isInteger']
+Sample row: (1, '.*', 0)
+----
+Table: charsets
+Headers: ['charsetID', 'charset']
+Sample row: (1, 'utf-8')
+----
+Table: fileTypes
+Headers: ['fileTypeID', 'fileType']
+Sample row: (1, 'webpage')
+----
+Table: fileTypeMimeTypes
+Headers: ['fileTypeID', 'mimeType']
+Sample row: (1, 'text/html')
+----
+Table: syncObjectTypes
+Headers: ['syncObjectTypeID', 'name']
+Sample row: (1, 'collection')
+----
+Table: itemTypes
+Headers: ['itemTypeID', 'typeName', 'templateItemTypeID', 'display']
+Sample row: (1, 'annotation', None, 1)
+----
+Table: itemTypesCombined
+Headers: ['itemTypeID', 'typeName', 'display', 'custom']
+Sample row: (1, 'annotation', 1, 0)
+----
+Table: fields
+Headers: ['fieldID', 'fieldName', 'fieldFormatID']
+Sample row: (1, 'title', None)
+----
+Table: fieldsCombined
+Headers: ['fieldID', 'fieldName', 'label', 'fieldFormatID', 'custom']
+Sample row: (1, 'title', None, None, 0)
+----
+Table: itemTypeFields
+Headers: ['itemTypeID', 'fieldID', 'hide', 'orderIndex']
+Sample row: (2, 1, 0, 0)
+----
+Table: itemTypeFieldsCombined
+Headers: ['itemTypeID', 'fieldID', 'hide', 'orderIndex']
+Sample row: (2, 1, 0, 0)
+----
+Table: baseFieldMappings
+Headers: ['itemTypeID', 'baseFieldID', 'fieldID']
+Sample row: (2, 4, 3)
+----
+Table: baseFieldMappingsCombined
+Headers: ['itemTypeID', 'baseFieldID', 'fieldID']
+Sample row: (2, 4, 3)
+----
+Table: creatorTypes
+Headers: ['creatorTypeID', 'creatorType']
+Sample row: (1, 'artist')
+----
+Table: itemTypeCreatorTypes
+Headers: ['itemTypeID', 'creatorTypeID', 'primaryField']
+Sample row: (2, 1, 1)
+----
+Table: version
+Headers: ['schema', 'version']
+Sample row: ('globalSchema', 32)
+----
+Table: settings
+Headers: ['setting', 'key', 'value']
+
+----
+Table: syncedSettings
+Headers: ['setting', 'libraryID', 'value', 'version', 'synced']
+Sample row: ('lastPageIndex_u_MGHLHG2G', 1, '0', 0, 0)
+----
+Table: items
+Headers: ['itemID', 'itemTypeID', 'dateAdded', 'dateModified', 'clientDateModified', 'libraryID', 'key', 'version', 'synced']
+Sample row: (1, 14, '2025-05-24 16:56:22', '2025-05-24 16:56:22', '2025-05-24 16:56:22', 1, 'TNAT4344', 0, 0)
+----
+Table: itemDataValues
+Headers: ['valueID', 'value']
+Sample row: (1, '1pagedrawing')
+----
+Table: itemData
+Headers: ['itemID', 'fieldID', 'valueID']
+Sample row: (3, 1, 1)
+----
+Table: itemNotes
+Headers: ['itemID', 'parentItemID', 'note', 'title']
+Sample row: None
+----
+Table: itemAttachments
+Headers: ['itemID', 'parentItemID', 'linkMode', 'contentType', 'charsetID', 'path', 'syncState', 'storageModTime', 'storageHash', 'lastProcessedModificationTime']
+Sample row: (3, None, 0, 'application/pdf', None, 'storage:1pagedrawing.pdf', 0, None, None, 1744308831)
+----
+Table: itemAnnotations
+Headers: ['itemID', 'parentItemID', 'type', 'authorName', 'text', 'comment', 'color', 'pageLabel', 'sortIndex', 'position', 'isExternal']
+Sample row: (4, 3, 4, None, None, None, '#2ea8e5', '[1] 212127-CCS-D2-XX-DR-S-0410-T1 (Opt. 02)-A1 Template', '00000|001283|00572', '{"pageIndex":0,"width":2,"paths":[[1549.419,1811.071,1549.419,1809.869,1549.419,1808.788,1549.419,1807.466,1549.419,1806.024,1548.698,1805.303,1547.256,1805.303,1545.935,1805.303,1544.853,1805.303,1543.411,1805.303,1542.09,1805.303,1541.008,1805.303,1539.566,1805.303,1538.124,1805.303,1536.682,1805.303,1535.24,1805.303,1534.159,1805.303,1532.597,1805.303,1530.794,1805.303,1529.473,1805.303,1528.031,1805.303,1526.709,1805.303,1525.627,1805.303,1523.945,1805.303,1522.383,1805.303,1521.302,1805.303,1519.86,1805.303,1518.778,1805.303,1517.216,1805.303,1515.294,1805.303,1513.371,1805.303,1511.569,1805.303,1510.247,1805.303,1508.805,1805.303,1507.243,1805.303,1505.681,1805.303,1503.758,1805.303,1501.835,1805.303,1499.913,1805.303,1497.99,1805.303,1496.068,1805.303,1494.145,1805.303,1492.223,1805.303,1490.3,1805.303,1488.377,1805.303,1486.455,1805.303,1484.532,1805.303,1482.61,1805.303,1480.687,1805.303,1478.765,1805.303,1476.842,1805.183,1474.919,1804.582,1473.958,1804.102,1472.396,1803.501,1471.315,1803.381,1470.353,1803.02,1469.392,1802.179,1468.07,1801.578,1466.268,1801.458,1464.345,1801.458,1462.423,1801.458,1460.86,1801.458,1459.779,1801.458,1458.337,1801.458,1457.256,1801.458,1455.694,1801.458,1453.891,1801.458,1452.569,1801.458,1451.127,1801.458,1449.685,1801.458,1448.244,1801.458,1446.802,1801.458,1445.36,1801.458,1443.918,1801.458,1442.476,1801.458,1441.394,1801.458,1440.073,1801.458,1438.631,1801.458,1437.189,1801.458,1435.747,1801.458,1434.425,1801.458,1433.344,1801.458,1431.902,1801.458,1430.46,1801.458,1429.018,1801.458,1427.576,1801.458,1426.494,1801.458,1425.173,1801.458,1423.731,1801.458,1422.649,1801.458,1421.327,1801.458,1419.885,1801.458,1418.444,1801.458,1417.002,1801.458,1415.56,1801.458,1414.478,1801.458,1413.156,1801.458,1411.715,1801.458,1410.633,1801.458,1409.311,1801.458,1407.869,1801.458,1406.788,1801.458,1405.466,1801.458,1404.024,1801.458,1402.943,1801.458,1401.621,1801.458,1400.179,1801.458,1399.098,1801.458,1397.776,1801.458,1396.334,1801.458,1395.252,1801.458,1393.931,1801.458,1392.489,1801.458,1391.407,1801.458,1390.085,1801.458,1388.644,1801.458,1387.562,1801.458,1386.24,1801.458,1384.798,1801.458,1383.477,1801.458,1381.674,1801.458,1380.112,1801.458,1379.031,1801.458,1377.589,1801.458,1376.507,1801.458,1374.945,1801.458,1372.902,1801.458,1371.701,1801.458,1370.379,1801.458,1368.937,1801.458,1367.735,1801.218,1366.774,1800.737,1366.053,1800.016,1365.573,1799.055,1364.251,1797.853,1362.448,1797.613,1360.886,1797.252,1359.805,1796.411,1358.844,1795.81,1357.281,1795.57,1355.719,1794.969,1354.758,1794.489,1353.196,1793.888,1352.115,1793.768,1350.673,1793.768,1349.591,1793.768,1348.029,1793.768,1346.227,1793.648,1344.905,1793.047,1343.944,1792.206,1342.982,1791.845,1341.54,1791.485,1340.579,1790.644,1339.618,1790.043,1338.296,1789.923,1337.215,1789.923,1335.773,1789.923,1334.331,1789.923,1332.889,1789.923,1331.447,1789.923,1330.365,1789.923,1329.044,1789.923,1327.602,1789.923,1326.52,1789.923,1325.198,1789.923,1323.756,1789.923,1322.675,1789.923]]}', 0)
+----
+Table: tags
+Headers: ['tagID', 'name']
+Sample row: (4, 'Open')
+----
+Table: itemRelations
+Headers: ['itemID', 'predicateID', 'object']
+Sample row: None
+----
+Table: itemTags
+Headers: ['itemID', 'tagID', 'type']
+Sample row: (7, 4, 0)
+----
+Table: creators
+Headers: ['creatorID', 'firstName', 'lastName', 'fieldMode']
+Sample row: None
+----
+Table: itemCreators
+Headers: ['itemID', 'creatorID', 'creatorTypeID', 'orderIndex']
+Sample row: None
+----
+Table: collections
+Headers: ['collectionID', 'collectionName', 'parentCollectionID', 'clientDateModified', 'libraryID', 'key', 'version', 'synced']
+Sample row: (1, 'Test', None, '2025-05-24 16:56:09', 1, 'G7JHAI8W', 0, 0)
+----
+Table: collectionItems
+Headers: ['collectionID', 'itemID', 'orderIndex']
+Sample row: (1, 1, 0)
+----
+Table: collectionRelations
+Headers: ['collectionID', 'predicateID', 'object']
+Sample row: None
+----
+Table: feeds
+Headers: ['libraryID', 'name', 'url', 'lastUpdate', 'lastCheck', 'lastCheckError', 'cleanupReadAfter', 'cleanupUnreadAfter', 'refreshInterval']
+Sample row: None
+----
+Table: feedItems
+Headers: ['itemID', 'guid', 'readTime', 'translatedTime']
+Sample row: None
+----
+Table: savedSearches
+Headers: ['savedSearchID', 'savedSearchName', 'clientDateModified', 'libraryID', 'key', 'version', 'synced']
+Sample row: None
+----
+Table: savedSearchConditions
+Headers: ['savedSearchID', 'searchConditionID', 'condition', 'operator', 'value', 'required']
+Sample row: None
+----
+Table: deletedCollections
+Headers: ['collectionID', 'dateDeleted']
+Sample row: None
+----
+Table: deletedItems
+Headers: ['itemID', 'dateDeleted']
+Sample row: None
+----
+Table: deletedSearches
+Headers: ['savedSearchID', 'dateDeleted']
+Sample row: None
+----
+Table: libraries
+Headers: ['libraryID', 'type', 'editable', 'filesEditable', 'version', 'storageVersion', 'lastSync', 'archived']
+Sample row: (1, 'user', 1, 1, 0, 0, 0, 0)
+----
+Table: users
+Headers: ['userID', 'name']
+Sample row: None
+----
+Table: groups
+Headers: ['groupID', 'libraryID', 'name', 'description', 'version']
+Sample row: None
+----
+Table: groupItems
+Headers: ['itemID', 'createdByUserID', 'lastModifiedByUserID']
+Sample row: None
+----
+Table: publicationsItems
+Headers: ['itemID']
+Sample row: None
+----
+Table: retractedItems
+Headers: ['itemID', 'data', 'flag']
+Sample row: None
+----
+Table: fulltextItems
+Headers: ['itemID', 'indexedPages', 'totalPages', 'indexedChars', 'totalChars', 'version', 'synced']
+Sample row: (3, 1, 1, None, None, 0, 0)
+----
+Table: fulltextWords
+Headers: ['wordID', 'word']
+Sample row: (1, '0')
+----
+Table: fulltextItemWords
+Headers: ['wordID', 'itemID']
+Sample row: (1, 3)
+----
+Table: syncCache
+Headers: ['libraryID', 'key', 'syncObjectTypeID', 'version', 'data']
+Sample row: None
+----
+Table: syncDeleteLog
+Headers: ['syncObjectTypeID', 'libraryID', 'key', 'dateDeleted']
+Sample row: None
+----
+Table: syncQueue
+Headers: ['libraryID', 'key', 'syncObjectTypeID', 'lastCheck', 'tries']
+Sample row: None
+----
+Table: storageDeleteLog
+Headers: ['libraryID', 'key', 'dateDeleted']
+Sample row: None
+----
+Table: proxies
+Headers: ['proxyID', 'multiHost', 'autoAssociate', 'scheme']
+Sample row: None
+----
+Table: proxyHosts
+Headers: ['hostID', 'proxyID', 'hostname']
+Sample row: None
+----
+Table: relationPredicates
+Headers: ['predicateID', 'predicate']
+Sample row: None
+----
+Table: customItemTypes
+Headers: ['customItemTypeID', 'typeName', 'label', 'display', 'icon']
+Sample row: None
+----
+Table: customFields
+Headers: ['customFieldID', 'fieldName', 'label']
+Sample row: None
+----
+Table: customItemTypeFields
+Headers: ['customItemTypeID', 'fieldID', 'customFieldID', 'hide', 'orderIndex']
+Sample row: None
+----
+Table: customBaseFieldMappings
+Headers: ['customItemTypeID', 'baseFieldID', 'customFieldID']
+Sample row: None
+----
+Table: translatorCache
+Headers: ['fileName', 'metadataJSON', 'lastModifiedTime']
+Sample row: ('Ab Imperio.js', '{"translatorID":"f3e31f93-c18d-4ba3-9aa6-1963702b5762","translatorType":4,"label":"Ab Imperio","creator":"Avram Lyon","target":"^https?://(www\\\\.)?abimperio\\\\.net/","priority":100,"lastUpdated":"2013-02-28 14:52:44","browserSupport":"gcs","minVersion":"2.0","maxVersion":"","inRepository":true}', 1262322000000)
+----
+Table: dbDebug1
+Headers: ['a']
+Sample row: None
+----

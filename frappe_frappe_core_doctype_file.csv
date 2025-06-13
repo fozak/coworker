@@ -1,0 +1,1009 @@
+Full Path,Comments,Mime Type,Size (bytes),Text Content
+exceptions.py,Included,text/x-python,239,"import frappe
+
+
+class MaxFileSizeReachedError(frappe.ValidationError):
+	pass
+
+
+class FolderNotEmpty(frappe.ValidationError):
+	pass
+
+
+class FileTypeNotAllowed(frappe.ValidationError):
+	pass
+
+
+from frappe.exceptions import *
+"
+file.js,Included,text/javascript,3578,"frappe.ui.form.on(""File"", {
+	refresh: function (frm) {
+		if (frm.doc.file_url) {
+			frm.add_custom_button(__(""View File""), () => {
+				if (!frappe.utils.is_url(frm.doc.file_url)) {
+					window.open(window.location.origin + frm.doc.file_url);
+				} else {
+					window.open(frm.doc.file_url);
+				}
+			});
+		}
+
+		if (!frm.doc.is_folder) {
+			// add download button
+			frm.add_custom_button(__(""Download""), () => frm.trigger(""download""), ""fa fa-download"");
+		}
+
+		if (!frm.doc.is_private) {
+			frm.dashboard.set_headline(
+				__(""This file is public. It can be accessed without authentication.""),
+				""orange""
+			);
+		}
+
+		frm.toggle_display(""preview"", false);
+
+		// preview different file types
+		frm.trigger(""preview_file"");
+
+		let is_raster_image = /\.(gif|jpg|jpeg|tiff|png)$/i.test(frm.doc.file_url);
+		let is_optimizable = !frm.doc.is_folder && is_raster_image && frm.doc.file_size > 0;
+
+		// add optimize button
+		is_optimizable && frm.add_custom_button(__(""Optimize""), () => frm.trigger(""optimize""));
+
+		// add unzip button
+		if (frm.doc.file_name && frm.doc.file_name.split(""."").splice(-1)[0] === ""zip"") {
+			frm.add_custom_button(__(""Unzip""), () => frm.trigger(""unzip""));
+		}
+	},
+
+	preview_file: function (frm) {
+		let $preview = """";
+		let file_extension = frm.doc.file_type.toLowerCase();
+
+		if (frappe.utils.is_image_file(frm.doc.file_url)) {
+			$preview = $(`<div class=""img_preview"">
+				<img
+					class=""img-responsive""
+					src=""${frappe.utils.escape_html(frm.doc.file_url)}""
+					onerror=""${frm.toggle_display(""preview"", false)}""
+				/>
+			</div>`);
+		} else if (frappe.utils.is_video_file(frm.doc.file_url)) {
+			$preview = $(`<div class=""img_preview"">
+				<video width=""480"" height=""320"" controls>
+					<source src=""${frappe.utils.escape_html(frm.doc.file_url)}"">
+					${__(""Your browser does not support the video element."")}
+				</video>
+			</div>`);
+		} else if (file_extension === ""pdf"") {
+			$preview = $(`<div class=""img_preview"">
+				<object style=""background:#323639;"" width=""100%"">
+					<embed
+						style=""background:#323639;""
+						width=""100%""
+						height=""1190""
+						src=""${frappe.utils.escape_html(frm.doc.file_url)}"" type=""application/pdf""
+					>
+				</object>
+			</div>`);
+		} else if (file_extension === ""mp3"") {
+			$preview = $(`<div class=""img_preview"">
+				<audio width=""480"" height=""60"" controls>
+					<source src=""${frappe.utils.escape_html(frm.doc.file_url)}"" type=""audio/mpeg"">
+					${__(""Your browser does not support the audio element."")}
+				</audio >
+			</div>`);
+		}
+
+		if ($preview) {
+			frm.toggle_display(""preview"", true);
+			frm.get_field(""preview_html"").$wrapper.html($preview);
+		}
+	},
+
+	download: function (frm) {
+		let file_url = frm.doc.file_url;
+		if (frm.doc.file_name) {
+			file_url = file_url.replace(/#/g, ""%23"");
+		}
+
+		// create temporary link element to simulate a download click
+		var link = document.createElement(""a"");
+		link.href = file_url;
+		link.download = frm.doc.file_name;
+		link.style.display = ""none"";
+
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+	},
+
+	optimize: function (frm) {
+		frappe.show_alert(__(""Optimizing image...""));
+		frm.call(""optimize_file"").then(() => {
+			frappe.show_alert(__(""Image optimized""));
+		});
+	},
+
+	unzip: function (frm) {
+		frappe.call({
+			method: ""frappe.core.api.file.unzip_file"",
+			args: {
+				name: frm.doc.name,
+			},
+			callback: function () {
+				frappe.set_route(""List"", ""File"");
+			},
+		});
+	},
+});
+"
+file.json,Included,application/json,4524,"{
+ ""actions"": [],
+ ""allow_import"": 1,
+ ""creation"": ""2012-12-12 11:19:22"",
+ ""default_view"": ""File"",
+ ""doctype"": ""DocType"",
+ ""engine"": ""InnoDB"",
+ ""field_order"": [
+  ""file_name"",
+  ""is_private"",
+  ""column_break_7jmm"",
+  ""file_type"",
+  ""preview"",
+  ""preview_html"",
+  ""section_break_5"",
+  ""is_home_folder"",
+  ""is_attachments_folder"",
+  ""file_size"",
+  ""column_break_5"",
+  ""file_url"",
+  ""thumbnail_url"",
+  ""folder"",
+  ""is_folder"",
+  ""section_break_8"",
+  ""attached_to_doctype"",
+  ""column_break_10"",
+  ""attached_to_name"",
+  ""attached_to_field"",
+  ""old_parent"",
+  ""content_hash"",
+  ""uploaded_to_dropbox"",
+  ""uploaded_to_google_drive""
+ ],
+ ""fields"": [
+  {
+   ""fieldname"": ""file_name"",
+   ""fieldtype"": ""Data"",
+   ""in_global_search"": 1,
+   ""label"": ""File Name"",
+   ""oldfieldname"": ""file_name"",
+   ""oldfieldtype"": ""Data"",
+   ""read_only"": 1
+  },
+  {
+   ""default"": ""0"",
+   ""depends_on"": ""eval:!doc.is_folder"",
+   ""fieldname"": ""is_private"",
+   ""fieldtype"": ""Check"",
+   ""label"": ""Is Private""
+  },
+  {
+   ""fieldname"": ""preview"",
+   ""fieldtype"": ""Section Break"",
+   ""label"": ""Preview""
+  },
+  {
+   ""fieldname"": ""preview_html"",
+   ""fieldtype"": ""HTML"",
+   ""label"": ""Preview HTML""
+  },
+  {
+   ""fieldname"": ""section_break_5"",
+   ""fieldtype"": ""Section Break""
+  },
+  {
+   ""default"": ""0"",
+   ""fieldname"": ""is_home_folder"",
+   ""fieldtype"": ""Check"",
+   ""hidden"": 1,
+   ""label"": ""Is Home Folder""
+  },
+  {
+   ""default"": ""0"",
+   ""fieldname"": ""is_attachments_folder"",
+   ""fieldtype"": ""Check"",
+   ""hidden"": 1,
+   ""label"": ""Is Attachments Folder""
+  },
+  {
+   ""fieldname"": ""file_size"",
+   ""fieldtype"": ""Int"",
+   ""in_list_view"": 1,
+   ""label"": ""File Size"",
+   ""length"": 20,
+   ""options"": ""File Size"",
+   ""read_only"": 1
+  },
+  {
+   ""fieldname"": ""column_break_5"",
+   ""fieldtype"": ""Column Break""
+  },
+  {
+   ""depends_on"": ""eval:!doc.is_folder"",
+   ""fieldname"": ""file_url"",
+   ""fieldtype"": ""Code"",
+   ""label"": ""File URL"",
+   ""read_only"": 1
+  },
+  {
+   ""fieldname"": ""thumbnail_url"",
+   ""fieldtype"": ""Small Text"",
+   ""label"": ""Thumbnail URL"",
+   ""read_only"": 1
+  },
+  {
+   ""fieldname"": ""folder"",
+   ""fieldtype"": ""Link"",
+   ""hidden"": 1,
+   ""label"": ""Folder"",
+   ""length"": 255,
+   ""options"": ""File"",
+   ""read_only"": 1
+  },
+  {
+   ""default"": ""0"",
+   ""fieldname"": ""is_folder"",
+   ""fieldtype"": ""Check"",
+   ""label"": ""Is Folder"",
+   ""read_only"": 1
+  },
+  {
+   ""depends_on"": ""eval:!doc.is_folder"",
+   ""fieldname"": ""section_break_8"",
+   ""fieldtype"": ""Section Break""
+  },
+  {
+   ""fieldname"": ""attached_to_doctype"",
+   ""fieldtype"": ""Link"",
+   ""in_standard_filter"": 1,
+   ""label"": ""Attached To DocType"",
+   ""options"": ""DocType"",
+   ""read_only"": 1
+  },
+  {
+   ""fieldname"": ""column_break_10"",
+   ""fieldtype"": ""Column Break""
+  },
+  {
+   ""fieldname"": ""attached_to_name"",
+   ""fieldtype"": ""Data"",
+   ""label"": ""Attached To Name"",
+   ""read_only"": 1
+  },
+  {
+   ""fieldname"": ""attached_to_field"",
+   ""fieldtype"": ""Data"",
+   ""label"": ""Attached To Field"",
+   ""read_only"": 1
+  },
+  {
+   ""fieldname"": ""old_parent"",
+   ""fieldtype"": ""Data"",
+   ""hidden"": 1,
+   ""label"": ""old_parent""
+  },
+  {
+   ""fieldname"": ""content_hash"",
+   ""fieldtype"": ""Data"",
+   ""label"": ""Content Hash"",
+   ""read_only"": 1
+  },
+  {
+   ""default"": ""0"",
+   ""fieldname"": ""uploaded_to_dropbox"",
+   ""fieldtype"": ""Check"",
+   ""label"": ""Uploaded To Dropbox"",
+   ""read_only"": 1
+  },
+  {
+   ""default"": ""0"",
+   ""fieldname"": ""uploaded_to_google_drive"",
+   ""fieldtype"": ""Check"",
+   ""label"": ""Uploaded To Google Drive"",
+   ""read_only"": 1
+  },
+  {
+   ""fieldname"": ""column_break_7jmm"",
+   ""fieldtype"": ""Column Break""
+  },
+  {
+   ""fieldname"": ""file_type"",
+   ""fieldtype"": ""Data"",
+   ""in_list_view"": 1,
+   ""in_standard_filter"": 1,
+   ""label"": ""File Type"",
+   ""read_only"": 1
+  }
+ ],
+ ""force_re_route_to_default_view"": 1,
+ ""icon"": ""fa fa-file"",
+ ""idx"": 1,
+ ""links"": [],
+ ""modified"": ""2025-01-15 11:46:42.917146"",
+ ""modified_by"": ""Administrator"",
+ ""module"": ""Core"",
+ ""name"": ""File"",
+ ""owner"": ""Administrator"",
+ ""permissions"": [
+  {
+   ""create"": 1,
+   ""delete"": 1,
+   ""email"": 1,
+   ""export"": 1,
+   ""import"": 1,
+   ""print"": 1,
+   ""read"": 1,
+   ""report"": 1,
+   ""role"": ""System Manager"",
+   ""share"": 1,
+   ""write"": 1
+  },
+  {
+   ""create"": 1,
+   ""delete"": 1,
+   ""read"": 1,
+   ""role"": ""All"",
+   ""write"": 1
+  }
+ ],
+ ""sort_field"": ""creation"",
+ ""sort_order"": ""DESC"",
+ ""states"": [],
+ ""title_field"": ""file_name"",
+ ""track_changes"": 1
+}"
+file.py,Truncated to 6000 bytes due to size > 6000,text/x-python,27415,"# Copyright (c) 2022, Frappe Technologies Pvt. Ltd. and Contributors
+# License: MIT. See LICENSE
+
+import io
+import mimetypes
+import os
+import re
+import shutil
+import zipfile
+from urllib.parse import quote, unquote
+
+from PIL import Image, ImageFile, ImageOps
+
+import frappe
+from frappe import _
+from frappe.database.schema import SPECIAL_CHAR_PATTERN
+from frappe.exceptions import DoesNotExistError
+from frappe.model.document import Document
+from frappe.permissions import SYSTEM_USER_ROLE, get_doctypes_with_read
+from frappe.utils import call_hook_method, cint, get_files_path, get_hook_method, get_url
+from frappe.utils.file_manager import is_safe_path
+from frappe.utils.image import optimize_image, strip_exif_data
+
+from .exceptions import (
+	AttachmentLimitReached,
+	FileTypeNotAllowed,
+	FolderNotEmpty,
+	MaxFileSizeReachedError,
+)
+from .utils import *
+
+exclude_from_linked_with = True
+ImageFile.LOAD_TRUNCATED_IMAGES = True
+URL_PREFIXES = (""http://"", ""https://"")
+FILE_ENCODING_OPTIONS = (""utf-8-sig"", ""utf-8"", ""windows-1250"", ""windows-1252"")
+
+
+class File(Document):
+	# begin: auto-generated types
+	# This code is auto-generated. Do not modify anything in this block.
+
+	from typing import TYPE_CHECKING
+
+	if TYPE_CHECKING:
+		from frappe.types import DF
+
+		attached_to_doctype: DF.Link | None
+		attached_to_field: DF.Data | None
+		attached_to_name: DF.Data | None
+		content_hash: DF.Data | None
+		file_name: DF.Data | None
+		file_size: DF.Int
+		file_type: DF.Data | None
+		file_url: DF.Code | None
+		folder: DF.Link | None
+		is_attachments_folder: DF.Check
+		is_folder: DF.Check
+		is_home_folder: DF.Check
+		is_private: DF.Check
+		old_parent: DF.Data | None
+		thumbnail_url: DF.SmallText | None
+		uploaded_to_dropbox: DF.Check
+		uploaded_to_google_drive: DF.Check
+	# end: auto-generated types
+
+	no_feed_on_delete = True
+
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		# if content is set, file_url will be generated
+		# decode comes in the picture if content passed has to be decoded before writing to disk
+
+		self.content = self.get(""content"") or b""""
+		self.decode = self.get(""decode"", False)
+
+	@property
+	def is_remote_file(self):
+		if self.file_url:
+			return self.file_url.startswith(URL_PREFIXES)
+		return not self.content
+
+	def autoname(self):
+		""""""Set name for folder""""""
+		if self.is_folder:
+			if self.folder:
+				self.name = self.get_name_based_on_parent_folder()
+			else:
+				# home
+				self.name = self.file_name
+		else:
+			self.name = frappe.generate_hash(length=10)
+
+	def before_insert(self):
+		# Ensure correct formatting and type
+		self.file_url = unquote(self.file_url) if self.file_url else """"
+
+		self.set_folder_name()
+		self.set_is_private()
+		self.set_file_name()
+		self.validate_attachment_limit()
+		self.set_file_type()
+		self.validate_file_extension()
+
+		if self.is_folder:
+			return
+
+		if self.is_remote_file:
+			self.validate_remote_file()
+		else:
+			self.save_file(content=self.get_content())
+			self.flags.new_file = True
+			frappe.db.after_rollback.add(self.on_rollback)
+
+		self.validate_duplicate_entry()  # Hash is generated in save_file
+
+	def after_insert(self):
+		if not self.is_folder:
+			self.create_attachment_record()
+
+	def validate(self):
+		if self.is_folder:
+			return
+
+		self.validate_attachment_references()
+
+		# when dict is passed to get_doc for creation of new_doc, is_new returns None
+		# this case is handled inside handle_is_private_changed
+		if not self.is_new() and self.has_value_changed(""is_private""):
+			self.handle_is_private_changed()
+
+		self.validate_file_path()
+		self.validate_file_url()
+		self.validate_file_on_disk()
+
+		self.file_size = frappe.form_dict.file_size or self.file_size
+
+	def validate_attachment_references(self):
+		if not self.attached_to_doctype:
+			return
+
+		if not self.attached_to_name or not isinstance(self.attached_to_name, str | int):
+			frappe.throw(_(""Attached To Name must be a string or an integer""), frappe.ValidationError)
+
+		if self.attached_to_field and SPECIAL_CHAR_PATTERN.search(self.attached_to_field):
+			frappe.throw(_(""The fieldname you've specified in Attached To Field is invalid""))
+
+	def after_rename(self, *args, **kwargs):
+		for successor in self.get_successors():
+			setup_folder_path(successor, self.name)
+
+	def on_trash(self):
+		if self.is_home_folder or self.is_attachments_folder:
+			frappe.throw(_(""Cannot delete Home and Attachments folders""))
+		self.validate_empty_folder()
+		self.validate_protected_file()
+		self._delete_file_on_disk()
+		if not self.is_folder:
+			self.add_comment_in_reference_doc(""Attachment Removed"", self.file_name)
+
+	def on_rollback(self):
+		rollback_flags = (""new_file"", ""original_content"", ""original_path"")
+
+		def pop_rollback_flags():
+			for flag in rollback_flags:
+				self.flags.pop(flag, None)
+
+		# following condition is only executed when an insert has been rolledback
+		if self.flags.new_file:
+			self._delete_file_on_disk()
+			pop_rollback_flags()
+			return
+
+		# if original_content flag is set, this rollback should revert the file to its original state
+		if self.flags.original_content:
+			file_path = self.get_full_path()
+
+			if isinstance(self.flags.original_content, bytes):
+				mode = ""wb+""
+			elif isinstance(self.flags.original_content, str):
+				mode = ""w+""
+
+			with open(file_path, mode) as f:
+				f.write(self.flags.original_content)
+				os.fsync(f.fileno())
+				pop_rollback_flags()
+
+		# used in case file path (File.file_url) has been changed
+		if self.flags.original_path:
+			target = self.flags.original_path[""old""]
+			source = self.flags.original_path[""new""]
+			shutil.move(source, target)
+			pop_rollback_flags()
+
+	def get_name_based_on_parent_folder(self) -> str | None:
+		if self.folder:
+			return os.path.join(self.folder, self.file_name)
+
+	def get_successors(self):
+		return frappe.get_all(""File"", filters={""folder"": self.name}, pluck=""name"")
+
+	def validate_file_path(self):
+		if self.is_remote_file:
+			return
+
+		base_path = os.path.realpath(get_files_path(is_private=self.is_private))
+		if not os.path.realp"
+test_file.py,Truncated to 6000 bytes due to size > 6000,text/x-python,30631,"# Copyright (c) 2022, Frappe Technologies Pvt. Ltd. and Contributors
+# License: MIT. See LICENSE
+import base64
+import os
+import shutil
+import tempfile
+from contextlib import contextmanager
+from typing import TYPE_CHECKING
+
+import frappe
+from frappe import _
+from frappe.core.api.file import (
+	create_new_folder,
+	get_attached_images,
+	get_files_in_folder,
+	move_file,
+	unzip_file,
+)
+from frappe.core.doctype.file.exceptions import FileTypeNotAllowed
+from frappe.core.doctype.file.utils import get_corrupted_image_msg, get_extension
+from frappe.desk.form.utils import add_comment
+from frappe.exceptions import ValidationError
+from frappe.tests import IntegrationTestCase, UnitTestCase
+from frappe.utils import get_files_path, set_request
+
+if TYPE_CHECKING:
+	from frappe.core.doctype.file.file import File
+
+test_content1 = ""Hello""
+test_content2 = ""Hello World""
+
+
+def make_test_doc(ignore_permissions=False):
+	d = frappe.new_doc(""ToDo"")
+	d.description = ""Test""
+	d.assigned_by = frappe.session.user
+	d.save(ignore_permissions)
+	return d.doctype, d.name
+
+
+@contextmanager
+def make_test_image_file(private=False):
+	file_path = frappe.get_app_path(""frappe"", ""tests/data/sample_image_for_optimization.jpg"")
+	with open(file_path, ""rb"") as f:
+		file_content = f.read()
+
+	test_file = frappe.get_doc(
+		{
+			""doctype"": ""File"",
+			""file_name"": ""sample_image_for_optimization.jpg"",
+			""content"": file_content,
+			""is_private"": private,
+		}
+	).insert()
+	# remove those flags
+	_test_file: File = frappe.get_doc(""File"", test_file.name)
+
+	try:
+		yield _test_file
+	finally:
+		_test_file.delete()
+
+
+class UnitTestFile(UnitTestCase):
+	""""""
+	Unit tests for File.
+	Use this class for testing individual functions and methods.
+	""""""
+
+	pass
+
+
+class TestSimpleFile(IntegrationTestCase):
+	def setUp(self):
+		self.attached_to_doctype, self.attached_to_docname = make_test_doc()
+		self.test_content = test_content1
+		_file = frappe.get_doc(
+			{
+				""doctype"": ""File"",
+				""file_name"": ""test1.txt"",
+				""attached_to_doctype"": self.attached_to_doctype,
+				""attached_to_name"": self.attached_to_docname,
+				""content"": self.test_content,
+			}
+		)
+		_file.save()
+		self.saved_file_url = _file.file_url
+
+	def test_save(self):
+		_file = frappe.get_doc(""File"", {""file_url"": self.saved_file_url})
+		content = _file.get_content()
+		self.assertEqual(content, self.test_content)
+
+
+class TestFSRollbacks(IntegrationTestCase):
+	def test_rollback_from_file_system(self):
+		file_name = content = frappe.generate_hash()
+		file = frappe.new_doc(""File"", file_name=file_name, content=content).insert()
+		self.assertTrue(file.exists_on_disk())
+
+		frappe.db.rollback()
+		self.assertFalse(file.exists_on_disk())
+
+
+class TestExtensionValidations(IntegrationTestCase):
+	@IntegrationTestCase.change_settings(""System Settings"", {""allowed_file_extensions"": ""JPG\nCSV""})
+	def test_allowed_extension(self):
+		set_request(method=""POST"", path=""/"")
+		file_name = content = frappe.generate_hash()
+		bad_file = frappe.new_doc(""File"", file_name=f""{file_name}.png"", content=content)
+		self.assertRaises(FileTypeNotAllowed, bad_file.insert)
+
+		bad_file = frappe.new_doc(""File"", file_name=f""{file_name}.csv"", content=content).insert()
+		frappe.db.rollback()
+		self.assertFalse(bad_file.exists_on_disk())
+
+
+class TestBase64File(IntegrationTestCase):
+	def setUp(self):
+		self.attached_to_doctype, self.attached_to_docname = make_test_doc()
+		self.test_content = base64.b64encode(test_content1.encode(""utf-8""))
+		_file: frappe.Document = frappe.get_doc(
+			{
+				""doctype"": ""File"",
+				""file_name"": ""test_base64.txt"",
+				""attached_to_doctype"": self.attached_to_doctype,
+				""attached_to_name"": self.attached_to_docname,
+				""content"": self.test_content,
+				""decode"": True,
+			}
+		)
+		_file.save()
+		self.saved_file_url = _file.file_url
+
+	def test_saved_content(self):
+		_file: frappe.Document = frappe.get_doc(""File"", {""file_url"": self.saved_file_url})
+		content = _file.get_content()
+		self.assertEqual(content, test_content1)
+
+
+class TestSameFileName(IntegrationTestCase):
+	def test_saved_content(self):
+		self.attached_to_doctype, self.attached_to_docname = make_test_doc()
+		self.test_content1 = test_content1
+		self.test_content2 = test_content2
+		_file1 = frappe.get_doc(
+			{
+				""doctype"": ""File"",
+				""file_name"": ""testing.txt"",
+				""attached_to_doctype"": self.attached_to_doctype,
+				""attached_to_name"": self.attached_to_docname,
+				""content"": self.test_content1,
+			}
+		)
+		_file1.save()
+		_file2 = frappe.get_doc(
+			{
+				""doctype"": ""File"",
+				""file_name"": ""testing.txt"",
+				""attached_to_doctype"": self.attached_to_doctype,
+				""attached_to_name"": self.attached_to_docname,
+				""content"": self.test_content2,
+			}
+		)
+		_file2.save()
+		self.saved_file_url1 = _file1.file_url
+		self.saved_file_url2 = _file2.file_url
+
+		_file = frappe.get_doc(""File"", {""file_url"": self.saved_file_url1})
+		content1 = _file.get_content()
+		self.assertEqual(content1, self.test_content1)
+		_file = frappe.get_doc(""File"", {""file_url"": self.saved_file_url2})
+		content2 = _file.get_content()
+		self.assertEqual(content2, self.test_content2)
+
+	def test_saved_content_private(self):
+		_file1 = frappe.get_doc(
+			{
+				""doctype"": ""File"",
+				""file_name"": ""testing-private.txt"",
+				""content"": test_content1,
+				""is_private"": 1,
+			}
+		).insert()
+		_file2 = frappe.get_doc(
+			{
+				""doctype"": ""File"",
+				""file_name"": ""testing-private.txt"",
+				""content"": test_content2,
+				""is_private"": 1,
+			}
+		).insert()
+
+		_file = frappe.get_doc(""File"", {""file_url"": _file1.file_url})
+		self.assertEqual(_file.get_content(), test_content1)
+
+		_file = frappe.get_doc(""File"", {""file_url"": _file2.file_url})
+		self.assertEqual(_file.get_content(), test_content2)
+
+
+class TestSameContent(IntegrationTestCase):
+	def setUp(self):
+		self.attached_to_doctype1, self.attached_to_docname1 = make_test_doc()
+		self.attached_to_doctype2, self.attached_to_docname2 = make_test_doc()
+		self.test_content1 = test_content1
+		self.test_content2 = test_content1
+		self.orig_filename = ""hello.txt""
+		sel"
+utils.py,Truncated to 6000 bytes due to size > 6000,text/x-python,12143,"import hashlib
+import mimetypes
+import os
+import re
+from binascii import Error as BinasciiError
+from io import BytesIO
+from typing import TYPE_CHECKING, Optional
+from urllib.parse import unquote
+
+import filetype
+
+import frappe
+from frappe import _, safe_decode
+from frappe.utils import cint, cstr, encode, get_files_path, random_string, strip
+from frappe.utils.file_manager import safe_b64decode
+
+if TYPE_CHECKING:
+	from PIL.ImageFile import ImageFile
+	from requests.models import Response
+
+	from frappe.model.document import Document
+
+	from .file import File
+
+
+def make_home_folder() -> None:
+	home = frappe.get_doc(
+		{""doctype"": ""File"", ""is_folder"": 1, ""is_home_folder"": 1, ""file_name"": ""Home""}
+	).insert(ignore_if_duplicate=True)
+
+	frappe.get_doc(
+		{
+			""doctype"": ""File"",
+			""folder"": home.name,
+			""is_folder"": 1,
+			""is_attachments_folder"": 1,
+			""file_name"": ""Attachments"",
+		}
+	).insert(ignore_if_duplicate=True)
+
+
+def setup_folder_path(filename: str, new_parent: str) -> None:
+	file: File = frappe.get_doc(""File"", filename)
+	file.folder = new_parent
+	file.save()
+
+	if file.is_folder:
+		from frappe.model.rename_doc import rename_doc
+
+		rename_doc(""File"", file.name, file.get_name_based_on_parent_folder(), ignore_permissions=True)
+
+
+def get_extension(
+	filename,
+	extn: str | None = None,
+	content: bytes | None = None,
+	response: Optional[""Response""] = None,
+) -> str:
+	mimetype = None
+
+	if response:
+		content_type = response.headers.get(""Content-Type"")
+
+		if content_type:
+			_extn = mimetypes.guess_extension(content_type)
+			if _extn:
+				return _extn[1:]
+
+	if extn:
+		# remove '?' char and parameters from extn if present
+		if ""?"" in extn:
+			extn = extn.split(""?"", 1)[0]
+
+		mimetype = mimetypes.guess_type(filename + ""."" + extn)[0]
+
+	if mimetype is None and extn is None and content:
+		# detect file extension by using filetype matchers
+		_type_info = filetype.match(content)
+		if _type_info:
+			extn = _type_info.extension
+
+	return extn
+
+
+def get_local_image(file_url: str) -> tuple[""ImageFile"", str, str]:
+	from PIL import Image
+
+	if file_url.startswith(""/private""):
+		file_url_path = (file_url.lstrip(""/""),)
+	else:
+		file_url_path = (""public"", file_url.lstrip(""/""))
+
+	file_path = frappe.get_site_path(*file_url_path)
+
+	try:
+		image = Image.open(file_path)
+	except OSError:
+		frappe.throw(_(""Unable to read file format for {0}"").format(file_url))
+
+	content = None
+
+	try:
+		filename, extn = file_url.rsplit(""."", 1)
+	except ValueError:
+		# no extn
+		with open(file_path) as f:
+			content = f.read()
+
+		filename = file_url
+		extn = None
+
+	extn = get_extension(filename, extn, content)
+
+	return image, filename, extn
+
+
+def get_web_image(file_url: str) -> tuple[""ImageFile"", str, str]:
+	import requests
+	import requests.exceptions
+	from PIL import Image
+
+	file_url = frappe.utils.get_url(file_url)
+	r = requests.get(file_url, stream=True)
+	try:
+		r.raise_for_status()
+	except requests.exceptions.HTTPError as e:
+		if ""404"" in e.args[0]:
+			frappe.msgprint(_(""File '{0}' not found"").format(file_url))
+		else:
+			frappe.msgprint(_(""Unable to read file format for {0}"").format(file_url))
+		raise
+
+	try:
+		image = Image.open(BytesIO(r.content))
+	except Exception as e:
+		frappe.msgprint(_(""Image link '{0}' is not valid"").format(file_url), raise_exception=e)
+
+	try:
+		filename, extn = file_url.rsplit(""/"", 1)[1].rsplit(""."", 1)
+	except ValueError:
+		# the case when the file url doesn't have filename or extension
+		# but is fetched due to a query string. example: https://encrypted-tbn3.gstatic.com/images?q=something
+		filename = get_random_filename()
+		extn = None
+
+	extn = get_extension(filename, extn, r.content)
+	filename = ""/files/"" + strip(unquote(filename))
+
+	return image, filename, extn
+
+
+def delete_file(path: str) -> None:
+	""""""Delete file from `public folder`""""""
+	if path:
+		if "".."" in path.split(""/""):
+			frappe.throw(
+				_(""It is risky to delete this file: {0}. Please contact your System Manager."").format(path)
+			)
+
+		parts = os.path.split(path.strip(""/""))
+		if parts[0] == ""files"":
+			path = frappe.utils.get_site_path(""public"", ""files"", parts[-1])
+
+		else:
+			path = frappe.utils.get_site_path(""private"", ""files"", parts[-1])
+
+		path = encode(path)
+		if os.path.exists(path):
+			os.remove(path)
+
+
+def remove_file_by_url(file_url: str, doctype: str | None = None, name: str | None = None) -> ""Document"":
+	if doctype and name:
+		fid = frappe.db.get_value(
+			""File"", {""file_url"": file_url, ""attached_to_doctype"": doctype, ""attached_to_name"": name}
+		)
+	else:
+		fid = frappe.db.get_value(""File"", {""file_url"": file_url})
+
+	if fid:
+		from frappe.utils.file_manager import remove_file
+
+		return remove_file(fid=fid)
+
+
+def get_content_hash(content: bytes | str) -> str:
+	if isinstance(content, str):
+		content = content.encode()
+	return hashlib.md5(content, usedforsecurity=False).hexdigest()  # nosec
+
+
+def generate_file_name(name: str, suffix: str | None = None, is_private: bool = False) -> str:
+	""""""Generate conflict-free file name. Suffix will be ignored if name available. If the
+	provided suffix doesn't result in an available path, a random suffix will be picked.
+	""""""
+
+	def path_exists(name, is_private):
+		return os.path.exists(encode(get_files_path(name, is_private=is_private)))
+
+	if not path_exists(name, is_private):
+		return name
+
+	candidate_path = get_file_name(name, suffix)
+
+	if path_exists(candidate_path, is_private):
+		return generate_file_name(name, is_private=is_private)
+	return candidate_path
+
+
+def get_file_name(fname: str, optional_suffix: str | None = None) -> str:
+	# convert to unicode
+	fname = cstr(fname)
+	partial, extn = os.path.splitext(fname)
+	suffix = optional_suffix or frappe.generate_hash(length=6)
+
+	return f""{partial}{suffix}{extn}""
+
+
+def extract_images_from_doc(doc: ""Document"", fieldname: str, is_private=True):
+	content = doc.get(fieldname)
+	if doc.meta.make_attachments_public:
+		is_private = False
+	content = extract_images_from_html(doc, content, is_private=is_private)
+	if frappe.flags.has_dataurl:
+		doc.set(fieldname, content)
+"
+__init__.py,Included,text/x-python,49,"from .exceptions import *
+from .utils import *
+"

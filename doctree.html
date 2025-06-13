@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>ERPNext Item Group Tree</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 1rem;
+    }
+    .node {
+      margin-left: 20px;
+    }
+    .toggle {
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .attributes {
+      font-size: 0.9em;
+      color: gray;
+      margin-left: 5px;
+    }
+    .key {
+      color: orange;
+    }
+    .value-string {
+      color: green;
+    }
+    .value-number {
+      color: blue;
+    }
+  </style>
+</head>
+<body>
+
+<h2>ERPNext Item Group Tree</h2>
+<div id="tree-root"></div>
+
+<script>
+  const treeData = {
+    name: "All Item Groups",
+    attributes: {},
+    children: [
+      {
+        name: "Labor / Services",
+        attributes: {doctype: "Item Group", is_group: 1},
+        children: [
+          {
+            name: "Routine Maintenance",
+            attributes: {doctype: "Item Group", is_group: 1, parent_item_group: "Labor / Services"},
+            children: [
+              {name: "Oil Change", attributes: {is_group: 1}},
+              {name: "Tire Rotation", attributes: {is_group: 1}},
+              {name: "Cabin Air Filter Replacement", attributes: {is_group: 1}}
+            ]
+          },
+          {
+            name: "Diagnostics",
+            attributes: {doctype: "Item Group", is_group: 1, parent_item_group: "Labor / Services"},
+            children: [
+              {name: "Check Engine Light", attributes: {is_group: 1}},
+              {name: "Electrical System Check", attributes: {is_group: 1}},
+              {name: "Drivability Diagnosis", attributes: {is_group: 1}}
+            ]
+          },
+          {
+            name: "Inspections",
+            attributes: {doctype: "Item Group", is_group: 1, parent_item_group: "Labor / Services"},
+            children: [
+              {name: "18-Point Inspection", attributes: {is_group: 1}},
+              {name: "30-Point Inspection", attributes: {is_group: 1}},
+              {name: "Courtesy Inspection", attributes: {is_group: 1}}
+            ]
+          },
+          {
+            name: "Canned Jobs (Bundles)",
+            attributes: {doctype: "Item Group", is_group: 1, parent_item_group: "Labor / Services"},
+            children: [
+              {name: "Brake Job Bundle", attributes: {is_group: 1}},
+              {name: "Transmission Service", attributes: {is_group: 1}},
+              {name: "A/C Inspect & Recharge", attributes: {is_group: 1}}
+            ]
+          }
+        ]
+      },
+      {
+        name: "Parts",
+        attributes: {doctype: "Item Group", is_group: 1},
+        children: [
+          {name: "Part", attributes: {is_group: 1}},
+          {name: "Tire", attributes: {is_group: 1}},
+          {name: "Battery", attributes: {is_group: 1}}
+        ]
+      }
+    ]
+  };
+
+  function renderTree(node, container) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'node';
+
+    const header = document.createElement('div');
+    header.className = 'toggle';
+    header.textContent = node.name;
+
+    const attrSpan = document.createElement('span');
+    attrSpan.className = 'attributes';
+    attrSpan.innerHTML = formatAttributes(node.attributes);
+    header.appendChild(attrSpan);
+
+    const childrenContainer = document.createElement('div');
+    childrenContainer.style.display = 'none';
+
+    if (node.children && node.children.length > 0) {
+      header.addEventListener('click', () => {
+        childrenContainer.style.display = childrenContainer.style.display === 'none' ? 'block' : 'none';
+      });
+      node.children.forEach(child => renderTree(child, childrenContainer));
+    }
+
+    wrapper.appendChild(header);
+    wrapper.appendChild(childrenContainer);
+    container.appendChild(wrapper);
+  }
+
+  function formatAttributes(attrs) {
+    return Object.entries(attrs).map(([key, val]) => {
+      const valClass = typeof val === 'number' ? 'value-number' : 'value-string';
+      return `<span class="key">${key}</span>: <span class="${valClass}">${JSON.stringify(val)}</span>`;
+    }).join(', ');
+  }
+
+  renderTree(treeData, document.getElementById('tree-root'));
+</script>
+
+</body>
+</html>

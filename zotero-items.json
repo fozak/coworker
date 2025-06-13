@@ -1,0 +1,841 @@
+[
+    {
+        "key": "EU7EAILU",
+        "version": 0,
+        "library": {
+            "type": "user",
+            "id": 0,
+            "name": "My Library",
+            "links": {
+                "self": {
+                    "href": "http://localhost:23119/api/users/0",
+                    "type": "application/json"
+                }
+            }
+        },
+        "links": {
+            "self": {
+                "href": "http://localhost:23119/api/users/0/items/EU7EAILU",
+                "type": "application/json"
+            }
+        },
+        "meta": {
+            "parsedDate": "1980",
+            "numChildren": 0
+        },
+        "data": {
+            "key": "EU7EAILU",
+            "version": 0,
+            "itemType": "book",
+            "title": "The Restaurant at the End of the Universe34",
+            "date": "1980",
+            "url": "https://example.com/restaurant-at-the-end-of-the-universe",
+            "extra": "Duedate: 08/15/2025\nTask: TASK-2025",
+            "place": "London",
+            "publisher": "Pan Books",
+            "ISBN": "978-0330267320",
+            "creators": [],
+            "tags": [],
+            "collections": [
+                "G7JHAI8W"
+            ],
+            "relations": {},
+            "dateAdded": "2025-05-27T19:07:32Z",
+            "dateModified": "2025-05-27T19:07:32Z"
+        }
+    },
+    {
+        "key": "RPYV9GRK",
+        "version": 0,
+        "library": {
+            "type": "user",
+            "id": 0,
+            "name": "My Library",
+            "links": {
+                "self": {
+                    "href": "http://localhost:23119/api/users/0",
+                    "type": "application/json"
+                }
+            }
+        },
+        "links": {
+            "self": {
+                "href": "http://localhost:23119/api/users/0/items/RPYV9GRK",
+                "type": "application/json"
+            }
+        },
+        "meta": {
+            "parsedDate": "1980",
+            "numChildren": 0
+        },
+        "data": {
+            "key": "RPYV9GRK",
+            "version": 0,
+            "itemType": "book",
+            "title": "The Restaurant at the End of the Universe34",
+            "date": "1980",
+            "url": "https://example.com/restaurant-at-the-end-of-the-universe",
+            "extra": "Task: TASK-2025",
+            "place": "London",
+            "publisher": "Pan Books",
+            "ISBN": "978-0330267320",
+            "creators": [],
+            "tags": [],
+            "collections": [
+                "G7JHAI8W"
+            ],
+            "relations": {},
+            "dateAdded": "2025-05-27T19:03:48Z",
+            "dateModified": "2025-05-27T19:03:48Z"
+        }
+    },
+    {
+        "key": "XKQAVRWX",
+        "version": 0,
+        "library": {
+            "type": "user",
+            "id": 0,
+            "name": "My Library",
+            "links": {
+                "self": {
+                    "href": "http://localhost:23119/api/users/0",
+                    "type": "application/json"
+                }
+            }
+        },
+        "links": {
+            "self": {
+                "href": "http://localhost:23119/api/users/0/items/XKQAVRWX",
+                "type": "application/json"
+            }
+        },
+        "meta": {
+            "parsedDate": "1980",
+            "numChildren": 0
+        },
+        "data": {
+            "key": "XKQAVRWX",
+            "version": 0,
+            "itemType": "book",
+            "title": "The Restaurant at the End of the Universe23",
+            "date": "1980",
+            "url": "https://example.com/restaurant-at-the-end-of-the-universe",
+            "extra": "Creator Summary: Douglas Adams",
+            "place": "London",
+            "publisher": "Pan Books",
+            "ISBN": "978-0330267320",
+            "creators": [],
+            "tags": [],
+            "collections": [
+                "G7JHAI8W"
+            ],
+            "relations": {},
+            "dateAdded": "2025-05-27T19:01:23Z",
+            "dateModified": "2025-05-27T19:01:23Z"
+        }
+    },
+    {
+        "key": "83VHLLXT",
+        "version": 0,
+        "library": {
+            "type": "user",
+            "id": 0,
+            "name": "My Library",
+            "links": {
+                "self": {
+                    "href": "http://localhost:23119/api/users/0",
+                    "type": "application/json"
+                }
+            }
+        },
+        "links": {
+            "self": {
+                "href": "http://localhost:23119/api/users/0/items/83VHLLXT",
+                "type": "application/json"
+            }
+        },
+        "meta": {
+            "parsedDate": "1980",
+            "numChildren": 0
+        },
+        "data": {
+            "key": "83VHLLXT",
+            "version": 0,
+            "itemType": "book",
+            "title": "The Restaurant at the End of the Universe",
+            "date": "1980",
+            "url": "https://example.com/restaurant-at-the-end-of-the-universe",
+            "extra": "Creator Summary: Douglas Adams",
+            "place": "London",
+            "publisher": "Pan Books",
+            "ISBN": "978-0330267320",
+            "creators": [],
+            "tags": [],
+            "collections": [
+                "G7JHAI8W"
+            ],
+            "relations": {},
+            "dateAdded": "2025-05-27T18:54:09Z",
+            "dateModified": "2025-05-27T18:54:09Z"
+        }
+    },
+    {
+        "key": "RP7XTVZY",
+        "version": 0,
+        "library": {
+            "type": "user",
+            "id": 0,
+            "name": "My Library",
+            "links": {
+                "self": {
+                    "href": "http://localhost:23119/api/users/0",
+                    "type": "application/json"
+                }
+            }
+        },
+        "links": {
+            "self": {
+                "href": "http://localhost:23119/api/users/0/items/RP7XTVZY",
+                "type": "application/json"
+            },
+            "attachment": {
+                "href": "http://localhost:23119/api/users/0/items/L74QGKJN",
+                "type": "application/json",
+                "attachmentType": "application/pdf",
+                "attachmentSize": 2314708
+            }
+        },
+        "meta": {
+            "numChildren": 2
+        },
+        "data": {
+            "key": "RP7XTVZY",
+            "version": 0,
+            "itemType": "webpage",
+            "title": "Review documentation - TASK-2025-00001",
+            "url": "https://apfile.com/app/task/TASK-2025-00001",
+            "accessDate": "2025-05-27T13:37:19Z",
+            "extra": "keyword1",
+            "creators": [],
+            "tags": [],
+            "collections": [
+                "G7JHAI8W"
+            ],
+            "relations": {},
+            "dateAdded": "2025-05-27T13:37:19Z",
+            "dateModified": "2025-05-27T18:21:05Z"
+        }
+    },
+    {
+        "key": "ZKXSXH3C",
+        "version": 0,
+        "library": {
+            "type": "user",
+            "id": 0,
+            "name": "My Library",
+            "links": {
+                "self": {
+                    "href": "http://localhost:23119/api/users/0",
+                    "type": "application/json"
+                }
+            }
+        },
+        "links": {
+            "self": {
+                "href": "http://localhost:23119/api/users/0/items/ZKXSXH3C",
+                "type": "application/json"
+            }
+        },
+        "meta": {
+            "creatorSummary": "Smith",
+            "parsedDate": "2025-05-27",
+            "numChildren": 0
+        },
+        "data": {
+            "key": "ZKXSXH3C",
+            "version": 0,
+            "itemType": "journalArticle",
+            "title": "Example Article",
+            "date": "May 27, 2025",
+            "creators": [
+                {
+                    "firstName": "John",
+                    "lastName": "Smith",
+                    "creatorType": "author"
+                }
+            ],
+            "tags": [],
+            "collections": [
+                "K4P8637M"
+            ],
+            "relations": {
+                "dc:relation": [
+                    "http://zotero.org/users/local/4DWMv3oh/items/CUPBNH4X"
+                ]
+            },
+            "dateAdded": "2025-05-27T17:12:16Z",
+            "dateModified": "2025-05-27T17:12:16Z"
+        }
+    },
+    {
+        "key": "WEQG5QP4",
+        "version": 0,
+        "library": {
+            "type": "user",
+            "id": 0,
+            "name": "My Library",
+            "links": {
+                "self": {
+                    "href": "http://localhost:23119/api/users/0",
+                    "type": "application/json"
+                }
+            }
+        },
+        "links": {
+            "self": {
+                "href": "http://localhost:23119/api/users/0/items/WEQG5QP4",
+                "type": "application/json"
+            },
+            "up": {
+                "href": "http://localhost:23119/api/users/0/items/R4CWHUD6",
+                "type": "application/json"
+            },
+            "enclosure": {
+                "href": "file:///C:/Users/i7714/Zotero/storage/WEQG5QP4/SKU005.html",
+                "type": "text/html",
+                "title": "SKU005.html",
+                "length": 3474489
+            }
+        },
+        "meta": {
+            "numChildren": 0
+        },
+        "data": {
+            "key": "WEQG5QP4",
+            "version": 0,
+            "itemType": "attachment",
+            "title": "Item - (no subject) - SKU005 - snapshot",
+            "url": "https://apfile.com/app/item/SKU005",
+            "accessDate": "2025-05-27T17:05:42Z",
+            "parentItem": "R4CWHUD6",
+            "linkMode": "imported_url",
+            "contentType": "text/html",
+            "charset": "utf-8",
+            "filename": "SKU005.html",
+            "tags": [],
+            "relations": {},
+            "dateAdded": "2025-05-27T17:05:42Z",
+            "dateModified": "2025-05-27T17:05:42Z"
+        }
+    },
+    {
+        "key": "R4CWHUD6",
+        "version": 0,
+        "library": {
+            "type": "user",
+            "id": 0,
+            "name": "My Library",
+            "links": {
+                "self": {
+                    "href": "http://localhost:23119/api/users/0",
+                    "type": "application/json"
+                }
+            }
+        },
+        "links": {
+            "self": {
+                "href": "http://localhost:23119/api/users/0/items/R4CWHUD6",
+                "type": "application/json"
+            },
+            "attachment": {
+                "href": "http://localhost:23119/api/users/0/items/WEQG5QP4",
+                "type": "application/json",
+                "attachmentType": "text/html",
+                "attachmentSize": 3474489
+            }
+        },
+        "meta": {
+            "creatorSummary": "Assigned To",
+            "numChildren": 1
+        },
+        "data": {
+            "key": "R4CWHUD6",
+            "version": 0,
+            "itemType": "webpage",
+            "title": "Item - (no subject) - SKU005",
+            "abstractNote": "description",
+            "url": "https://apfile.com/app/item/SKU005",
+            "accessDate": "2025-05-27T17:05:33Z",
+            "extra": "Status: Status\n\t\t\t\t\t\t\n\t\t\t\t\t\n\t\t\t\t\t\n\t\t\t\t\t\t\n\t\t\t\t\t\tOpen\n\t\t\t\t\t\t\n\t\t\t\t\t\n\t\t\t\t\n\t\t\tstatus",
+            "creators": [
+                {
+                    "firstName": "",
+                    "lastName": "Assigned To",
+                    "creatorType": "contributor"
+                }
+            ],
+            "tags": [],
+            "collections": [
+                "G7JHAI8W"
+            ],
+            "relations": {},
+            "dateAdded": "2025-05-27T17:05:33Z",
+            "dateModified": "2025-05-27T17:05:33Z"
+        }
+    },
+    {
+        "key": "CUPBNH4X",
+        "version": 0,
+        "library": {
+            "type": "user",
+            "id": 0,
+            "name": "My Library",
+            "links": {
+                "self": {
+                    "href": "http://localhost:23119/api/users/0",
+                    "type": "application/json"
+                }
+            }
+        },
+        "links": {
+            "self": {
+                "href": "http://localhost:23119/api/users/0/items/CUPBNH4X",
+                "type": "application/json"
+            },
+            "up": {
+                "href": "http://localhost:23119/api/users/0/items/89MTNVAB",
+                "type": "application/json"
+            },
+            "enclosure": {
+                "href": "file:///C:/Users/i7714/Zotero/storage/CUPBNH4X/TASK-2025-00004.html",
+                "type": "text/html",
+                "title": "TASK-2025-00004.html",
+                "length": 3474498
+            }
+        },
+        "meta": {
+            "numChildren": 0
+        },
+        "data": {
+            "key": "CUPBNH4X",
+            "version": 0,
+            "itemType": "attachment",
+            "title": "Task - (no subject) - TASK-2025-00004 - snapshot",
+            "url": "https://apfile.com/app/task/TASK-2025-00004",
+            "accessDate": "2025-05-27T16:55:53Z",
+            "parentItem": "89MTNVAB",
+            "linkMode": "imported_url",
+            "contentType": "text/html",
+            "charset": "utf-8",
+            "filename": "TASK-2025-00004.html",
+            "tags": [],
+            "relations": {
+                "dc:relation": [
+                    "http://zotero.org/users/local/4DWMv3oh/items/ZKXSXH3C"
+                ]
+            },
+            "dateAdded": "2025-05-27T16:55:53Z",
+            "dateModified": "2025-05-27T16:55:53Z"
+        }
+    },
+    {
+        "key": "89MTNVAB",
+        "version": 0,
+        "library": {
+            "type": "user",
+            "id": 0,
+            "name": "My Library",
+            "links": {
+                "self": {
+                    "href": "http://localhost:23119/api/users/0",
+                    "type": "application/json"
+                }
+            }
+        },
+        "links": {
+            "self": {
+                "href": "http://localhost:23119/api/users/0/items/89MTNVAB",
+                "type": "application/json"
+            },
+            "attachment": {
+                "href": "http://localhost:23119/api/users/0/items/CUPBNH4X",
+                "type": "application/json",
+                "attachmentType": "text/html",
+                "attachmentSize": 3474498
+            }
+        },
+        "meta": {
+            "numChildren": 1
+        },
+        "data": {
+            "key": "89MTNVAB",
+            "version": 0,
+            "itemType": "webpage",
+            "title": "Task - (no subject) - TASK-2025-00004",
+            "abstractNote": "description",
+            "url": "https://apfile.com/app/task/TASK-2025-00004",
+            "accessDate": "2025-05-27T16:55:46Z",
+            "extra": "Status: Status\n\t\t\t\t\t\t\n\t\t\t\t\t\n\t\t\t\t\t\n\t\t\t\t\t\t\n\t\t\t\t\t\tOpen\n\t\t\t\t\t\t\n\t\t\t\t\t\n\t\t\t\t\n\t\t\tstatus",
+            "creators": [],
+            "tags": [],
+            "collections": [
+                "G7JHAI8W"
+            ],
+            "relations": {},
+            "dateAdded": "2025-05-27T16:55:46Z",
+            "dateModified": "2025-05-27T16:55:46Z"
+        }
+    },
+    {
+        "key": "L74QGKJN",
+        "version": 0,
+        "library": {
+            "type": "user",
+            "id": 0,
+            "name": "My Library",
+            "links": {
+                "self": {
+                    "href": "http://localhost:23119/api/users/0",
+                    "type": "application/json"
+                }
+            }
+        },
+        "links": {
+            "self": {
+                "href": "http://localhost:23119/api/users/0/items/L74QGKJN",
+                "type": "application/json"
+            },
+            "up": {
+                "href": "http://localhost:23119/api/users/0/items/RP7XTVZY",
+                "type": "application/json"
+            },
+            "enclosure": {
+                "href": "file:///C:/Users/i7714/Zotero/storage/L74QGKJN/SP22-01,%20Mitchell-Lawrence-Cavitt,%2001-25-22.pdf",
+                "type": "application/pdf",
+                "title": "SP22-01, Mitchell-Lawrence-Cavitt, 01-25-22.pdf",
+                "length": 2314708
+            }
+        },
+        "meta": {
+            "numChildren": 0
+        },
+        "data": {
+            "key": "L74QGKJN",
+            "version": 0,
+            "itemType": "attachment",
+            "title": "SP22-01, Mitchell-Lawrence-Cavitt, 01-25-22.pdf",
+            "url": "https://apfile.com/private/files/SP22-01,%20Mitchell-Lawrence-Cavitt,%2001-25-22.pdf",
+            "accessDate": "2025-05-27T13:57:54Z",
+            "parentItem": "RP7XTVZY",
+            "linkMode": "imported_url",
+            "contentType": "application/pdf",
+            "charset": "",
+            "filename": "SP22-01, Mitchell-Lawrence-Cavitt, 01-25-22.pdf",
+            "tags": [],
+            "relations": {},
+            "dateAdded": "2025-05-27T13:57:54Z",
+            "dateModified": "2025-05-27T13:58:55Z"
+        }
+    },
+    {
+        "key": "NHQLMIH6",
+        "version": 0,
+        "library": {
+            "type": "user",
+            "id": 0,
+            "name": "My Library",
+            "links": {
+                "self": {
+                    "href": "http://localhost:23119/api/users/0",
+                    "type": "application/json"
+                }
+            }
+        },
+        "links": {
+            "self": {
+                "href": "http://localhost:23119/api/users/0/items/NHQLMIH6",
+                "type": "application/json"
+            },
+            "up": {
+                "href": "http://localhost:23119/api/users/0/items/RP7XTVZY",
+                "type": "application/json"
+            },
+            "enclosure": {
+                "href": "file:///C:/Users/i7714/Zotero/storage/NHQLMIH6/TASK-2025-00001.html",
+                "type": "text/html",
+                "title": "TASK-2025-00001.html",
+                "length": 3595451
+            }
+        },
+        "meta": {
+            "numChildren": 0
+        },
+        "data": {
+            "key": "NHQLMIH6",
+            "version": 0,
+            "itemType": "attachment",
+            "title": "Review documentation - TASK-2025-00001",
+            "url": "https://apfile.com/app/task/TASK-2025-00001",
+            "accessDate": "2025-05-27T13:37:27Z",
+            "parentItem": "RP7XTVZY",
+            "linkMode": "imported_url",
+            "contentType": "text/html",
+            "charset": "utf-8",
+            "filename": "TASK-2025-00001.html",
+            "tags": [],
+            "relations": {},
+            "dateAdded": "2025-05-27T13:37:27Z",
+            "dateModified": "2025-05-27T13:37:27Z"
+        }
+    },
+    {
+        "key": "58WH3EDK",
+        "version": 0,
+        "library": {
+            "type": "user",
+            "id": 0,
+            "name": "My Library",
+            "links": {
+                "self": {
+                    "href": "http://localhost:23119/api/users/0",
+                    "type": "application/json"
+                }
+            }
+        },
+        "links": {
+            "self": {
+                "href": "http://localhost:23119/api/users/0/items/58WH3EDK",
+                "type": "application/json"
+            },
+            "attachment": {
+                "href": "http://localhost:23119/api/users/0/items/MGHLHG2G",
+                "type": "application/json",
+                "attachmentType": "application/pdf",
+                "attachmentSize": 1606428
+            }
+        },
+        "meta": {
+            "numChildren": 2
+        },
+        "data": {
+            "key": "58WH3EDK",
+            "version": 0,
+            "itemType": "document",
+            "title": "Test-item",
+            "callNumber": "/task/TASK-2025-0001",
+            "url": "https://mozilla.github.io/pdf.js/web/viewer.html",
+            "accessDate": "2025-05-24T18:14:46Z",
+            "creators": [],
+            "tags": [],
+            "collections": [
+                "G7JHAI8W"
+            ],
+            "relations": {},
+            "dateAdded": "2025-05-24T18:14:46Z",
+            "dateModified": "2025-05-26T17:02:02Z"
+        }
+    },
+    {
+        "key": "MGHLHG2G",
+        "version": 0,
+        "library": {
+            "type": "user",
+            "id": 0,
+            "name": "My Library",
+            "links": {
+                "self": {
+                    "href": "http://localhost:23119/api/users/0",
+                    "type": "application/json"
+                }
+            }
+        },
+        "links": {
+            "self": {
+                "href": "http://localhost:23119/api/users/0/items/MGHLHG2G",
+                "type": "application/json"
+            },
+            "up": {
+                "href": "http://localhost:23119/api/users/0/items/58WH3EDK",
+                "type": "application/json"
+            },
+            "enclosure": {
+                "href": "file:///C:/Users/i7714/Zotero/storage/MGHLHG2G/1pagedrawing.pdf",
+                "type": "application/pdf",
+                "title": "1pagedrawing.pdf",
+                "length": 1606428
+            }
+        },
+        "meta": {
+            "numChildren": 0
+        },
+        "data": {
+            "key": "MGHLHG2G",
+            "version": 0,
+            "itemType": "attachment",
+            "title": "1pagedrawing",
+            "parentItem": "58WH3EDK",
+            "linkMode": "imported_file",
+            "contentType": "application/pdf",
+            "charset": "",
+            "filename": "1pagedrawing.pdf",
+            "tags": [],
+            "relations": {},
+            "dateAdded": "2025-05-24T16:57:24Z",
+            "dateModified": "2025-05-26T14:32:08Z"
+        }
+    },
+    {
+        "key": "K7RIKIDQ",
+        "version": 0,
+        "library": {
+            "type": "user",
+            "id": 0,
+            "name": "My Library",
+            "links": {
+                "self": {
+                    "href": "http://localhost:23119/api/users/0",
+                    "type": "application/json"
+                }
+            }
+        },
+        "links": {
+            "self": {
+                "href": "http://localhost:23119/api/users/0/items/K7RIKIDQ",
+                "type": "application/json"
+            },
+            "attachment": {
+                "href": "http://localhost:23119/api/users/0/items/D4W2IHAL",
+                "type": "application/json",
+                "attachmentType": "text/html",
+                "attachmentSize": 5619141
+            }
+        },
+        "meta": {
+            "numChildren": 1
+        },
+        "data": {
+            "key": "K7RIKIDQ",
+            "version": 0,
+            "itemType": "document",
+            "title": "1pagedrawing.pdf - 291521f6e2",
+            "url": "https://apfile.com/app/file/291521f6e2",
+            "accessDate": "2025-05-24T18:20:54Z",
+            "extra": "Task: Spell check",
+            "creators": [],
+            "tags": [
+                {
+                    "tag": "Open"
+                },
+                {
+                    "tag": "Task"
+                }
+            ],
+            "collections": [],
+            "relations": {},
+            "dateAdded": "2025-05-24T18:20:54Z",
+            "dateModified": "2025-05-26T14:29:30Z"
+        }
+    },
+    {
+        "key": "D4W2IHAL",
+        "version": 0,
+        "library": {
+            "type": "user",
+            "id": 0,
+            "name": "My Library",
+            "links": {
+                "self": {
+                    "href": "http://localhost:23119/api/users/0",
+                    "type": "application/json"
+                }
+            }
+        },
+        "links": {
+            "self": {
+                "href": "http://localhost:23119/api/users/0/items/D4W2IHAL",
+                "type": "application/json"
+            },
+            "up": {
+                "href": "http://localhost:23119/api/users/0/items/K7RIKIDQ",
+                "type": "application/json"
+            },
+            "enclosure": {
+                "href": "file:///C:/Users/i7714/Zotero/storage/D4W2IHAL/291521f6e2.html",
+                "type": "text/html",
+                "title": "291521f6e2.html",
+                "length": 5619141
+            }
+        },
+        "meta": {
+            "numChildren": 0
+        },
+        "data": {
+            "key": "D4W2IHAL",
+            "version": 0,
+            "itemType": "attachment",
+            "title": "1pagedrawing.pdf - 291521f6e2",
+            "url": "https://apfile.com/app/file/291521f6e2",
+            "accessDate": "2025-05-24T18:21:02Z",
+            "parentItem": "K7RIKIDQ",
+            "linkMode": "imported_url",
+            "contentType": "text/html",
+            "charset": "utf-8",
+            "filename": "291521f6e2.html",
+            "tags": [],
+            "relations": {},
+            "dateAdded": "2025-05-24T18:21:02Z",
+            "dateModified": "2025-05-24T18:21:02Z"
+        }
+    },
+    {
+        "key": "H7XJBWEY",
+        "version": 0,
+        "library": {
+            "type": "user",
+            "id": 0,
+            "name": "My Library",
+            "links": {
+                "self": {
+                    "href": "http://localhost:23119/api/users/0",
+                    "type": "application/json"
+                }
+            }
+        },
+        "links": {
+            "self": {
+                "href": "http://localhost:23119/api/users/0/items/H7XJBWEY",
+                "type": "application/json"
+            },
+            "up": {
+                "href": "http://localhost:23119/api/users/0/items/58WH3EDK",
+                "type": "application/json"
+            },
+            "enclosure": {
+                "href": "file:///C:/Users/i7714/Zotero/storage/H7XJBWEY/viewer.html",
+                "type": "text/html",
+                "title": "viewer.html",
+                "length": 2244112
+            }
+        },
+        "meta": {
+            "numChildren": 0
+        },
+        "data": {
+            "key": "H7XJBWEY",
+            "version": 0,
+            "itemType": "attachment",
+            "title": "compressed.tracemonkey-pldi-09.pdf",
+            "url": "https://mozilla.github.io/pdf.js/web/viewer.html",
+            "accessDate": "2025-05-24T18:14:47Z",
+            "parentItem": "58WH3EDK",
+            "linkMode": "imported_url",
+            "contentType": "text/html",
+            "charset": "utf-8",
+            "filename": "viewer.html",
+            "tags": [],
+            "relations": {},
+            "dateAdded": "2025-05-24T18:14:47Z",
+            "dateModified": "2025-05-24T18:14:47Z"
+        }
+    }
+]

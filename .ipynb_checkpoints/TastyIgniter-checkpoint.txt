@@ -1,0 +1,3854 @@
+File: .dockerignore
+Comments: Included
+Mime Type: application/octet-stream
+Size: 103 bytes
+Content:
+.DS_Store
+node_modules
+vendor
+storage/*.key
+.env
+docker/Dockerfile
+tests
+docker-compose*
+.git
+
+--------------------------------------------------------------------------------
+
+File: .editorconfig
+Comments: Included
+Mime Type: application/octet-stream
+Size: 385 bytes
+Content:
+# EditorConfig helps developers define and maintain consistent
+# coding styles between different editors and IDEs: editorconfig.org
+
+root = true
+
+[*]
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+indent_style = space
+indent_size = 4
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.{yml,yaml,json,scss,css}]
+indent_size = 2
+
+--------------------------------------------------------------------------------
+
+File: .env.example
+Comments: Included
+Mime Type: application/octet-stream
+Size: 644 bytes
+Content:
+# APP CONFIG (DO NOT REMOVE!)
+APP_NAME=
+APP_ENV=production
+APP_KEY=
+APP_DEBUG=false
+APP_URL=
+
+IGNITER_CARTE_KEY=
+IGNITER_LOCATION_MODE=multiple
+
+# DATABASE CONFIG (DO NOT REMOVE!)
+DB_CONNECTION=mysql
+DB_HOST=
+DB_PORT=
+DB_DATABASE=
+DB_USERNAME=
+DB_PASSWORD=
+DB_PREFIX=
+
+BROADCAST_DRIVER=log
+CACHE_DRIVER=file
+QUEUE_CONNECTION=sync
+SESSION_DRIVER=file
+SESSION_LIFETIME=120
+
+REDIS_HOST=127.0.0.1
+REDIS_PASSWORD=null
+REDIS_PORT=6379
+
+MAIL_MAILER=log
+MAIL_HOST=null
+MAIL_PORT=null
+MAIL_USERNAME=null
+MAIL_PASSWORD=null
+MAIL_ENCRYPTION=null
+MAIL_FROM_ADDRESS=noreply@tastyigniter.tld
+MAIL_FROM_NAME="${APP_NAME}"
+
+--------------------------------------------------------------------------------
+
+File: .gitattributes
+Comments: Included
+Mime Type: text/plain
+Size: 162 bytes
+Content:
+*.css linguist-vendored
+*.scss linguist-vendored
+*.js linguist-vendored
+
+# Set the default behavior, in case people don't have core.autocrlf set.
+text=auto
+
+--------------------------------------------------------------------------------
+
+File: .gitignore
+Comments: Included
+Mime Type: text/plain
+Size: 231 bytes
+Content:
+.DS_Store
+.idea
+.env
+.env.testing
+.phpunit.result.cache
+phpunit.dusk.xml
+auth.json
+
+# Ignore all vendor files included by composer and the lock file
+/vendor
+composer.lock
+node_modules
+
+/public/vendor
+/public/storage
+
+--------------------------------------------------------------------------------
+
+File: .nginx.conf
+Comments: Included
+Mime Type: application/octet-stream
+Size: 641 bytes
+Content:
+## Pass requests that don't refer directly to files in the filesystem to index.php
+location / { try_files $uri $uri/ /index.php?$query_string; }
+
+## Pass the PHP scripts to FastCGI server
+location ~ ^/index.php {
+## Write your FPM configuration here
+}
+
+## Whitelist
+location ~ ^/favicon\.ico { try_files $uri /index.php; }
+location ~ ^/sitemap\.xml { try_files $uri /index.php; }
+
+## Block all .dotfiles except well-known
+location ~ /\.(?!well-known).* { deny all; }
+
+### Let nginx return 404 if static file does not exists
+location ~ ^/media { try_files $uri 404; }
+
+location ~ ^/themes/.*/assets { try_files $uri 404; }
+
+--------------------------------------------------------------------------------
+
+File: app\Console\Kernel.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 713 bytes
+Content:
+<?php
+
+namespace App\Console;
+
+use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
+
+class Kernel extends ConsoleKernel
+{
+    /**
+     * Define the application's command schedule.
+     *
+     * @param  \Illuminate\Console\Scheduling\Schedule  $schedule
+     * @return void
+     */
+    protected function schedule(Schedule $schedule)
+    {
+        // $schedule->command('inspire')->hourly();
+    }
+
+    /**
+     * Register the commands for the application.
+     *
+     * @return void
+     */
+    protected function commands()
+    {
+        $this->load(__DIR__.'/Commands');
+
+        require base_path('routes/console.php');
+    }
+}
+
+--------------------------------------------------------------------------------
+
+File: app\Exceptions\Handler.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 1100 bytes
+Content:
+<?php
+
+namespace App\Exceptions;
+
+use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Throwable;
+
+class Handler extends ExceptionHandler
+{
+    /**
+     * A list of exception types with their corresponding custom log levels.
+     *
+     * @var array<class-string<\Throwable>, \Psr\Log\LogLevel::*>
+     */
+    protected $levels = [
+        //
+    ];
+
+    /**
+     * A list of the exception types that are not reported.
+     *
+     * @var array<int, class-string<\Throwable>>
+     */
+    protected $dontReport = [
+        //
+    ];
+
+    /**
+     * A list of the inputs that are never flashed to the session on validation exceptions.
+     *
+     * @var array<int, string>
+     */
+    protected $dontFlash = [
+        'current_password',
+        'password',
+        'password_confirmation',
+    ];
+
+    /**
+     * Register the exception handling callbacks for the application.
+     *
+     * @return void
+     */
+    public function register()
+    {
+        $this->reportable(function (Throwable $e) {
+            //
+        });
+    }
+}
+
+--------------------------------------------------------------------------------
+
+File: app\Http\Controllers\Controller.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 374 bytes
+Content:
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Foundation\Bus\DispatchesJobs;
+use Illuminate\Foundation\Validation\ValidatesRequests;
+use Illuminate\Routing\Controller as BaseController;
+
+class Controller extends BaseController
+{
+    use AuthorizesRequests, DispatchesJobs, ValidatesRequests;
+}
+
+--------------------------------------------------------------------------------
+
+File: app\Http\Kernel.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 2670 bytes
+Content:
+<?php
+
+namespace App\Http;
+
+use Illuminate\Foundation\Http\Kernel as HttpKernel;
+
+class Kernel extends HttpKernel
+{
+    /**
+     * The application's global HTTP middleware stack.
+     *
+     * These middleware are run during every request to your application.
+     *
+     * @var array<int, class-string|string>
+     */
+    protected $middleware = [
+        // \App\Http\Middleware\TrustHosts::class,
+        \App\Http\Middleware\TrustProxies::class,
+        \Illuminate\Http\Middleware\HandleCors::class,
+        \App\Http\Middleware\PreventRequestsDuringMaintenance::class,
+        \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
+        \App\Http\Middleware\TrimStrings::class,
+        \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
+    ];
+
+    /**
+     * The application's route middleware groups.
+     *
+     * @var array<string, array<int, class-string|string>>
+     */
+    protected $middlewareGroups = [
+        'web' => [
+            \App\Http\Middleware\EncryptCookies::class,
+            \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
+            \Illuminate\Session\Middleware\StartSession::class,
+            \Illuminate\View\Middleware\ShareErrorsFromSession::class,
+            \App\Http\Middleware\VerifyCsrfToken::class,
+            \Illuminate\Routing\Middleware\SubstituteBindings::class,
+        ],
+
+        'api' => [
+            // \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+            'throttle:api',
+            \Illuminate\Routing\Middleware\SubstituteBindings::class,
+        ],
+    ];
+
+    /**
+     * The application's route middleware.
+     *
+     * These middleware may be assigned to groups or used individually.
+     *
+     * @var array<string, class-string|string>
+     */
+    protected $routeMiddleware = [
+        'auth' => \App\Http\Middleware\Authenticate::class,
+        'auth.basic' => \Illuminate\Auth\Middleware\AuthenticateWithBasicAuth::class,
+        'auth.session' => \Illuminate\Session\Middleware\AuthenticateSession::class,
+        'cache.headers' => \Illuminate\Http\Middleware\SetCacheHeaders::class,
+        'can' => \Illuminate\Auth\Middleware\Authorize::class,
+        'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,
+        'password.confirm' => \Illuminate\Auth\Middleware\RequirePassword::class,
+        'signed' => \Illuminate\Routing\Middleware\ValidateSignature::class,
+        'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
+        'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
+    ];
+}
+
+--------------------------------------------------------------------------------
+
+File: app\Http\Middleware\Authenticate.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 490 bytes
+Content:
+<?php
+
+namespace App\Http\Middleware;
+
+use Illuminate\Auth\Middleware\Authenticate as Middleware;
+
+class Authenticate extends Middleware
+{
+    /**
+     * Get the path the user should be redirected to when they are not authenticated.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return string|null
+     */
+    protected function redirectTo($request)
+    {
+        if (! $request->expectsJson()) {
+            return route('login');
+        }
+    }
+}
+
+--------------------------------------------------------------------------------
+
+File: app\Http\Middleware\EncryptCookies.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 324 bytes
+Content:
+<?php
+
+namespace App\Http\Middleware;
+
+use Illuminate\Cookie\Middleware\EncryptCookies as Middleware;
+
+class EncryptCookies extends Middleware
+{
+    /**
+     * The names of the cookies that should not be encrypted.
+     *
+     * @var array<int, string>
+     */
+    protected $except = [
+        //
+    ];
+}
+
+--------------------------------------------------------------------------------
+
+File: app\Http\Middleware\PreventRequestsDuringMaintenance.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 383 bytes
+Content:
+<?php
+
+namespace App\Http\Middleware;
+
+use Illuminate\Foundation\Http\Middleware\PreventRequestsDuringMaintenance as Middleware;
+
+class PreventRequestsDuringMaintenance extends Middleware
+{
+    /**
+     * The URIs that should be reachable while maintenance mode is enabled.
+     *
+     * @var array<int, string>
+     */
+    protected $except = [
+        //
+    ];
+}
+
+--------------------------------------------------------------------------------
+
+File: app\Http\Middleware\RedirectIfAuthenticated.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 909 bytes
+Content:
+<?php
+
+namespace App\Http\Middleware;
+
+use App\Providers\RouteServiceProvider;
+use Closure;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+
+class RedirectIfAuthenticated
+{
+    /**
+     * Handle an incoming request.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \Closure(\Illuminate\Http\Request): (\Illuminate\Http\Response|\Illuminate\Http\RedirectResponse)  $next
+     * @param  string|null  ...$guards
+     * @return \Illuminate\Http\Response|\Illuminate\Http\RedirectResponse
+     */
+    public function handle(Request $request, Closure $next, ...$guards)
+    {
+        $guards = empty($guards) ? [null] : $guards;
+
+        foreach ($guards as $guard) {
+            if (Auth::guard($guard)->check()) {
+                return redirect(RouteServiceProvider::HOME);
+            }
+        }
+
+        return $next($request);
+    }
+}
+
+--------------------------------------------------------------------------------
+
+File: app\Http\Middleware\TrimStrings.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 400 bytes
+Content:
+<?php
+
+namespace App\Http\Middleware;
+
+use Illuminate\Foundation\Http\Middleware\TrimStrings as Middleware;
+
+class TrimStrings extends Middleware
+{
+    /**
+     * The names of the attributes that should not be trimmed.
+     *
+     * @var array<int, string>
+     */
+    protected $except = [
+        'current_password',
+        'password',
+        'password_confirmation',
+    ];
+}
+
+--------------------------------------------------------------------------------
+
+File: app\Http\Middleware\TrustHosts.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 392 bytes
+Content:
+<?php
+
+namespace App\Http\Middleware;
+
+use Illuminate\Http\Middleware\TrustHosts as Middleware;
+
+class TrustHosts extends Middleware
+{
+    /**
+     * Get the host patterns that should be trusted.
+     *
+     * @return array<int, string|null>
+     */
+    public function hosts()
+    {
+        return [
+            $this->allSubdomainsOfApplicationUrl(),
+        ];
+    }
+}
+
+--------------------------------------------------------------------------------
+
+File: app\Http\Middleware\TrustProxies.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 677 bytes
+Content:
+<?php
+
+namespace App\Http\Middleware;
+
+use Illuminate\Http\Middleware\TrustProxies as Middleware;
+use Illuminate\Http\Request;
+
+class TrustProxies extends Middleware
+{
+    /**
+     * The trusted proxies for this application.
+     *
+     * @var array<int, string>|string|null
+     */
+    protected $proxies;
+
+    /**
+     * The headers that should be used to detect proxies.
+     *
+     * @var int
+     */
+    protected $headers =
+        Request::HEADER_X_FORWARDED_FOR |
+        Request::HEADER_X_FORWARDED_HOST |
+        Request::HEADER_X_FORWARDED_PORT |
+        Request::HEADER_X_FORWARDED_PROTO |
+        Request::HEADER_X_FORWARDED_AWS_ELB;
+}
+
+--------------------------------------------------------------------------------
+
+File: app\Http\Middleware\VerifyCsrfToken.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 337 bytes
+Content:
+<?php
+
+namespace App\Http\Middleware;
+
+use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken as Middleware;
+
+class VerifyCsrfToken extends Middleware
+{
+    /**
+     * The URIs that should be excluded from CSRF verification.
+     *
+     * @var array<int, string>
+     */
+    protected $except = [
+        //
+    ];
+}
+
+--------------------------------------------------------------------------------
+
+File: app\Models\User.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 957 bytes
+Content:
+<?php
+
+namespace App\Models;
+
+use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
+
+class User extends Authenticatable
+{
+    use HasApiTokens, HasFactory, Notifiable;
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
+     */
+    protected $fillable = [
+        'name',
+        'email',
+        'password',
+    ];
+
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var array<int, string>
+     */
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+    ];
+}
+
+--------------------------------------------------------------------------------
+
+File: app\Providers\AppServiceProvider.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 431 bytes
+Content:
+<?php
+
+namespace App\Providers;
+
+use Illuminate\Support\ServiceProvider;
+
+class AppServiceProvider extends ServiceProvider
+{
+    /**
+     * Register any application services.
+     *
+     * @return void
+     */
+    public function register()
+    {
+        //
+    }
+
+    /**
+     * Bootstrap any application services.
+     *
+     * @return void
+     */
+    public function boot()
+    {
+        //
+    }
+}
+
+--------------------------------------------------------------------------------
+
+File: app\Providers\AuthServiceProvider.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 652 bytes
+Content:
+<?php
+
+namespace App\Providers;
+
+use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
+use Illuminate\Support\Facades\Gate;
+
+class AuthServiceProvider extends ServiceProvider
+{
+    /**
+     * The model to policy mappings for the application.
+     *
+     * @var array<class-string, class-string>
+     */
+    protected $policies = [
+        // 'App\Models\Model' => 'App\Policies\ModelPolicy',
+    ];
+
+    /**
+     * Register any authentication / authorization services.
+     *
+     * @return void
+     */
+    public function boot()
+    {
+        $this->registerPolicies();
+
+        //
+    }
+}
+
+--------------------------------------------------------------------------------
+
+File: app\Providers\BroadcastServiceProvider.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 401 bytes
+Content:
+<?php
+
+namespace App\Providers;
+
+use Illuminate\Support\Facades\Broadcast;
+use Illuminate\Support\ServiceProvider;
+
+class BroadcastServiceProvider extends ServiceProvider
+{
+    /**
+     * Bootstrap any application services.
+     *
+     * @return void
+     */
+    public function boot()
+    {
+        Broadcast::routes();
+
+        require base_path('routes/channels.php');
+    }
+}
+
+--------------------------------------------------------------------------------
+
+File: app\Providers\EventServiceProvider.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 968 bytes
+Content:
+<?php
+
+namespace App\Providers;
+
+use Illuminate\Auth\Events\Registered;
+use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
+use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
+use Illuminate\Support\Facades\Event;
+
+class EventServiceProvider extends ServiceProvider
+{
+    /**
+     * The event to listener mappings for the application.
+     *
+     * @var array<class-string, array<int, class-string>>
+     */
+    protected $listen = [
+        Registered::class => [
+            SendEmailVerificationNotification::class,
+        ],
+    ];
+
+    /**
+     * Register any events for your application.
+     *
+     * @return void
+     */
+    public function boot()
+    {
+        //
+    }
+
+    /**
+     * Determine if events and listeners should be automatically discovered.
+     *
+     * @return bool
+     */
+    public function shouldDiscoverEvents()
+    {
+        return false;
+    }
+}
+
+--------------------------------------------------------------------------------
+
+File: app\Providers\RouteServiceProvider.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 1379 bytes
+Content:
+<?php
+
+namespace App\Providers;
+
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvider;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Route;
+
+class RouteServiceProvider extends ServiceProvider
+{
+    /**
+     * The path to the "home" route for your application.
+     *
+     * Typically, users are redirected here after authentication.
+     *
+     * @var string
+     */
+    public const HOME = '/home';
+
+    /**
+     * Define your route model bindings, pattern filters, and other route configuration.
+     *
+     * @return void
+     */
+    public function boot()
+    {
+        $this->configureRateLimiting();
+
+        $this->routes(function () {
+            Route::middleware('api')
+                ->prefix('api')
+                ->group(base_path('routes/api.php'));
+
+            Route::middleware('web')
+                ->group(base_path('routes/web.php'));
+        });
+    }
+
+    /**
+     * Configure the rate limiters for the application.
+     *
+     * @return void
+     */
+    protected function configureRateLimiting()
+    {
+        RateLimiter::for('api', function (Request $request) {
+            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+        });
+    }
+}
+
+--------------------------------------------------------------------------------
+
+File: artisan
+Comments: Included
+Mime Type: application/octet-stream
+Size: 1739 bytes
+Content:
+#!/usr/bin/env php
+<?php
+
+define('LARAVEL_START', microtime(true));
+
+/*
+|--------------------------------------------------------------------------
+| Register The Auto Loader
+|--------------------------------------------------------------------------
+|
+| Composer provides a convenient, automatically generated class loader
+| for our application. We just need to utilize it! We'll require it
+| into the script here so that we do not have to worry about the
+| loading of any of our classes manually. It's great to relax.
+|
+*/
+
+require __DIR__.'/vendor/autoload.php';
+
+$app = require_once __DIR__.'/bootstrap/app.php';
+
+/*
+|--------------------------------------------------------------------------
+| Run The Artisan Application
+|--------------------------------------------------------------------------
+|
+| When we run the console application, the current CLI command will be
+| executed in this console and the response sent back to a terminal
+| or another output device for the developers. Here goes nothing!
+|
+*/
+
+$kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+
+$status = $kernel->handle(
+    $input = new Symfony\Component\Console\Input\ArgvInput,
+    new Symfony\Component\Console\Output\ConsoleOutput
+);
+
+/*
+|--------------------------------------------------------------------------
+| Shutdown The Application
+|--------------------------------------------------------------------------
+|
+| Once Artisan has finished running, we will fire off the shutdown events
+| so that any final work may be done by the application before we shut
+| down the process. This is the last thing to happen to the request.
+|
+*/
+
+$kernel->terminate($input, $status);
+
+exit($status);
+
+--------------------------------------------------------------------------------
+
+File: bootstrap\app.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 1675 bytes
+Content:
+<?php
+
+/*
+|--------------------------------------------------------------------------
+| Create The Application
+|--------------------------------------------------------------------------
+|
+| The first thing we will do is create a new Laravel application instance
+| which serves as the "glue" for all the components of Laravel, and is
+| the IoC container for the system binding all of the various parts.
+|
+*/
+
+$app = new Illuminate\Foundation\Application(
+    $_ENV['APP_BASE_PATH'] ?? dirname(__DIR__)
+);
+
+/*
+|--------------------------------------------------------------------------
+| Bind Important Interfaces
+|--------------------------------------------------------------------------
+|
+| Next, we need to bind some important interfaces into the container so
+| we will be able to resolve them when needed. The kernels serve the
+| incoming requests to this application from both the web and CLI.
+|
+*/
+
+$app->singleton(
+    Illuminate\Contracts\Http\Kernel::class,
+    App\Http\Kernel::class
+);
+
+$app->singleton(
+    Illuminate\Contracts\Console\Kernel::class,
+    App\Console\Kernel::class
+);
+
+$app->singleton(
+    Illuminate\Contracts\Debug\ExceptionHandler::class,
+    App\Exceptions\Handler::class
+);
+
+/*
+|--------------------------------------------------------------------------
+| Return The Application
+|--------------------------------------------------------------------------
+|
+| This script returns the application instance. The instance is given to
+| the calling script so we can separate the building of the instances
+| from the actual running of the application and sending responses.
+|
+*/
+
+return $app;
+
+--------------------------------------------------------------------------------
+
+File: bootstrap\cache\.gitignore
+Comments: Included
+Mime Type: text/plain
+Size: 16 bytes
+Content:
+*
+!.gitignore
+
+--------------------------------------------------------------------------------
+
+File: composer.json
+Comments: Included
+Mime Type: application/json
+Size: 2361 bytes
+Content:
+{
+  "name": "tastyigniter/tastyigniter",
+  "description": "TastyIgniter is a free open source online ordering and restaurant management system",
+  "type": "project",
+  "keywords": [
+    "tastyigniter",
+    "igniter",
+    "restaurant",
+    "ordering",
+    "ecommerce",
+    "opensource"
+  ],
+  "authors": [
+    {
+      "name": "Samuel Adepoyigi",
+      "email": "sam@sampoyigi.com",
+      "role": "Creator"
+    }
+  ],
+  "license": "MIT",
+  "homepage": "https://tastyigniter.com",
+  "support": {
+    "paid": "https://tastyigniter.com/premium-support",
+    "issues": "https://github.com/tastyigniter/TastyIgniter/issues",
+    "forum": "https://forum.tastyigniter.com",
+    "discord": "https/tastyigniter.com/discord",
+    "docs": "https://tastyigniter.com/docs",
+    "source": "https://github.com/tastyigniter/TastyIgniter"
+  },
+  "repositories": {
+    "tastyigniter": {
+      "type": "composer",
+      "url": "https://satis.tastyigniter.com"
+    }
+  },
+  "require": {
+    "php": "^8.3",
+    "laravel/framework": "^11.0",
+    "laravel/tinker": "^2.10.1",
+    "tastyigniter/core": "^4.0"
+  },
+  "require-dev": {
+    "fakerphp/faker": "^1.23",
+    "laravel/pail": "^1.2.2",
+    "laravel/pint": "^1.13",
+    "laravel/sail": "^1.41",
+    "mockery/mockery": "^1.6",
+    "nunomaduro/collision": "^8.6",
+    "phpunit/phpunit": "^11.5.3"
+  },
+  "autoload": {
+    "psr-4": {
+      "App\\": "app/",
+      "Database\\Factories\\": "database/factories/",
+      "Database\\Seeders\\": "database/seeders/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "post-autoload-dump": [
+      "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
+      "@php artisan package:discover --ansi"
+    ],
+    "post-update-cmd": [
+      "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
+    ],
+    "post-root-package-install": [
+      "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
+    ],
+    "post-create-project-cmd": [
+      "@php artisan key:generate --ansi"
+    ]
+  },
+  "extra": {
+    "laravel": {
+      "dont-discover": []
+    }
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "config": {
+    "optimize-autoloader": true,
+    "preferred-install": "dist",
+    "sort-packages": true
+  }
+}
+
+--------------------------------------------------------------------------------
+
+File: config\app.php
+Comments: Truncated to 6000 bytes due to size > 6000
+Mime Type: application/octet-stream
+Size: 8001 bytes
+Content:
+<?php
+
+use Illuminate\Support\Facades\Facade;
+
+return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Application Name
+    |--------------------------------------------------------------------------
+    |
+    | This value is the name of your application. This value is used when the
+    | framework needs to place the application's name in a notification or
+    | any other location as required by the application or its packages.
+    |
+    */
+
+    'name' => env('APP_NAME', 'TastyIgniter'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Application Environment
+    |--------------------------------------------------------------------------
+    |
+    | This value determines the "environment" your application is currently
+    | running in. This may determine how you prefer to configure various
+    | services the application utilizes. Set this in your ".env" file.
+    |
+    */
+
+    'env' => env('APP_ENV', 'production'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Application Debug Mode
+    |--------------------------------------------------------------------------
+    |
+    | When your application is in debug mode, detailed error messages with
+    | stack traces will be shown on every error that occurs within your
+    | application. If disabled, a simple generic error page is shown.
+    |
+    */
+
+    'debug' => (bool)env('APP_DEBUG', false),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Application URL
+    |--------------------------------------------------------------------------
+    |
+    | This URL is used by the console to properly generate URLs when using
+    | the Artisan command line tool. You should set this to the root of
+    | your application so that it is used when running Artisan tasks.
+    |
+    */
+
+    'url' => env('APP_URL', 'http://localhost'),
+
+    'asset_url' => env('ASSET_URL'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Application Timezone
+    |--------------------------------------------------------------------------
+    |
+    | Here you may specify the default timezone for your application, which
+    | will be used by the PHP date and date-time functions. We have gone
+    | ahead and set this to a sensible default for you out of the box.
+    |
+    */
+
+    'timezone' => 'UTC',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Application Locale Configuration
+    |--------------------------------------------------------------------------
+    |
+    | The application locale determines the default locale that will be used
+    | by the translation service provider. You are free to set this value
+    | to any of the locales which will be supported by the application.
+    |
+    */
+
+    'locale' => 'en',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Application Fallback Locale
+    |--------------------------------------------------------------------------
+    |
+    | The fallback locale determines the locale to use when the current one
+    | is not available. You may change the value to correspond to any of
+    | the language folders that are provided through your application.
+    |
+    */
+
+    'fallback_locale' => 'en',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Faker Locale
+    |--------------------------------------------------------------------------
+    |
+    | This locale will be used by the Faker PHP library when generating fake
+    | data for your database seeds. For example, this will be used to get
+    | localized telephone numbers, street address information and more.
+    |
+    */
+
+    'faker_locale' => 'en_US',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Encryption Key
+    |--------------------------------------------------------------------------
+    |
+    | This key is used by the Illuminate encrypter service and should be set
+    | to a random, 32 character string, otherwise these encrypted strings
+    | will not be safe. Please do this before deploying an application!
+    |
+    */
+
+    'key' => env('APP_KEY'),
+
+    'cipher' => 'AES-256-CBC',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Maintenance Mode Driver
+    |--------------------------------------------------------------------------
+    |
+    | These configuration options determine the driver used to determine and
+    | manage Laravel's "maintenance mode" status. The "cache" driver will
+    | allow maintenance mode to be controlled across multiple machines.
+    |
+    | Supported drivers: "file", "cache"
+    |
+    */
+
+    'maintenance' => [
+        'driver' => 'file',
+        // 'store'  => 'redis',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Autoloaded Service Providers
+    |--------------------------------------------------------------------------
+    |
+    | The service providers listed here will be automatically loaded on the
+    | request to your application. Feel free to add your own services to
+    | this array to grant expanded functionality to your applications.
+    |
+    */
+
+    'providers' => [
+
+        /*
+         * Laravel Framework Service Providers...
+         */
+        Illuminate\Auth\AuthServiceProvider::class,
+        Illuminate\Broadcasting\BroadcastServiceProvider::class,
+        Illuminate\Bus\BusServiceProvider::class,
+        Illuminate\Cache\CacheServiceProvider::class,
+        Illuminate\Foundation\Providers\ConsoleSupportServiceProvider::class,
+        Illuminate\Cookie\CookieServiceProvider::class,
+        Illuminate\Database\DatabaseServiceProvider::class,
+        Illuminate\Encryption\EncryptionServiceProvider::class,
+        Illuminate\Filesystem\F
+--------------------------------------------------------------------------------
+
+File: config\auth.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 3963 bytes
+Content:
+<?php
+
+return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Authentication Defaults
+    |--------------------------------------------------------------------------
+    |
+    | This option controls the default authentication "guard" and password
+    | reset options for your application. You may change these defaults
+    | as required, but they're a perfect start for most applications.
+    |
+    */
+
+    'defaults' => [
+        'guard' => 'web',
+        'passwords' => 'users',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Authentication Guards
+    |--------------------------------------------------------------------------
+    |
+    | Next, you may define every authentication guard for your application.
+    | Of course, a great default configuration has been defined for you
+    | here which uses session storage and the Eloquent user provider.
+    |
+    | All authentication drivers have a user provider. This defines how the
+    | users are actually retrieved out of your database or other storage
+    | mechanisms used by this application to persist your user's data.
+    |
+    | Supported: "session"
+    |
+    */
+
+    'guards' => [
+        'web' => [
+            'driver' => 'session',
+            'provider' => 'users',
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | User Providers
+    |--------------------------------------------------------------------------
+    |
+    | All authentication drivers have a user provider. This defines how the
+    | users are actually retrieved out of your database or other storage
+    | mechanisms used by this application to persist your user's data.
+    |
+    | If you have multiple user tables or models you may configure multiple
+    | sources which represent each model / table. These sources may then
+    | be assigned to any extra authentication guards you have defined.
+    |
+    | Supported: "database", "eloquent"
+    |
+    */
+
+    'providers' => [
+        'users' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\User::class,
+        ],
+//        'igniter-admin' => [
+//            'driver' => 'igniter-admin',
+//        ],
+//        'igniter-customers' => [
+//            'driver' => 'igniter-customer',
+//        ],
+
+        // 'users' => [
+        //     'driver' => 'database',
+        //     'table' => 'users',
+        // ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Resetting Passwords
+    |--------------------------------------------------------------------------
+    |
+    | You may specify multiple password reset configurations if you have more
+    | than one user table or model in the application and you want to have
+    | separate password reset settings based on the specific user types.
+    |
+    | The expire time is the number of minutes that each reset token will be
+    | considered valid. This security feature keeps tokens short-lived so
+    | they have less time to be guessed. You may change this as needed.
+    |
+    */
+
+    'passwords' => [
+        'users' => [
+            'provider' => 'users',
+            'table' => 'password_resets',
+            'expire' => 60,
+            'throttle' => 60,
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Password Confirmation Timeout
+    |--------------------------------------------------------------------------
+    |
+    | Here you may define the amount of seconds before a password confirmation
+    | times out and the user is prompted to re-enter their password via the
+    | confirmation screen. By default, the timeout lasts for three hours.
+    |
+    */
+
+    'password_timeout' => 10800,
+
+];
+
+--------------------------------------------------------------------------------
+
+File: config\broadcasting.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 1927 bytes
+Content:
+<?php
+
+return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Default Broadcaster
+    |--------------------------------------------------------------------------
+    |
+    | This option controls the default broadcaster that will be used by the
+    | framework when an event needs to be broadcast. You may set this to
+    | any of the connections defined in the "connections" array below.
+    |
+    | Supported: "pusher", "ably", "redis", "log", "null"
+    |
+    */
+
+    'default' => env('BROADCAST_DRIVER', 'null'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Broadcast Connections
+    |--------------------------------------------------------------------------
+    |
+    | Here you may define all of the broadcast connections that will be used
+    | to broadcast events to other systems or over websockets. Samples of
+    | each available type of connection are provided inside this array.
+    |
+    */
+
+    'connections' => [
+
+        'pusher' => [
+            'driver' => 'pusher',
+            'key' => env('PUSHER_APP_KEY'),
+            'secret' => env('PUSHER_APP_SECRET'),
+            'app_id' => env('PUSHER_APP_ID'),
+            'options' => [
+                'cluster' => env('PUSHER_APP_CLUSTER'),
+                'useTLS' => true,
+            ],
+            'client_options' => [
+                // Guzzle client options: https://docs.guzzlephp.org/en/stable/request-options.html
+            ],
+        ],
+
+        'ably' => [
+            'driver' => 'ably',
+            'key' => env('ABLY_KEY'),
+        ],
+
+        'redis' => [
+            'driver' => 'redis',
+            'connection' => 'default',
+        ],
+
+        'log' => [
+            'driver' => 'log',
+        ],
+
+        'null' => [
+            'driver' => 'null',
+        ],
+
+    ],
+
+];
+
+--------------------------------------------------------------------------------
+
+File: config\cache.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 3387 bytes
+Content:
+<?php
+
+use Illuminate\Support\Str;
+
+return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Default Cache Store
+    |--------------------------------------------------------------------------
+    |
+    | This option controls the default cache connection that gets used while
+    | using this caching library. This connection is used when another is
+    | not explicitly specified when executing a given caching function.
+    |
+    */
+
+    'default' => env('CACHE_DRIVER', 'file'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cache Stores
+    |--------------------------------------------------------------------------
+    |
+    | Here you may define all of the cache "stores" for your application as
+    | well as their drivers. You may even define multiple stores for the
+    | same cache driver to group types of items stored in your caches.
+    |
+    | Supported drivers: "apc", "array", "database", "file",
+    |         "memcached", "redis", "dynamodb", "octane", "null"
+    |
+    */
+
+    'stores' => [
+
+        'apc' => [
+            'driver' => 'apc',
+        ],
+
+        'array' => [
+            'driver' => 'array',
+            'serialize' => false,
+        ],
+
+        'database' => [
+            'driver' => 'database',
+            'table' => 'cache',
+            'connection' => null,
+            'lock_connection' => null,
+        ],
+
+        'file' => [
+            'driver' => 'file',
+            'path' => storage_path('framework/cache/data'),
+        ],
+
+        'memcached' => [
+            'driver' => 'memcached',
+            'persistent_id' => env('MEMCACHED_PERSISTENT_ID'),
+            'sasl' => [
+                env('MEMCACHED_USERNAME'),
+                env('MEMCACHED_PASSWORD'),
+            ],
+            'options' => [
+                // Memcached::OPT_CONNECT_TIMEOUT => 2000,
+            ],
+            'servers' => [
+                [
+                    'host' => env('MEMCACHED_HOST', '127.0.0.1'),
+                    'port' => env('MEMCACHED_PORT', 11211),
+                    'weight' => 100,
+                ],
+            ],
+        ],
+
+        'redis' => [
+            'driver' => 'redis',
+            'connection' => 'cache',
+            'lock_connection' => 'default',
+        ],
+
+        'dynamodb' => [
+            'driver' => 'dynamodb',
+            'key' => env('AWS_ACCESS_KEY_ID'),
+            'secret' => env('AWS_SECRET_ACCESS_KEY'),
+            'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
+            'table' => env('DYNAMODB_CACHE_TABLE', 'cache'),
+            'endpoint' => env('DYNAMODB_ENDPOINT'),
+        ],
+
+        'octane' => [
+            'driver' => 'octane',
+        ],
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cache Key Prefix
+    |--------------------------------------------------------------------------
+    |
+    | When utilizing the APC, database, memcached, Redis, or DynamoDB cache
+    | stores there might be other applications using the same cache. For
+    | that reason, you may prefix every cache key to avoid collisions.
+    |
+    */
+
+    'prefix' => env('CACHE_PREFIX', Str::slug(env('APP_NAME', 'tastyigniter'), '_').'_cache_'),
+
+];
+
+--------------------------------------------------------------------------------
+
+File: config\cors.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 880 bytes
+Content:
+<?php
+
+return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cross-Origin Resource Sharing (CORS) Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Here you may configure your settings for cross-origin resource sharing
+    | or "CORS". This determines what cross-origin operations may execute
+    | in web browsers. You are free to adjust these settings as needed.
+    |
+    | To learn more: https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
+    |
+    */
+
+    'paths' => ['api/*', 'sanctum/csrf-cookie'],
+
+    'allowed_methods' => ['*'],
+
+    'allowed_origins' => ['*'],
+
+    'allowed_origins_patterns' => [],
+
+    'allowed_headers' => ['*'],
+
+    'exposed_headers' => [],
+
+    'max_age' => 0,
+
+    'supports_credentials' => false,
+
+];
+
+--------------------------------------------------------------------------------
+
+File: config\database.php
+Comments: Truncated to 6000 bytes due to size > 6000
+Mime Type: application/octet-stream
+Size: 6034 bytes
+Content:
+<?php
+
+use Illuminate\Support\Str;
+
+return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Default Database Connection Name
+    |--------------------------------------------------------------------------
+    |
+    | Here you may specify which of the database connections below you wish
+    | to use as your default connection for all database work. Of course
+    | you may use many connections at once using the Database library.
+    |
+    */
+
+    'default' => env('DB_CONNECTION', 'mysql'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Database Connections
+    |--------------------------------------------------------------------------
+    |
+    | Here are each of the database connections setup for your application.
+    | Of course, examples of configuring each database platform that is
+    | supported by Laravel is shown below to make development simple.
+    |
+    |
+    | All database work in Laravel is done through the PHP PDO facilities
+    | so make sure you have the driver for your particular database of
+    | choice installed on your machine before you begin development.
+    |
+    */
+
+    'connections' => [
+
+        'sqlite' => [
+            'driver' => 'sqlite',
+            'url' => env('DATABASE_URL'),
+            'database' => env('DB_DATABASE', database_path('database.sqlite')),
+            'prefix' => '',
+            'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
+        ],
+
+        'mysql' => [
+            'driver' => 'mysql',
+            'url' => env('DATABASE_URL'),
+            'host' => env('DB_HOST', '127.0.0.1'),
+            'port' => env('DB_PORT', '3306'),
+            'database' => env('DB_DATABASE', 'forge'),
+            'username' => env('DB_USERNAME', 'forge'),
+            'password' => env('DB_PASSWORD', ''),
+            'unix_socket' => env('DB_SOCKET', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => env('DB_PREFIX', 'ti_'),
+            'prefix_indexes' => true,
+            'strict' => false,
+            'engine' => null,
+            'options' => extension_loaded('pdo_mysql') ? array_filter([
+                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+            ]) : [],
+        ],
+
+        'pgsql' => [
+            'driver' => 'pgsql',
+            'url' => env('DATABASE_URL'),
+            'host' => env('DB_HOST', '127.0.0.1'),
+            'port' => env('DB_PORT', '5432'),
+            'database' => env('DB_DATABASE', 'forge'),
+            'username' => env('DB_USERNAME', 'forge'),
+            'password' => env('DB_PASSWORD', ''),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'search_path' => 'public',
+            'sslmode' => 'prefer',
+        ],
+
+        'sqlsrv' => [
+            'driver' => 'sqlsrv',
+            'url' => env('DATABASE_URL'),
+            'host' => env('DB_HOST', 'localhost'),
+            'port' => env('DB_PORT', '1433'),
+            'database' => env('DB_DATABASE', 'forge'),
+            'username' => env('DB_USERNAME', 'forge'),
+            'password' => env('DB_PASSWORD', ''),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            // 'encrypt' => env('DB_ENCRYPT', 'yes'),
+            // 'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),
+        ],
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Migration Repository Table
+    |--------------------------------------------------------------------------
+    |
+    | This table keeps track of all the migrations that have already run for
+    | your application. Using this information, we can determine which of
+    | the migrations on disk haven't actually been run in the database.
+    |
+    */
+
+    'migrations' => 'migrations',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Redis Databases
+    |--------------------------------------------------------------------------
+    |
+    | Redis is an open source, fast, and advanced key-value store that also
+    | provides a richer body of commands than a typical key-value system
+    | such as APC or Memcached. Laravel makes it easy to dig right in.
+    |
+    */
+
+    'redis' => [
+
+        'client' => env('REDIS_CLIENT', 'phpredis'),
+
+        'options' => [
+            'cluster' => env('REDIS_CLUSTER', 'redis'),
+            'prefix' => env('REDIS_PREFIX', Str::slug(env('APP_NAME', 'tastyigniter'), '_').'_database_'),
+        ],
+
+        'default' => [
+            'url' => env('REDIS_URL'),
+            'host' => env('REDIS_HOST', '127.0.0.1'),
+            'username' => env('REDIS_USERNAME'),
+            'password' => env('REDIS_PASSWORD'),
+            'port' => env('REDIS_PORT', '6379'),
+            'database' => env('REDIS_DB', '0'),
+        ],
+
+        'cache' => [
+            'url' => env('REDIS_URL'),
+            'host' => env('REDIS_HOST', '127.0.0.1'),
+            'username' => env('REDIS_USERNAME'),
+            'password' => env('REDIS_PASSWORD'),
+            'port' => env('REDIS_PORT', '6379'),
+            'database' => env('REDIS_CACHE_DB', '1'),
+        ],
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | DBAL Mappings
+    |--------------------------------------------------------------------------
+    |
+    | If your migrations include ALTER commands then the library
+    | `doctrine/dbal` is used to make those changes.  That library supports
+    | Laravel specific data type(s).  This section maps those datatypes.
+    |
+    */
+
+    'dbal' => [
+        'types' => [
+            'timestamp' => \Illuminate\Database\DBAL\TimestampType::class,
+        ],
+    ],
+];
+
+--------------------------------------------------------------------------------
+
+File: config\filesystems.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 2635 bytes
+Content:
+<?php
+
+return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Default Filesystem Disk
+    |--------------------------------------------------------------------------
+    |
+    | Here you may specify the default filesystem disk that should be used
+    | by the framework. The "local" disk, as well as a variety of cloud
+    | based disks are available to your application. Just store away!
+    |
+    */
+
+    'default' => env('FILESYSTEM_DISK', 'local'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Filesystem Disks
+    |--------------------------------------------------------------------------
+    |
+    | Here you may configure as many filesystem "disks" as you wish, and you
+    | may even configure multiple disks of the same driver. Defaults have
+    | been set up for each driver as an example of the required values.
+    |
+    | Supported Drivers: "local", "ftp", "sftp", "s3"
+    |
+    */
+
+    'disks' => [
+
+        'local' => [
+            'driver' => 'local',
+            'root' => storage_path('app'),
+            'throw' => true,
+        ],
+
+        'media' => [
+            'driver' => 'local',
+            'root' => public_path('media'),
+            'url' => env('APP_URL').'/media',
+            'throw' => true,
+        ],
+
+        'public' => [
+            'driver' => 'local',
+            'root' => storage_path('app/public'),
+            'url' => env('APP_URL').'/storage',
+            'visibility' => 'public',
+            'throw' => true,
+        ],
+
+        's3' => [
+            'driver' => 's3',
+            'key' => env('AWS_ACCESS_KEY_ID'),
+            'secret' => env('AWS_SECRET_ACCESS_KEY'),
+            'region' => env('AWS_DEFAULT_REGION'),
+            'bucket' => env('AWS_BUCKET'),
+            'url' => env('AWS_URL'),
+            'endpoint' => env('AWS_ENDPOINT'),
+            'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+            'throw' => true,
+        ],
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Symbolic Links
+    |--------------------------------------------------------------------------
+    |
+    | Here you may configure the symbolic links that will be created when the
+    | `storage:link` Artisan command is executed. The array keys should be
+    | the locations of the links and the values should be their targets.
+    |
+    */
+
+    'links' => [
+        public_path('storage') => storage_path('app/public'),
+    ],
+
+];
+
+--------------------------------------------------------------------------------
+
+File: config\hashing.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 1624 bytes
+Content:
+<?php
+
+return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Default Hash Driver
+    |--------------------------------------------------------------------------
+    |
+    | This option controls the default hash driver that will be used to hash
+    | passwords for your application. By default, the bcrypt algorithm is
+    | used; however, you remain free to modify this option if you wish.
+    |
+    | Supported: "bcrypt", "argon", "argon2id"
+    |
+    */
+
+    'driver' => 'bcrypt',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Bcrypt Options
+    |--------------------------------------------------------------------------
+    |
+    | Here you may specify the configuration options that should be used when
+    | passwords are hashed using the Bcrypt algorithm. This will allow you
+    | to control the amount of time it takes to hash the given password.
+    |
+    */
+
+    'bcrypt' => [
+        'rounds' => env('BCRYPT_ROUNDS', 10),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Argon Options
+    |--------------------------------------------------------------------------
+    |
+    | Here you may specify the configuration options that should be used when
+    | passwords are hashed using the Argon algorithm. These will allow you
+    | to control the amount of time it takes to hash the given password.
+    |
+    */
+
+    'argon' => [
+        'memory' => 65536,
+        'threads' => 1,
+        'time' => 4,
+    ],
+
+];
+
+--------------------------------------------------------------------------------
+
+File: config\logging.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 3875 bytes
+Content:
+<?php
+
+use Monolog\Handler\NullHandler;
+use Monolog\Handler\StreamHandler;
+use Monolog\Handler\SyslogUdpHandler;
+
+return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Default Log Channel
+    |--------------------------------------------------------------------------
+    |
+    | This option defines the default log channel that gets used when writing
+    | messages to the logs. The name specified in this option should match
+    | one of the channels defined in the "channels" configuration array.
+    |
+    */
+
+    'default' => env('LOG_CHANNEL', 'stack'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Deprecations Log Channel
+    |--------------------------------------------------------------------------
+    |
+    | This option controls the log channel that should be used to log warnings
+    | regarding deprecated PHP and library features. This allows you to get
+    | your application ready for upcoming major versions of dependencies.
+    |
+    */
+
+    'deprecations' => [
+        'channel' => env('LOG_DEPRECATIONS_CHANNEL', 'null'),
+        'trace' => false,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Log Channels
+    |--------------------------------------------------------------------------
+    |
+    | Here you may configure the log channels for your application. Out of
+    | the box, Laravel uses the Monolog PHP logging library. This gives
+    | you a variety of powerful log handlers / formatters to utilize.
+    |
+    | Available Drivers: "single", "daily", "slack", "syslog",
+    |                    "errorlog", "monolog",
+    |                    "custom", "stack"
+    |
+    */
+
+    'channels' => [
+        'stack' => [
+            'driver' => 'stack',
+            'channels' => ['single'],
+            'ignore_exceptions' => false,
+        ],
+
+        'single' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/laravel.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+        ],
+
+        'daily' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/laravel.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 14,
+        ],
+
+        'slack' => [
+            'driver' => 'slack',
+            'url' => env('LOG_SLACK_WEBHOOK_URL'),
+            'username' => 'TastyIgniter Log',
+            'emoji' => ':boom:',
+            'level' => env('LOG_LEVEL', 'critical'),
+        ],
+
+        'papertrail' => [
+            'driver' => 'monolog',
+            'level' => env('LOG_LEVEL', 'debug'),
+            'handler' => env('LOG_PAPERTRAIL_HANDLER', SyslogUdpHandler::class),
+            'handler_with' => [
+                'host' => env('PAPERTRAIL_URL'),
+                'port' => env('PAPERTRAIL_PORT'),
+                'connectionString' => 'tls://'.env('PAPERTRAIL_URL').':'.env('PAPERTRAIL_PORT'),
+            ],
+        ],
+
+        'stderr' => [
+            'driver' => 'monolog',
+            'level' => env('LOG_LEVEL', 'debug'),
+            'handler' => StreamHandler::class,
+            'formatter' => env('LOG_STDERR_FORMATTER'),
+            'with' => [
+                'stream' => 'php://stderr',
+            ],
+        ],
+
+        'syslog' => [
+            'driver' => 'syslog',
+            'level' => env('LOG_LEVEL', 'debug'),
+        ],
+
+        'errorlog' => [
+            'driver' => 'errorlog',
+            'level' => env('LOG_LEVEL', 'debug'),
+        ],
+
+        'null' => [
+            'driver' => 'monolog',
+            'handler' => NullHandler::class,
+        ],
+
+        'emergency' => [
+            'path' => storage_path('logs/system.log'),
+        ],
+    ],
+
+];
+
+--------------------------------------------------------------------------------
+
+File: config\mail.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 3718 bytes
+Content:
+<?php
+
+return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Default Mailer
+    |--------------------------------------------------------------------------
+    |
+    | This option controls the default mailer that is used to send any email
+    | messages sent by your application. Alternative mailers may be setup
+    | and used as needed; however, this mailer will be used by default.
+    |
+    */
+
+    'default' => env('MAIL_MAILER', 'smtp'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Mailer Configurations
+    |--------------------------------------------------------------------------
+    |
+    | Here you may configure all of the mailers used by your application plus
+    | their respective settings. Several examples have been configured for
+    | you and you are free to add your own as your application requires.
+    |
+    | Laravel supports a variety of mail "transport" drivers to be used while
+    | sending an e-mail. You will specify which one you are using for your
+    | mailers below. You are free to add additional mailers as required.
+    |
+    | Supported: "smtp", "sendmail", "mailgun", "ses",
+    |            "postmark", "log", "array", "failover"
+    |
+    */
+
+    'mailers' => [
+        'smtp' => [
+            'transport' => 'smtp',
+            'host' => env('MAIL_HOST', 'smtp.mailgun.org'),
+            'port' => env('MAIL_PORT', 587),
+            'encryption' => env('MAIL_ENCRYPTION', 'tls'),
+            'username' => env('MAIL_USERNAME'),
+            'password' => env('MAIL_PASSWORD'),
+            'timeout' => null,
+            'local_domain' => env('MAIL_EHLO_DOMAIN'),
+        ],
+
+        'ses' => [
+            'transport' => 'ses',
+        ],
+
+        'mailgun' => [
+            'transport' => 'mailgun',
+        ],
+
+        'postmark' => [
+            'transport' => 'postmark',
+        ],
+
+        'sendmail' => [
+            'transport' => 'sendmail',
+            'path' => env('MAIL_SENDMAIL_PATH', '/usr/sbin/sendmail -bs -i'),
+        ],
+
+        'log' => [
+            'transport' => 'log',
+            'channel' => env('MAIL_LOG_CHANNEL'),
+        ],
+
+        'array' => [
+            'transport' => 'array',
+        ],
+
+        'failover' => [
+            'transport' => 'failover',
+            'mailers' => [
+                'smtp',
+                'log',
+            ],
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Global "From" Address
+    |--------------------------------------------------------------------------
+    |
+    | You may wish for all e-mails sent by your application to be sent from
+    | the same address. Here, you may specify a name and address that is
+    | used globally for all e-mails that are sent by your application.
+    |
+    */
+
+    'from' => [
+        'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
+        'name' => env('MAIL_FROM_NAME', 'Example'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Markdown Mail Settings
+    |--------------------------------------------------------------------------
+    |
+    | If you are using Markdown based email rendering, you may configure your
+    | theme and component paths here, allowing you to customize the design
+    | of the emails. Or, you may simply stick with the Laravel defaults!
+    |
+    */
+
+    'markdown' => [
+        'theme' => 'default',
+
+        'paths' => [
+            resource_path('views/vendor/mail'),
+        ],
+    ],
+
+];
+
+--------------------------------------------------------------------------------
+
+File: config\queue.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 2999 bytes
+Content:
+<?php
+
+return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Default Queue Connection Name
+    |--------------------------------------------------------------------------
+    |
+    | Laravel's queue API supports an assortment of back-ends via a single
+    | API, giving you convenient access to each back-end using the same
+    | syntax for every one. Here you may define a default connection.
+    |
+    */
+
+    'default' => env('QUEUE_CONNECTION', 'sync'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Queue Connections
+    |--------------------------------------------------------------------------
+    |
+    | Here you may configure the connection information for each server that
+    | is used by your application. A default configuration has been added
+    | for each back-end shipped with Laravel. You are free to add more.
+    |
+    | Drivers: "sync", "database", "beanstalkd", "sqs", "redis", "null"
+    |
+    */
+
+    'connections' => [
+
+        'sync' => [
+            'driver' => 'sync',
+        ],
+
+        'database' => [
+            'driver' => 'database',
+            'table' => 'jobs',
+            'queue' => 'default',
+            'retry_after' => 90,
+            'after_commit' => false,
+        ],
+
+        'beanstalkd' => [
+            'driver' => 'beanstalkd',
+            'host' => 'localhost',
+            'queue' => 'default',
+            'retry_after' => 90,
+            'block_for' => 0,
+            'after_commit' => false,
+        ],
+
+        'sqs' => [
+            'driver' => 'sqs',
+            'key' => env('AWS_ACCESS_KEY_ID'),
+            'secret' => env('AWS_SECRET_ACCESS_KEY'),
+            'prefix' => env('SQS_PREFIX', 'https://sqs.us-east-1.amazonaws.com/your-account-id'),
+            'queue' => env('SQS_QUEUE', 'default'),
+            'suffix' => env('SQS_SUFFIX'),
+            'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
+            'after_commit' => false,
+        ],
+
+        'redis' => [
+            'driver' => 'redis',
+            'connection' => 'default',
+            'queue' => env('REDIS_QUEUE', 'default'),
+            'retry_after' => 90,
+            'block_for' => null,
+            'after_commit' => false,
+        ],
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Failed Queue Jobs
+    |--------------------------------------------------------------------------
+    |
+    | These options configure the behavior of failed queue job logging so you
+    | can control which database and table are used to store the jobs that
+    | have failed. You may change them to any database / table you wish.
+    |
+    */
+
+    'failed' => [
+        'driver' => env('QUEUE_FAILED_DRIVER', 'database-uuids'),
+        'database' => env('DB_CONNECTION', 'mysql'),
+        'table' => 'failed_jobs',
+    ],
+
+];
+
+--------------------------------------------------------------------------------
+
+File: config\sanctum.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 2361 bytes
+Content:
+<?php
+
+use Laravel\Sanctum\Sanctum;
+
+return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Stateful Domains
+    |--------------------------------------------------------------------------
+    |
+    | Requests from the following domains / hosts will receive stateful API
+    | authentication cookies. Typically, these should include your local
+    | and production domains which access your API via a frontend SPA.
+    |
+    */
+
+    'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', sprintf(
+        '%s%s',
+        'localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1',
+        Sanctum::currentApplicationUrlWithPort()
+    ))),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Sanctum Guards
+    |--------------------------------------------------------------------------
+    |
+    | This array contains the authentication guards that will be checked when
+    | Sanctum is trying to authenticate a request. If none of these guards
+    | are able to authenticate the request, Sanctum will use the bearer
+    | token that's present on an incoming request for authentication.
+    |
+    */
+
+    'guard' => ['web'],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Expiration Minutes
+    |--------------------------------------------------------------------------
+    |
+    | This value controls the number of minutes until an issued token will be
+    | considered expired. If this value is null, personal access tokens do
+    | not expire. This won't tweak the lifetime of first-party sessions.
+    |
+    */
+
+    'expiration' => null,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Sanctum Middleware
+    |--------------------------------------------------------------------------
+    |
+    | When authenticating your first-party SPA with Sanctum you may need to
+    | customize some of the middleware Sanctum uses while processing the
+    | request. You may change the middleware listed below as required.
+    |
+    */
+
+    'middleware' => [
+        'verify_csrf_token' => App\Http\Middleware\VerifyCsrfToken::class,
+        'encrypt_cookies' => App\Http\Middleware\EncryptCookies::class,
+    ],
+
+];
+
+--------------------------------------------------------------------------------
+
+File: config\services.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 1013 bytes
+Content:
+<?php
+
+return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Third Party Services
+    |--------------------------------------------------------------------------
+    |
+    | This file is for storing the credentials for third party services such
+    | as Mailgun, Postmark, AWS and more. This file provides the de facto
+    | location for this type of information, allowing packages to have
+    | a conventional file to locate the various service credentials.
+    |
+    */
+
+    'mailgun' => [
+        'domain' => env('MAILGUN_DOMAIN'),
+        'secret' => env('MAILGUN_SECRET'),
+        'endpoint' => env('MAILGUN_ENDPOINT', 'api.mailgun.net'),
+        'scheme' => 'https',
+    ],
+
+    'postmark' => [
+        'token' => env('POSTMARK_TOKEN'),
+    ],
+
+    'ses' => [
+        'key' => env('AWS_ACCESS_KEY_ID'),
+        'secret' => env('AWS_SECRET_ACCESS_KEY'),
+        'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
+    ],
+
+];
+
+--------------------------------------------------------------------------------
+
+File: config\session.php
+Comments: Truncated to 6000 bytes due to size > 6000
+Mime Type: application/octet-stream
+Size: 7229 bytes
+Content:
+<?php
+
+use Illuminate\Support\Str;
+
+return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Default Session Driver
+    |--------------------------------------------------------------------------
+    |
+    | This option controls the default session "driver" that will be used on
+    | requests. By default, we will use the lightweight native driver but
+    | you may specify any of the other wonderful drivers provided here.
+    |
+    | Supported: "file", "cookie", "database", "apc",
+    |            "memcached", "redis", "dynamodb", "array"
+    |
+    */
+
+    'driver' => env('SESSION_DRIVER', 'file'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Session Lifetime
+    |--------------------------------------------------------------------------
+    |
+    | Here you may specify the number of minutes that you wish the session
+    | to be allowed to remain idle before it expires. If you want them
+    | to immediately expire on the browser closing, set that option.
+    |
+    */
+
+    'lifetime' => env('SESSION_LIFETIME', 120),
+
+    'expire_on_close' => false,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Session Encryption
+    |--------------------------------------------------------------------------
+    |
+    | This option allows you to easily specify that all of your session data
+    | should be encrypted before it is stored. All encryption will be run
+    | automatically by Laravel and you can use the Session like normal.
+    |
+    */
+
+    'encrypt' => false,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Session File Location
+    |--------------------------------------------------------------------------
+    |
+    | When using the native session driver, we need a location where session
+    | files may be stored. A default has been set for you but a different
+    | location may be specified. This is only needed for file sessions.
+    |
+    */
+
+    'files' => storage_path('framework/sessions'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Session Database Connection
+    |--------------------------------------------------------------------------
+    |
+    | When using the "database" or "redis" session drivers, you may specify a
+    | connection that should be used to manage these sessions. This should
+    | correspond to a connection in your database configuration options.
+    |
+    */
+
+    'connection' => env('SESSION_CONNECTION'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Session Database Table
+    |--------------------------------------------------------------------------
+    |
+    | When using the "database" session driver, you may specify the table we
+    | should use to manage the sessions. Of course, a sensible default is
+    | provided for you; however, you are free to change this as needed.
+    |
+    */
+
+    'table' => 'sessions',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Session Cache Store
+    |--------------------------------------------------------------------------
+    |
+    | While using one of the framework's cache driven session backends you may
+    | list a cache store that should be used for these sessions. This value
+    | must match with one of the application's configured cache "stores".
+    |
+    | Affects: "apc", "dynamodb", "memcached", "redis"
+    |
+    */
+
+    'store' => env('SESSION_STORE'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Session Sweeping Lottery
+    |--------------------------------------------------------------------------
+    |
+    | Some session drivers must manually sweep their storage location to get
+    | rid of old sessions from storage. Here are the chances that it will
+    | happen on a given request. By default, the odds are 2 out of 100.
+    |
+    */
+
+    'lottery' => [2, 100],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Session Cookie Name
+    |--------------------------------------------------------------------------
+    |
+    | Here you may change the name of the cookie used to identify a session
+    | instance by ID. The name specified here will get used every time a
+    | new session cookie is created by the framework for every driver.
+    |
+    */
+
+    'cookie' => env(
+        'SESSION_COOKIE',
+        Str::slug(env('APP_NAME', 'tastyigniter'), '_').'_session'
+    ),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Session Cookie Path
+    |--------------------------------------------------------------------------
+    |
+    | The session cookie path determines the path for which the cookie will
+    | be regarded as available. Typically, this will be the root path of
+    | your application but you are free to change this when necessary.
+    |
+    */
+
+    'path' => '/',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Session Cookie Domain
+    |--------------------------------------------------------------------------
+    |
+    | Here you may change the domain of the cookie used to identify a session
+    | in your application. This will determine which domains the cookie is
+    | available to in your application. A sensible default has been set.
+    |
+    */
+
+    'domain' => env('SESSION_DOMAIN'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | HTTPS Only Cookies
+    |--------------------------------------------------------------------------
+    |
+    | By setting this option to true, session cookies will only be sent back
+    | to the server if the browser has a HTTPS connection. This will keep
+    | the cookie from being sent to you when it can't be done securely.
+    |
+   
+--------------------------------------------------------------------------------
+
+File: config\view.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 1089 bytes
+Content:
+<?php
+
+return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | View Storage Paths
+    |--------------------------------------------------------------------------
+    |
+    | Most templating systems load templates from disk. Here you may specify
+    | an array of paths that should be checked for your views. Of course
+    | the usual Laravel view path has already been registered for you.
+    |
+    */
+
+    'paths' => [
+        resource_path('views'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Compiled View Path
+    |--------------------------------------------------------------------------
+    |
+    | This option determines where all the compiled Blade templates will be
+    | stored for your application. Typically, this is within the storage
+    | directory. However, as usual, you are free to change this value.
+    |
+    */
+
+    'compiled' => env(
+        'VIEW_COMPILED_PATH',
+        realpath(storage_path('framework/views'))
+    ),
+
+];
+
+--------------------------------------------------------------------------------
+
+File: database\.gitignore
+Comments: Included
+Mime Type: text/plain
+Size: 11 bytes
+Content:
+*.sqlite*
+
+--------------------------------------------------------------------------------
+
+File: database\factories\UserFactory.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 1067 bytes
+Content:
+<?php
+
+namespace Database\Factories;
+
+use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
+
+/**
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\User>
+ */
+class UserFactory extends Factory
+{
+    /**
+     * Define the model's default state.
+     *
+     * @return array<string, mixed>
+     */
+    public function definition()
+    {
+        return [
+            'name' => $this->faker->name(),
+            'email' => $this->faker->unique()->safeEmail(),
+            'email_verified_at' => now(),
+            'password' => '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password
+            'remember_token' => Str::random(10),
+        ];
+    }
+
+    /**
+     * Indicate that the model's email address should be unverified.
+     *
+     * @return static
+     */
+    public function unverified()
+    {
+        return $this->state(function (array $attributes) {
+            return [
+                'email_verified_at' => null,
+            ];
+        });
+    }
+}
+
+--------------------------------------------------------------------------------
+
+File: database\migrations\2014_10_12_000000_create_users_table.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 829 bytes
+Content:
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     *
+     * @return void
+     */
+    public function up()
+    {
+        Schema::create('users', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('email')->unique();
+            $table->timestamp('email_verified_at')->nullable();
+            $table->string('password');
+            $table->rememberToken();
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
+    public function down()
+    {
+        Schema::dropIfExists('users');
+    }
+};
+
+--------------------------------------------------------------------------------
+
+File: database\migrations\2014_10_12_100000_create_password_resets_table.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 701 bytes
+Content:
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     *
+     * @return void
+     */
+    public function up()
+    {
+        Schema::create('password_resets', function (Blueprint $table) {
+            $table->string('email')->index();
+            $table->string('token');
+            $table->timestamp('created_at')->nullable();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
+    public function down()
+    {
+        Schema::dropIfExists('password_resets');
+    }
+};
+
+--------------------------------------------------------------------------------
+
+File: database\migrations\2019_08_19_000000_create_failed_jobs_table.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 846 bytes
+Content:
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     *
+     * @return void
+     */
+    public function up()
+    {
+        Schema::create('failed_jobs', function (Blueprint $table) {
+            $table->id();
+            $table->string('uuid')->unique();
+            $table->text('connection');
+            $table->text('queue');
+            $table->longText('payload');
+            $table->longText('exception');
+            $table->timestamp('failed_at')->useCurrent();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
+    public function down()
+    {
+        Schema::dropIfExists('failed_jobs');
+    }
+};
+
+--------------------------------------------------------------------------------
+
+File: database\migrations\2019_12_14_000001_create_personal_access_tokens_table.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 877 bytes
+Content:
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     *
+     * @return void
+     */
+    public function up()
+    {
+        Schema::create('personal_access_tokens', function (Blueprint $table) {
+            $table->id();
+            $table->morphs('tokenable');
+            $table->string('name');
+            $table->string('token', 64)->unique();
+            $table->text('abilities')->nullable();
+            $table->timestamp('last_used_at')->nullable();
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
+    public function down()
+    {
+        Schema::dropIfExists('personal_access_tokens');
+    }
+};
+
+--------------------------------------------------------------------------------
+
+File: database\seeders\DatabaseSeeder.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 513 bytes
+Content:
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use Illuminate\Database\Seeder;
+
+class DatabaseSeeder extends Seeder
+{
+    /**
+     * Seed the application's database.
+     *
+     * @return void
+     */
+    public function run()
+    {
+        // \App\Models\User::factory(10)->create();
+
+        // \App\Models\User::factory()->create([
+        //     'name' => 'Test User',
+        //     'email' => 'test@example.com',
+        // ]);
+    }
+}
+
+--------------------------------------------------------------------------------
+
+File: extensions\.gitignore
+Comments: Included
+Mime Type: text/plain
+Size: 32 bytes
+Content:
+*
+!igniter/demo/
+!.gitignore
+
+--------------------------------------------------------------------------------
+
+File: lang\en\auth.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 694 bytes
+Content:
+<?php
+
+return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Authentication Language Lines
+    |--------------------------------------------------------------------------
+    |
+    | The following language lines are used during authentication for various
+    | messages that we need to display to the user. You are free to modify
+    | these language lines according to your application's requirements.
+    |
+    */
+
+    'failed' => 'These credentials do not match our records.',
+    'password' => 'The provided password is incorrect.',
+    'throttle' => 'Too many login attempts. Please try again in :seconds seconds.',
+
+];
+
+--------------------------------------------------------------------------------
+
+File: lang\en\pagination.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 553 bytes
+Content:
+<?php
+
+return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Pagination Language Lines
+    |--------------------------------------------------------------------------
+    |
+    | The following language lines are used by the paginator library to build
+    | the simple pagination links. You are free to change them to anything
+    | you want to customize your views to better match your application.
+    |
+    */
+
+    'previous' => '&laquo; Previous',
+    'next' => 'Next &raquo;',
+
+];
+
+--------------------------------------------------------------------------------
+
+File: lang\en\passwords.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 766 bytes
+Content:
+<?php
+
+return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Password Reset Language Lines
+    |--------------------------------------------------------------------------
+    |
+    | The following language lines are the default lines which match reasons
+    | that are given by the password broker for a password update attempt
+    | has failed, such as for an invalid token or invalid new password.
+    |
+    */
+
+    'reset' => 'Your password has been reset!',
+    'sent' => 'We have emailed your password reset link!',
+    'throttled' => 'Please wait before retrying.',
+    'token' => 'This password reset token is invalid.',
+    'user' => "We can't find a user with that email address.",
+
+];
+
+--------------------------------------------------------------------------------
+
+File: lang\en\validation.php
+Comments: Truncated to 6000 bytes due to size > 6000
+Mime Type: application/octet-stream
+Size: 9120 bytes
+Content:
+<?php
+
+return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Validation Language Lines
+    |--------------------------------------------------------------------------
+    |
+    | The following language lines contain the default error messages used by
+    | the validator class. Some of these rules have multiple versions such
+    | as the size rules. Feel free to tweak each of these messages here.
+    |
+    */
+
+    'accepted' => 'The :attribute must be accepted.',
+    'accepted_if' => 'The :attribute must be accepted when :other is :value.',
+    'active_url' => 'The :attribute is not a valid URL.',
+    'after' => 'The :attribute must be a date after :date.',
+    'after_or_equal' => 'The :attribute must be a date after or equal to :date.',
+    'alpha' => 'The :attribute must only contain letters.',
+    'alpha_dash' => 'The :attribute must only contain letters, numbers, dashes and underscores.',
+    'alpha_num' => 'The :attribute must only contain letters and numbers.',
+    'array' => 'The :attribute must be an array.',
+    'before' => 'The :attribute must be a date before :date.',
+    'before_or_equal' => 'The :attribute must be a date before or equal to :date.',
+    'between' => [
+        'array' => 'The :attribute must have between :min and :max items.',
+        'file' => 'The :attribute must be between :min and :max kilobytes.',
+        'numeric' => 'The :attribute must be between :min and :max.',
+        'string' => 'The :attribute must be between :min and :max characters.',
+    ],
+    'boolean' => 'The :attribute field must be true or false.',
+    'confirmed' => 'The :attribute confirmation does not match.',
+    'current_password' => 'The password is incorrect.',
+    'date' => 'The :attribute is not a valid date.',
+    'date_equals' => 'The :attribute must be a date equal to :date.',
+    'date_format' => 'The :attribute does not match the format :format.',
+    'declined' => 'The :attribute must be declined.',
+    'declined_if' => 'The :attribute must be declined when :other is :value.',
+    'different' => 'The :attribute and :other must be different.',
+    'digits' => 'The :attribute must be :digits digits.',
+    'digits_between' => 'The :attribute must be between :min and :max digits.',
+    'dimensions' => 'The :attribute has invalid image dimensions.',
+    'distinct' => 'The :attribute field has a duplicate value.',
+    'email' => 'The :attribute must be a valid email address.',
+    'ends_with' => 'The :attribute must end with one of the following: :values.',
+    'enum' => 'The selected :attribute is invalid.',
+    'exists' => 'The selected :attribute is invalid.',
+    'file' => 'The :attribute must be a file.',
+    'filled' => 'The :attribute field must have a value.',
+    'gt' => [
+        'array' => 'The :attribute must have more than :value items.',
+        'file' => 'The :attribute must be greater than :value kilobytes.',
+        'numeric' => 'The :attribute must be greater than :value.',
+        'string' => 'The :attribute must be greater than :value characters.',
+    ],
+    'gte' => [
+        'array' => 'The :attribute must have :value items or more.',
+        'file' => 'The :attribute must be greater than or equal to :value kilobytes.',
+        'numeric' => 'The :attribute must be greater than or equal to :value.',
+        'string' => 'The :attribute must be greater than or equal to :value characters.',
+    ],
+    'image' => 'The :attribute must be an image.',
+    'in' => 'The selected :attribute is invalid.',
+    'in_array' => 'The :attribute field does not exist in :other.',
+    'integer' => 'The :attribute must be an integer.',
+    'ip' => 'The :attribute must be a valid IP address.',
+    'ipv4' => 'The :attribute must be a valid IPv4 address.',
+    'ipv6' => 'The :attribute must be a valid IPv6 address.',
+    'json' => 'The :attribute must be a valid JSON string.',
+    'lt' => [
+        'array' => 'The :attribute must have less than :value items.',
+        'file' => 'The :attribute must be less than :value kilobytes.',
+        'numeric' => 'The :attribute must be less than :value.',
+        'string' => 'The :attribute must be less than :value characters.',
+    ],
+    'lte' => [
+        'array' => 'The :attribute must not have more than :value items.',
+        'file' => 'The :attribute must be less than or equal to :value kilobytes.',
+        'numeric' => 'The :attribute must be less than or equal to :value.',
+        'string' => 'The :attribute must be less than or equal to :value characters.',
+    ],
+    'mac_address' => 'The :attribute must be a valid MAC address.',
+    'max' => [
+        'array' => 'The :attribute must not have more than :max items.',
+        'file' => 'The :attribute must not be greater than :max kilobytes.',
+        'numeric' => 'The :attribute must not be greater than :max.',
+        'string' => 'The :attribute must not be greater than :max characters.',
+    ],
+    'mimes' => 'The :attribute must be a file of type: :values.',
+    'mimetypes' => 'The :attribute must be a file of type: :values.',
+    'min' => [
+        'array' => 'The :attribute must have at least :min items.',
+        'file' => 'The :attribute must be at least :min kilobytes.',
+        'numeric' => 'The :attribute must be at least :min.',
+        'string' => 'The :attribute must be at least :min characters.',
+    ],
+    'multiple_of' => 'The :attribute must be a multiple of :value.',
+    'not_in' => 'The selected :attribute is invalid.',
+    'not_regex' => 'The :attribute format is invalid.',
+    'numeric' => 'The :attribute must be a number.',
+    'password' => [
+        'letters' => 'The :attribute must contain at least one letter.',
+        'mixed' => 'The :attribute must contain at least one uppercase and one lowercase letter.',
+        'numbers' => 'The :attribute must contain at least one number.',
+        'symbols' => 'The :attribute must contain at least one symbol.',
+        'uncompromised' => 'The given :attribute has appeare
+--------------------------------------------------------------------------------
+
+File: lang\vendor\.gitignore
+Comments: Included
+Mime Type: text/plain
+Size: 16 bytes
+Content:
+*
+!.gitignore
+
+--------------------------------------------------------------------------------
+
+File: LICENSE.md
+Comments: Excluded by file type
+Mime Type: 
+Size: 0 bytes
+Content:
+
+--------------------------------------------------------------------------------
+
+File: package.json
+Comments: Included
+Mime Type: application/json
+Size: 491 bytes
+Content:
+{
+    "private": true,
+    "scripts": {
+        "dev": "npm run development",
+        "development": "mix",
+        "watch": "mix watch",
+        "watch-poll": "mix watch -- --watch-options-poll=1000",
+        "hot": "mix watch --hot",
+        "prod": "npm run production",
+        "production": "mix --production"
+    },
+    "devDependencies": {
+        "axios": "^0.25",
+        "laravel-mix": "^6.0.6",
+        "lodash": "^4.17.19",
+        "postcss": "^8.1.14"
+    }
+}
+
+--------------------------------------------------------------------------------
+
+File: phpunit.xml
+Comments: Included
+Mime Type: text/xml
+Size: 1206 bytes
+Content:
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="./vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+>
+    <testsuites>
+        <testsuite name="Unit">
+            <directory suffix="Test.php">./tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Feature">
+            <directory suffix="Test.php">./tests/Feature</directory>
+        </testsuite>
+    </testsuites>
+    <coverage processUncoveredFiles="true">
+        <include>
+            <directory suffix=".php">./app</directory>
+        </include>
+    </coverage>
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="BCRYPT_ROUNDS" value="4"/>
+        <env name="CACHE_DRIVER" value="array"/>
+        <!-- <env name="DB_CONNECTION" value="sqlite"/> -->
+        <!-- <env name="DB_DATABASE" value=":memory:"/> -->
+        <env name="MAIL_MAILER" value="array"/>
+        <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="SESSION_DRIVER" value="array"/>
+        <env name="TELESCOPE_ENABLED" value="false"/>
+    </php>
+</phpunit>
+
+--------------------------------------------------------------------------------
+
+File: public\.htaccess
+Comments: Included
+Mime Type: application/octet-stream
+Size: 624 bytes
+Content:
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
+    RewriteEngine On
+
+    # Handle Authorization Header
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Redirect Trailing Slashes If Not A Folder...
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} (.+)/$
+    RewriteRule ^ %1 [L,R=301]
+
+    # Send Requests To Front Controller...
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+--------------------------------------------------------------------------------
+
+File: public\favicon.svg
+Comments: Excluded by file type
+Mime Type: 
+Size: 0 bytes
+Content:
+
+--------------------------------------------------------------------------------
+
+File: public\index.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 1765 bytes
+Content:
+<?php
+
+use Illuminate\Contracts\Http\Kernel;
+use Illuminate\Http\Request;
+
+define('LARAVEL_START', microtime(true));
+
+/*
+|--------------------------------------------------------------------------
+| Check If The Application Is Under Maintenance
+|--------------------------------------------------------------------------
+|
+| If the application is in maintenance / demo mode via the "down" command
+| we will load this file so that any pre-rendered content can be shown
+| instead of starting the framework, which could cause an exception.
+|
+*/
+
+if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php')) {
+    require $maintenance;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Register The Auto Loader
+|--------------------------------------------------------------------------
+|
+| Composer provides a convenient, automatically generated class loader for
+| this application. We just need to utilize it! We'll simply require it
+| into the script here so we don't need to manually load our classes.
+|
+*/
+
+require __DIR__.'/../vendor/autoload.php';
+
+/*
+|--------------------------------------------------------------------------
+| Run The Application
+|--------------------------------------------------------------------------
+|
+| Once we have the application, we can handle the incoming request using
+| the application's HTTP kernel. Then, we will send the response back
+| to this client's browser, allowing them to enjoy our application.
+|
+*/
+
+$app = require_once __DIR__.'/../bootstrap/app.php';
+
+$kernel = $app->make(Kernel::class);
+
+$response = $kernel->handle(
+    $request = Request::capture()
+)->send();
+
+$kernel->terminate($request, $response);
+
+--------------------------------------------------------------------------------
+
+File: public\robots.txt
+Comments: Included
+Mime Type: text/plain
+Size: 26 bytes
+Content:
+User-agent: *
+Disallow:
+
+--------------------------------------------------------------------------------
+
+File: README.md
+Comments: Excluded by file type
+Mime Type: 
+Size: 0 bytes
+Content:
+
+--------------------------------------------------------------------------------
+
+File: resources\css\app.css
+Comments: Excluded by file type
+Mime Type: 
+Size: 0 bytes
+Content:
+
+--------------------------------------------------------------------------------
+
+File: resources\js\app.js
+Comments: Included
+Mime Type: text/javascript
+Size: 0 bytes
+Content:
+
+--------------------------------------------------------------------------------
+
+File: resources\views\.gitkeep
+Comments: Included
+Mime Type: application/octet-stream
+Size: 0 bytes
+Content:
+
+--------------------------------------------------------------------------------
+
+File: routes\api.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 524 bytes
+Content:
+<?php
+
+/*
+|--------------------------------------------------------------------------
+| API Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register API routes for your application. These
+| routes are loaded by the RouteServiceProvider within a group which
+| is assigned the "api" middleware group. Enjoy building your API!
+|
+*/
+
+//Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+//    return $request->user();
+//});
+
+--------------------------------------------------------------------------------
+
+File: routes\channels.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 537 bytes
+Content:
+<?php
+
+/*
+|--------------------------------------------------------------------------
+| Broadcast Channels
+|--------------------------------------------------------------------------
+|
+| Here you may register all of the event broadcasting channels that your
+| application supports. The given channel authorization callbacks are
+| used to check if an authenticated user can listen to the channel.
+|
+*/
+
+//Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
+//    return (int) $user->id === (int) $id;
+//});
+
+--------------------------------------------------------------------------------
+
+File: routes\console.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 536 bytes
+Content:
+<?php
+
+/*
+|--------------------------------------------------------------------------
+| Console Routes
+|--------------------------------------------------------------------------
+|
+| This file is where you may define all of your Closure based console
+| commands. Each Closure is bound to a command instance allowing a
+| simple approach to interacting with each command's IO methods.
+|
+*/
+
+//Artisan::command('inspire', function () {
+//    $this->comment(Inspiring::quote());
+//})->purpose('Display an inspiring quote');
+
+--------------------------------------------------------------------------------
+
+File: routes\web.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 475 bytes
+Content:
+<?php
+
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register web routes for your application. These
+| routes are loaded by the RouteServiceProvider within a group which
+| contains the "web" middleware group. Now create something great!
+|
+*/
+
+//Route::get('/', function () {
+//    return view('welcome');
+//});
+
+--------------------------------------------------------------------------------
+
+File: storage\app\.gitignore
+Comments: Included
+Mime Type: text/plain
+Size: 37 bytes
+Content:
+*
+!private/
+!public/
+!.gitignore
+
+--------------------------------------------------------------------------------
+
+File: storage\app\private\.gitignore
+Comments: Included
+Mime Type: text/plain
+Size: 16 bytes
+Content:
+*
+!.gitignore
+
+--------------------------------------------------------------------------------
+
+File: storage\app\public\.gitignore
+Comments: Included
+Mime Type: text/plain
+Size: 16 bytes
+Content:
+*
+!.gitignore
+
+--------------------------------------------------------------------------------
+
+File: storage\framework\.gitignore
+Comments: Included
+Mime Type: text/plain
+Size: 128 bytes
+Content:
+compiled.php
+config.php
+down
+events.scanned.php
+maintenance.php
+routes.php
+routes.scanned.php
+schedule-*
+services.json
+
+--------------------------------------------------------------------------------
+
+File: storage\framework\cache\.gitignore
+Comments: Included
+Mime Type: text/plain
+Size: 24 bytes
+Content:
+*
+!data/
+!.gitignore
+
+--------------------------------------------------------------------------------
+
+File: storage\framework\cache\data\.gitignore
+Comments: Included
+Mime Type: text/plain
+Size: 16 bytes
+Content:
+*
+!.gitignore
+
+--------------------------------------------------------------------------------
+
+File: storage\framework\sessions\.gitignore
+Comments: Included
+Mime Type: text/plain
+Size: 16 bytes
+Content:
+*
+!.gitignore
+
+--------------------------------------------------------------------------------
+
+File: storage\framework\testing\.gitignore
+Comments: Included
+Mime Type: text/plain
+Size: 16 bytes
+Content:
+*
+!.gitignore
+
+--------------------------------------------------------------------------------
+
+File: storage\framework\views\.gitignore
+Comments: Included
+Mime Type: text/plain
+Size: 16 bytes
+Content:
+*
+!.gitignore
+
+--------------------------------------------------------------------------------
+
+File: storage\igniter\.gitignore
+Comments: Included
+Mime Type: text/plain
+Size: 16 bytes
+Content:
+*
+!.gitignore
+
+--------------------------------------------------------------------------------
+
+File: storage\logs\.gitignore
+Comments: Included
+Mime Type: text/plain
+Size: 16 bytes
+Content:
+*
+!.gitignore
+
+--------------------------------------------------------------------------------
+
+File: storage\temp\.gitignore
+Comments: Included
+Mime Type: text/plain
+Size: 16 bytes
+Content:
+*
+!.gitignore
+
+--------------------------------------------------------------------------------
+
+File: tests\CreatesApplication.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 402 bytes
+Content:
+<?php
+
+namespace Tests;
+
+use Illuminate\Contracts\Console\Kernel;
+
+trait CreatesApplication
+{
+    /**
+     * Creates the application.
+     *
+     * @return \Illuminate\Foundation\Application
+     */
+    public function createApplication()
+    {
+        $app = require __DIR__.'/../bootstrap/app.php';
+
+        $app->make(Kernel::class)->bootstrap();
+
+        return $app;
+    }
+}
+
+--------------------------------------------------------------------------------
+
+File: tests\Feature\ExampleTest.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 398 bytes
+Content:
+<?php
+
+namespace Tests\Feature;
+
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class ExampleTest extends TestCase
+{
+    /**
+     * A basic test example.
+     *
+     * @return void
+     */
+    public function test_the_application_returns_a_successful_response()
+    {
+        $response = $this->get('/');
+
+        $response->assertStatus(200);
+    }
+}
+
+--------------------------------------------------------------------------------
+
+File: tests\TestCase.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 173 bytes
+Content:
+<?php
+
+namespace Tests;
+
+use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+
+abstract class TestCase extends BaseTestCase
+{
+    use CreatesApplication;
+}
+
+--------------------------------------------------------------------------------
+
+File: tests\Unit\ExampleTest.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 282 bytes
+Content:
+<?php
+
+namespace Tests\Unit;
+
+use PHPUnit\Framework\TestCase;
+
+class ExampleTest extends TestCase
+{
+    /**
+     * A basic test example.
+     *
+     * @return void
+     */
+    public function test_that_true_is_true()
+    {
+        $this->assertTrue(true);
+    }
+}
+
+--------------------------------------------------------------------------------
+
+File: themes\.gitignore
+Comments: Included
+Mime Type: text/plain
+Size: 22 bytes
+Content:
+*
+!demo/
+!.gitignore
+--------------------------------------------------------------------------------
+
+File: themes\demo\screenshot.svg
+Comments: Excluded by file type
+Mime Type: 
+Size: 0 bytes
+Content:
+
+--------------------------------------------------------------------------------
+
+File: themes\demo\theme.json
+Comments: Included
+Mime Type: application/json
+Size: 253 bytes
+Content:
+{
+  "code": "demo",
+  "parent": null,
+  "name": "Demo Theme",
+  "description": "Demonstration theme for TastyIgniter front-end",
+  "author": "TastyIgniter Dev Team",
+  "version": "1.0.0",
+  "tags": {
+    "1.0.0": "Theme initialization"
+  }
+}
+
+--------------------------------------------------------------------------------
+
+File: themes\demo\_layouts\default.blade.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 737 bytes
+Content:
+---
+description: Default layout
+---
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="{{ App::getLocale() }}">
+<head>
+    @themePartial('head')
+</head>
+<body class="bg-light d-flex flex-column h-100 {{ $this->page->bodyClass }}">
+<header id="main-header" class="bg-orange">
+    <div class="container">
+        <div class="logo">
+            <a
+                class="text-white d-inline-block py-2 fs-3"
+                href="{{ page_url('home') }}"
+            >@lang($this->page->title)</a>
+        </div>
+    </div>
+</header>
+
+<div id="page-wrapper" class="pt-4">
+    @themePage
+</div>
+
+<footer id="page-footer mt-auto">
+    @themePartial('footer')
+</footer>
+@themeScripts
+</body>
+</html>
+
+--------------------------------------------------------------------------------
+
+File: themes\demo\_pages\error.blade.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 255 bytes
+Content:
+---
+title: Error page (500)
+layout: default
+permalink: /error
+---
+<div class="jumbotron">
+    <div class="container">
+        <h1>Error</h1>
+        <p>We're sorry, but something went wrong and the page cannot be displayed.</p>
+    </div>
+</div>
+--------------------------------------------------------------------------------
+
+File: themes\demo\_pages\home.blade.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 1054 bytes
+Content:
+---
+title: Getting Started
+layout: default
+permalink: /
+---
+
+<div class="container">
+    <div class="row fs-5">
+        <div class="col-sm-8">
+            <p class="mb-4">This is TastyIgniter's
+                <b>demonstration theme</b> to help you get started if you plan on designing your theme from scratch.</p>
+            <p class="mb-4">
+                Navigate to your admin dashboard
+                <a target="_blank" href="{{ admin_url('themes') }}">(Design > Themes)</a>
+                to <b>choose from a variety of themes</b> pre-built for you to start receiving orders.
+            </p>
+
+            <p class="mb-4">Learn more on themes and extension, see the
+                <a href="https://tastyigniter.com/docs/master/customize/themes">Themes documentation</a>.</p>
+
+            <p class="mb-4 img-holder mx-n3">
+                <img class="img-fluid rounded" src="https://tastyigniter.com/assets/ui/images/mockups/v4/Menus.png" alt="TastyIgniter Frontend">
+            </p>
+        </div>
+    </div>
+</div>
+
+--------------------------------------------------------------------------------
+
+File: themes\demo\_partials\footer.blade.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 322 bytes
+Content:
+<div class="container text-center">
+    <p class="small mb-0 p-3">
+        {!! sprintf(
+            lang('igniter::main.site_copyright'),
+            date('Y'),
+            setting('site_name'),
+            lang('igniter::system.system_name')
+        ).lang('igniter::system.system_powered') !!}
+    </p>
+</div>
+
+--------------------------------------------------------------------------------
+
+File: themes\demo\_partials\head.blade.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 288 bytes
+Content:
+{!! get_metas() !!}
+<link href="{{ asset('favicon.svg') }}" rel="shortcut icon" type="image/ico">
+<title>{{ lang(get_title()).' | '.setting('site_name') }}</title>
+<link href="{{ asset('vendor/igniter/css/app.css') }}" rel="stylesheet" type="text/css" id="igniter-css">
+@themeStyles
+
+--------------------------------------------------------------------------------
+
+File: themes\demo\_partials\payregister\cod.blade.php
+Comments: Included
+Mime Type: application/octet-stream
+Size: 0 bytes
+Content:
+
+--------------------------------------------------------------------------------
+
+File: webpack.mix.js
+Comments: Included
+Mime Type: text/javascript
+Size: 576 bytes
+Content:
+const mix = require('laravel-mix');
+
+/*
+ |--------------------------------------------------------------------------
+ | Mix Asset Management
+ |--------------------------------------------------------------------------
+ |
+ | Mix provides a clean, fluent API for defining some Webpack build steps
+ | for your Laravel applications. By default, we are compiling the CSS
+ | file for the application as well as bundling up all the JS files.
+ |
+ */
+
+mix.js('resources/js/app.js', 'public/js')
+    .postCss('resources/css/app.css', 'public/css', [
+        //
+    ]);
+
+--------------------------------------------------------------------------------
+

@@ -1,0 +1,739 @@
+File: ai.py
+Comments: Truncated to 6000 bytes due to size > 6000
+Mime Type: text/x-python
+Size: 6647 bytes
+Content:
+import frappe
+
+from raven.ai.handler import stream_response
+from raven.ai.openai_client import (
+	code_interpreter_file_types,
+	file_search_file_types,
+	get_open_ai_client,
+)
+
+
+def handle_bot_dm(message, bot):
+	"""
+	 Function to handle direct messages to the bot.
+
+	We need to start a new thread with the message and create a new conversation in OpenAI
+	"""
+
+	client = get_open_ai_client()
+
+	# If the message is a poll, send a message to the user that we don't support polls for AI yet
+
+	if message.message_type == "Poll":
+		bot.send_message(
+			channel_id=message.channel_id,
+			text="Sorry, I don't support polls yet. Please send a text message or file.",
+		)
+		return
+
+	if message.message_type in ["File", "Image"]:
+
+		if message.message_type == "File" and not check_if_bot_has_file_search(bot, message.channel_id):
+			return
+
+		# If the file has an "fid" query parameter, we need to remove that from the file_url
+		if "fid" in message.file:
+			file_url = message.file.split("?fid=")[0]
+		else:
+			file_url = message.file
+
+		# Upload the file to OpenAI
+		file = create_file_in_openai(file_url, message.message_type, client)
+
+		content, attachments = get_content_attachment_for_file(message.message_type, file.id, file_url)
+
+		ai_thread = client.beta.threads.create(
+			messages=[
+				{
+					"role": "user",
+					"content": content,
+					"metadata": {"user": message.owner, "message": message.name},
+					"attachments": attachments,
+				}
+			],
+			metadata={
+				"bot": bot.name,
+				"channel": message.channel_id,
+				"user": message.owner,
+				"message": message.name,
+			},
+		)
+
+	else:
+		ai_thread = client.beta.threads.create(
+			messages=[
+				{
+					"role": "user",
+					"content": message.content,
+					"metadata": {"user": message.owner, "message": message.name},
+				}
+			],
+			metadata={
+				"bot": bot.name,
+				"channel": message.channel_id,
+				"user": message.owner,
+				"message": message.name,
+			},
+		)
+
+	thread_channel = frappe.get_doc(
+		{
+			"doctype": "Raven Channel",
+			"channel_name": message.name,
+			"type": "Private",
+			"is_thread": 1,
+			"is_ai_thread": 1,
+			"is_dm_thread": 1,
+			"openai_thread_id": ai_thread.id,
+			"thread_bot": bot.name,
+		}
+	).insert()
+
+	# Update the message to mark it as a thread
+	message.is_thread = 1
+	message.save()
+	# nosemgrep We need to commit here since the response will be streamed, and hence might take a while
+	frappe.db.commit()
+
+	frappe.publish_realtime(
+		"ai_event",
+		{
+			"text": "Raven AI is thinking...",
+			"channel_id": thread_channel.name,
+			"bot": bot.name,
+		},
+		doctype="Raven Channel",
+		docname=thread_channel.name,
+		after_commit=True,
+	)
+
+	stream_response(ai_thread_id=ai_thread.id, bot=bot, channel_id=thread_channel.name)
+
+
+def handle_ai_thread_message(message, channel):
+	"""
+	Function to handle messages in an AI thread
+
+	When a new message is sent, we need to send it to the OpenAI API and then stream the response
+	"""
+
+	client = get_open_ai_client()
+
+	bot = frappe.get_doc("Raven Bot", channel.thread_bot)
+
+	if message.message_type in ["File", "Image"]:
+
+		file_url = message.file
+		if "fid" in file_url:
+			file_url = file_url.split("?fid=")[0]
+
+		if message.message_type == "File" and not check_if_bot_has_file_search(bot, channel.name):
+			return
+		# Upload the file to OpenAI
+		try:
+			file = create_file_in_openai(file_url, message.message_type, client)
+		except Exception as e:
+			frappe.log_error("Raven AI Error", frappe.get_traceback())
+			bot.send_message(
+				channel_id=channel.name,
+				text="Sorry, there was an error in processing your file. Please try again.<br/><br/>Error: "
+				+ str(e),
+			)
+			return
+
+		content, attachments = get_content_attachment_for_file(message.message_type, file.id, file_url)
+
+		try:
+			client.beta.threads.messages.create(
+				thread_id=channel.openai_thread_id,
+				role="user",
+				content=content,
+				metadata={"user": message.owner, "message": message.name},
+				attachments=attachments,
+			)
+		except Exception as e:
+			frappe.log_error("Raven AI Error", frappe.get_traceback())
+			bot.send_message(
+				channel_id=channel.name,
+				text="Sorry, there was an error in processing your file. Please try again.<br/><br/>Error: "
+				+ str(e),
+			)
+			return
+
+	else:
+
+		client.beta.threads.messages.create(
+			thread_id=channel.openai_thread_id,
+			role="user",
+			content=message.content,
+			metadata={"user": message.owner, "message": message.name},
+		)
+
+	frappe.publish_realtime(
+		"ai_event",
+		{
+			"text": "Raven AI is thinking...",
+			"channel_id": channel.name,
+			"bot": bot.name,
+		},
+		doctype="Raven Channel",
+		docname=channel.name,
+	)
+
+	stream_response(ai_thread_id=channel.openai_thread_id, bot=bot, channel_id=channel.name)
+
+
+def check_if_bot_has_file_search(bot, channel_id):
+	"""
+	Checks of bot has file search. If not, send a message to the user. If yes, return True
+	"""
+
+	if not bot.enable_file_search:
+		bot.send_message(
+			channel_id=channel_id,
+			text="Sorry, your bot does not support file search. Please enable it and try again.",
+		)
+		return False
+
+	return True
+
+
+def create_file_in_openai(file_url: str, message_type: str, client):
+	"""
+	Function to create a file in OpenAI
+
+	We need to upload the file to OpenAI and return the file ID
+	"""
+
+	file_doc = frappe.get_doc("File", {"file_url": file_url})
+	file_path = file_doc.get_full_path()
+
+	file = client.files.create(
+		file=open(file_path, "rb"), purpose="assistants" if message_type == "File" else "vision"
+	)
+
+	return file
+
+
+def get_content_attachment_for_file(message_type: str, file_id: str, file_url: str):
+
+	attachments = None
+
+	if message_type == "File":
+		content = f"Uploaded a file. URL of the file is '{file_url}'."
+
+		file_extension = file_url.split(".")[-1].lower()
+
+		if file_extension == "pdf":
+			content += (
+				" The file is a PDF. If it's not machine readable, you can extract the text via images."
+			)
+
+		attachments = []
+
+		if file_extension in code_interpreter_file_types:
+			attachments.append(
+				{
+					"file_id": file_id,
+					"tools": [{"type": 
+--------------------------------------------------------------------------------
+
+File: functions.py
+Comments: Included
+Mime Type: text/x-python
+Size: 5947 bytes
+Content:
+import frappe
+from frappe import _, client
+
+
+def get_document(doctype: str, document_id: str):
+	"""
+	Get a document from the database
+	"""
+	# Use the frappe.client.get method to get the document with permissions (both read and field level read)
+	return client.get(doctype, name=document_id)
+
+
+def get_documents(doctype: str, document_ids: list):
+	"""
+	Get documents from the database
+	"""
+	docs = []
+	for document_id in document_ids:
+		# Use the frappe.client.get method to get the document with permissions applied
+		docs.append(client.get(doctype, name=document_id))
+	return docs
+
+
+def create_document(doctype: str, data: dict, function=None):
+	"""
+	Create a document in the database
+	"""
+	if function:
+		# Get any default values
+		for param in function.parameters:
+			if param.default_value:
+				# Check if this value was not to be asked by the AI
+				if param.do_not_ask_ai:
+					data[param.fieldname] = param.default_value
+
+				# Check if the value was not provided
+				if not data.get(param.fieldname):
+					data[param.fieldname] = param.default_value
+
+	doc = frappe.get_doc({"doctype": doctype, **data})
+	doc.insert()
+	return {"document_id": doc.name, "message": "Document created", "doctype": doctype}
+
+
+def create_documents(doctype: str, data: list, function=None):
+	"""
+	Create documents in the database
+	"""
+	docs = []
+	for item in data:
+		docs.append(create_document(doctype, item, function).get("document_id"))
+
+	return {"documents": docs, "message": "Documents created", "doctype": doctype}
+
+
+def update_document(doctype: str, document_id: str, data: dict, function=None):
+	"""
+	Update a document in the database
+	"""
+	if function:
+		# Get any default values
+		for param in function.parameters:
+			if param.default_value:
+				# Check if this value was not to be asked by the AI
+				if param.do_not_ask_ai:
+					data[param.fieldname] = param.default_value
+
+				# Check if the value was not provided
+				if not data.get(param.fieldname):
+					data[param.fieldname] = param.default_value
+
+	doc = frappe.get_doc(doctype, document_id)
+	doc.update(data)
+	doc.save()
+	return {"document_id": doc.name, "message": "Document updated", "doctype": doctype}
+
+
+def update_documents(doctype: str, data: dict, function=None):
+	"""
+	Update documents in the database
+	"""
+	updated_docs = []
+	for document in data:
+		document_without_id = document.copy()
+		document_id = document_without_id.pop("document_id")
+		updated_docs.append(
+			update_document(doctype, document_id, document_without_id, function).get("document_id")
+		)
+
+	return {"document_ids": updated_docs, "message": "Documents updated", "doctype": doctype}
+
+
+def delete_document(doctype: str, document_id: str):
+	"""
+	Delete a document from the database
+	"""
+	frappe.delete_doc(doctype, document_id)
+	return {"document_id": document_id, "message": "Document deleted", "doctype": doctype}
+
+
+def delete_documents(doctype: str, document_ids: list):
+	"""
+	Delete documents from the database
+	"""
+	for document_id in document_ids:
+		frappe.delete_doc(doctype, document_id)
+	return {"document_ids": document_ids, "message": "Documents deleted", "doctype": doctype}
+
+
+def submit_document(doctype: str, document_id: str):
+	"""
+	Submit a document in the database
+	"""
+	doc = frappe.get_doc(doctype, document_id)
+	doc.submit()
+	return {
+		"document_id": document_id,
+		"message": f"{doctype} {document_id} submitted",
+		"doctype": doctype,
+	}
+
+
+def cancel_document(doctype: str, document_id: str):
+	"""
+	Cancel a document in the database
+	"""
+	doc = frappe.get_doc(doctype, document_id)
+	doc.cancel()
+	return {
+		"document_id": document_id,
+		"message": f"{doctype} {document_id} cancelled",
+		"doctype": doctype,
+	}
+
+
+def get_amended_document_id(doctype: str, document_id: str):
+	"""
+	Get the amended document for a given document
+	"""
+	amended_doc = frappe.db.exists(doctype, {"amended_from": document_id})
+	if amended_doc:
+		return amended_doc
+	else:
+		return {"message": f"{doctype} {document_id} is not amended"}
+
+
+def get_amended_document(doctype: str, document_id: str):
+	"""
+	Get the amended document for a given document
+	"""
+	amended_doc = frappe.db.exists(doctype, {"amended_from": document_id})
+	if amended_doc:
+		return client.get(doctype, name=document_id)
+	else:
+		return {"message": f"{doctype} {document_id} is not amended", "doctype": doctype}
+
+
+def attach_file_to_document(doctype: str, document_id: str, file_path: str):
+	"""
+	Attach a file to a document in the database
+	"""
+	if not frappe.db.exists(doctype, document_id):
+		return {
+			"document_id": document_id,
+			"message": f"{doctype} with ID {document_id} not found",
+			"doctype": doctype,
+		}
+
+	file = frappe.get_doc("File", {"file_url": file_path})
+
+	if not file:
+		frappe.throw(_("File not found"))
+
+	newFile = frappe.get_doc(
+		{
+			"doctype": "File",
+			"file_url": file_path,
+			"attached_to_doctype": doctype,
+			"attached_to_name": document_id,
+			"folder": file.folder,
+			"file_name": file.file_name,
+			"is_private": file.is_private,
+		}
+	)
+	newFile.insert()
+
+	return {"document_id": document_id, "message": "File attached", "file_id": newFile.name}
+
+
+def get_list(doctype: str, filters: dict = None, fields: list = None, limit: int = 20):
+	"""
+	Get a list of documents from the database
+	"""
+	if filters is None:
+		filters = {}
+
+	if fields is None:
+		fields = ["*"]
+
+	else:
+		meta = frappe.get_meta(doctype)
+		filtered_fields = ["name as document_id"]
+		if "title" in fields:
+			filtered_fields.append(meta.get_title_field())
+
+		for field in fields:
+			if meta.has_field(field) and field not in filtered_fields:
+				filtered_fields.append(field)
+
+	# Use the frappe.get_list method to get the list of documents
+	return frappe.get_list(doctype, filters=filters, fields=filtered_fields, limit=limit)
+
+--------------------------------------------------------------------------------
+
+File: handler.py
+Comments: Truncated to 6000 bytes due to size > 6000
+Mime Type: text/x-python
+Size: 12627 bytes
+Content:
+import json
+
+import frappe
+from openai import AssistantEventHandler
+from openai.types.beta.threads import Text
+from openai.types.beta.threads.runs import RunStep
+from typing_extensions import override
+
+from raven.ai.functions import (
+	attach_file_to_document,
+	cancel_document,
+	create_document,
+	create_documents,
+	delete_document,
+	delete_documents,
+	get_amended_document,
+	get_document,
+	get_documents,
+	get_list,
+	submit_document,
+	update_document,
+	update_documents,
+)
+from raven.ai.openai_client import get_open_ai_client
+
+
+def stream_response(ai_thread_id: str, bot, channel_id: str):
+
+	client = get_open_ai_client()
+
+	assistant_id = bot.openai_assistant_id
+
+	docs_updated = []
+
+	class EventHandler(AssistantEventHandler):
+		@override
+		def on_run_step_done(self, run_step: RunStep) -> None:
+			details = run_step.step_details
+			if details.type == "tool_calls":
+				for tool in details.tool_calls:
+					if tool.type == "code_interpreter":
+						self.publish_event("Running code...")
+					if tool.type == "file_search":
+						self.publish_event("Searching file contents...")
+			else:
+				self.publish_event("Raven AI is thinking...")
+
+		@override
+		def on_text_done(self, text: Text):
+			link_doctype = None
+			link_document = None
+			if len(docs_updated) == 1:
+				link_doctype = docs_updated[0]["doctype"]
+				link_document = docs_updated[0]["document_id"]
+
+			file_urls = []
+
+			# Check if there are any annotations with files
+			annotations = text.annotations
+			for annotation in annotations:
+				if annotation.type == "file_path":
+					file_path = annotation.file_path
+					file_id = file_path.file_id
+					file_name = annotation.text.split("/")[-1]
+					file_content = client.files.content(file_id)
+
+					file_doc = frappe.get_doc(
+						{
+							"doctype": "File",
+							"file_name": file_name,
+							"content": file_content.read(),
+							"is_private": True,
+						}
+					)
+					file_doc.insert()
+					file_urls.append(
+						{
+							"url": file_doc.file_url,
+							"text": annotation.text,
+						}
+					)
+
+			if file_urls:
+				# If there are amy file URLs, replace the content with the URL and send the file as a separate message
+				for file_url in file_urls:
+					text.value = text.value.replace(file_url["text"], file_url["url"])
+
+				bot.send_message(
+					channel_id=channel_id,
+					text=text.value,
+					link_doctype=link_doctype,
+					link_document=link_document,
+					markdown=True,
+				)
+
+				for file_url in file_urls:
+					bot.send_message(channel_id=channel_id, file=file_url["url"])
+
+			else:
+				bot.send_message(
+					channel_id=channel_id,
+					text=text.value,
+					link_doctype=link_doctype,
+					link_document=link_document,
+					markdown=True,
+				)
+
+			frappe.publish_realtime(
+				"ai_event_clear",
+				{
+					"channel_id": channel_id,
+				},
+				doctype="Raven Channel",
+				docname=channel_id,
+				after_commit=True,
+			)
+
+		@override
+		def on_event(self, event):
+			# Handle image and file outputs
+			if event.event == "thread.message.delta":
+				if hasattr(event.data, "delta") and hasattr(event.data.delta, "content"):
+					for content in event.data.delta.content:
+						if content.type == "image_file":
+							# Handle image file
+							file_id = content.image_file.file_id
+							file = client.files.retrieve(file_id)
+							file_content = client.files.content(file_id)
+
+							# Save the file content
+							file_doc = frappe.new_doc("File")
+							file_doc.file_name = file.filename + ".png"
+							file_doc.content = file_content.read()
+							file_doc.is_private = True
+							file_doc.insert()
+
+							bot.send_message(channel_id=channel_id, file=file_doc.file_url)
+
+			# Handle tool calls
+			elif event.event == "thread.run.requires_action":
+				run_id = event.data.id
+				self.handle_requires_action(event.data, run_id)
+
+		def publish_event(self, text):
+			frappe.publish_realtime(
+				"ai_event",
+				{
+					"text": text,
+					"channel_id": channel_id,
+					"bot": bot.name,
+				},
+				doctype="Raven Channel",
+				docname=channel_id,
+			)
+
+		def handle_requires_action(self, data, run_id):
+			tool_outputs = []
+
+			for tool in data.required_action.submit_tool_outputs.tool_calls:
+
+				function = None
+
+				try:
+					function = frappe.get_cached_doc("Raven AI Function", tool.function.name)
+				except frappe.DoesNotExistError:
+					tool_outputs.append({"tool_call_id": tool.id, "output": "Function not found"})
+					return
+
+				# When calling the function, we need to pass the arguments as named params/json
+				# Args is a dictionary of the form {"param_name": "param_value"}
+
+				try:
+					args = json.loads(tool.function.arguments)
+
+					# Check the type of function and then call it accordingly
+
+					function_output = {}
+
+					if function.type == "Custom Function":
+						function_name = frappe.get_attr(function.function_path)
+
+						if bot.allow_bot_to_write_documents:
+							# We can commit to the database if writes are allowed
+							if function.pass_parameters_as_json:
+								function_output = function_name(args)
+							else:
+								function_output = function_name(**args)
+						else:
+							# We need to savepoint and then rollback
+							frappe.db.savepoint(run_id + "_" + tool.id)
+							if function.pass_parameters_as_json:
+								function_output = function_name(args)
+							else:
+								function_output = function_name(**args)
+							frappe.db.rollback(save_point=run_id + "_" + tool.id)
+
+					if function.type == "Get Document":
+						self.publish_event(
+							"Fetching {} {}...".format(function.reference_doctype, args.get("document_id"))
+						)
+						function_output = get_document(function.reference_doctype, **args)
+
+					if function.type == "Get Multiple Documents":
+						self.publish_event(f"Fetching multiple {function.reference_doctype}s...")
+						function_output = get_documents(function.reference_doctype, **args)
+
+					if function.type == "Submit Document":
+						self.publish_event(f"Submitting {function.reference_doctype} {args.get('document_id')}...")
+						function_output = submit_document(fu
+--------------------------------------------------------------------------------
+
+File: openai_client.py
+Comments: Included
+Mime Type: text/x-python
+Size: 1104 bytes
+Content:
+import frappe
+from frappe import _
+from openai import OpenAI
+
+
+def get_open_ai_client():
+	"""
+	Get the OpenAI client
+	"""
+
+	raven_settings = frappe.get_cached_doc("Raven Settings")
+
+	if not raven_settings.enable_ai_integration:
+		frappe.throw(_("AI Integration is not enabled"))
+
+	openai_api_key = raven_settings.get_password("openai_api_key")
+	openai_organisation_id = (raven_settings.openai_organisation_id or "").strip()
+	openai_project_id = (raven_settings.openai_project_id or "").strip()
+
+	client_args = {"api_key": openai_api_key.strip(), "organization": openai_organisation_id}
+	if openai_project_id:
+		client_args["project"] = openai_project_id
+
+	return OpenAI(**client_args)
+
+
+def get_openai_models():
+	"""
+	Get the available OpenAI models
+	"""
+	client = get_open_ai_client()
+	return client.models.list()
+
+
+code_interpreter_file_types = [
+	"pdf",
+	"csv",
+	"docx",
+	"doc",
+	"xlsx",
+	"pptx",
+	"txt",
+	"png",
+	"jpg",
+	"jpeg",
+	"md",
+	"json",
+	"html",
+]
+
+file_search_file_types = ["pdf", "csv", "doc", "docx", "json", "txt", "md", "html", "pptx"]
+
+--------------------------------------------------------------------------------
+

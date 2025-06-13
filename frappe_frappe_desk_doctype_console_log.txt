@@ -1,0 +1,154 @@
+File: console_log.js
+Comments: Included
+Mime Type: text/javascript
+Size: 444 bytes
+Content:
+// Copyright (c) 2020, Frappe Technologies and contributors
+// For license information, please see license.txt
+
+frappe.ui.form.on("Console Log", {
+	refresh: function (frm) {
+		frm.add_custom_button(__("Re-Run in Console"), () => {
+			window.localStorage.setItem("system_console_code", frm.doc.script);
+			window.localStorage.setItem("system_console_type", frm.doc.type);
+			frappe.set_route("Form", "System Console");
+		});
+	},
+});
+
+--------------------------------------------------------------------------------
+
+File: console_log.json
+Comments: Included
+Mime Type: application/json
+Size: 1169 bytes
+Content:
+{
+ "actions": [],
+ "autoname": "format:Log on {timestamp}",
+ "creation": "2020-08-18 19:56:12.336427",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "script",
+  "type",
+  "committed"
+ ],
+ "fields": [
+  {
+   "fieldname": "script",
+   "fieldtype": "Code",
+   "in_list_view": 1,
+   "label": "Script",
+   "read_only": 1
+  },
+  {
+   "fieldname": "type",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Type",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "committed",
+   "fieldtype": "Check",
+   "label": "Committed",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2024-03-23 16:01:30.816591",
+ "modified_by": "Administrator",
+ "module": "Desk",
+ "name": "Console Log",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "quick_entry": 1,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
+--------------------------------------------------------------------------------
+
+File: console_log.py
+Comments: Included
+Mime Type: text/x-python
+Size: 608 bytes
+Content:
+# Copyright (c) 2020, Frappe Technologies and contributors
+# License: MIT. See LICENSE
+
+import frappe
+from frappe.model.document import Document
+
+
+class ConsoleLog(Document):
+	# begin: auto-generated types
+	# This code is auto-generated. Do not modify anything in this block.
+
+	from typing import TYPE_CHECKING
+
+	if TYPE_CHECKING:
+		from frappe.types import DF
+
+		committed: DF.Check
+		script: DF.Code | None
+		type: DF.Data | None
+	# end: auto-generated types
+
+	def after_delete(self):
+		# because on_trash can be bypassed
+		frappe.throw(frappe._("Console Logs can not be deleted"))
+
+--------------------------------------------------------------------------------
+
+File: test_console_log.py
+Comments: Included
+Mime Type: text/x-python
+Size: 379 bytes
+Content:
+# Copyright (c) 2020, Frappe Technologies and Contributors
+# License: MIT. See LICENSE
+# import frappe
+from frappe.tests import IntegrationTestCase, UnitTestCase
+
+
+class UnitTestConsoleLog(UnitTestCase):
+	"""
+	Unit tests for ConsoleLog.
+	Use this class for testing individual functions and methods.
+	"""
+
+	pass
+
+
+class TestConsoleLog(IntegrationTestCase):
+	pass
+
+--------------------------------------------------------------------------------
+
+File: __init__.py
+Comments: Included
+Mime Type: text/x-python
+Size: 0 bytes
+Content:
+
+--------------------------------------------------------------------------------
+

@@ -1,0 +1,283 @@
+Full Path,Comments,Mime Type,Size (bytes),Text Content
+application.ini,Included,application/octet-stream,402,"[App]
+Vendor=Zotero
+Name=Zotero
+Version={{VERSION}}
+BuildID={{BUILDID}}
+Copyright=Copyright (c) 2006-2022 Contributors
+ID=zotero@zotero.org
+
+[Gecko]
+MinVersion=115.0
+MaxVersion=115.99.*
+
+[XRE]
+EnableExtensionManager=1
+EnableProfileMigrator=1
+
+[AppUpdate]
+URL=https://www.zotero.org/download/client/update/%VERSION%/%BUILD_ID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/update.xml
+"
+branding\locale\brand.dtd,Included,application/octet-stream,46,"ï»¿<!ENTITY  brandShortName        ""Zotero"">
+"
+branding\locale\brand.ftl,Included,application/octet-stream,247,"-brand-shorter-name = Zotero
+-brand-short-name = Zotero
+-brand-full-name = Zotero
+-brand-product-name = Zotero
+-vendor-short-name = Zotero
+-app-name = Zotero
+trademarkInfo = Zotero is a trademark of the Corporation for Digital Scholarship.
+"
+branding\locale\brand.properties,Included,application/octet-stream,70,"brandShorterName=Zotero
+brandShortName=Zotero
+brandFullName=Zotero
+"
+chrome.manifest,Included,application/octet-stream,142,"locale	branding en-US		chrome/en-US/locale/branding/
+content	branding			chrome/branding/content/
+skin	browser				preferences		chrome/skin/
+"
+commandLineHandler.js,Included,text/javascript,3891,"let { CommandLineOptions, TestOptions } = ChromeUtils.importESModule(""chrome://zotero/content/modules/commandLineOptions.mjs"");
+
+// Only allow BrowserContentHandler to open a new window if this is the initial launch,
+// meaning our CLH isn't registered yet.
+if (cmdLine.state != Ci.nsICommandLine.STATE_INITIAL_LAUNCH) {
+	cmdLine.preventDefault = true;
+}
+
+// Force debug output to window
+if (cmdLine.handleFlag(""ZoteroDebug"", false)) {
+	CommandLineOptions.forceDebugLog = 2;
+}
+// Force debug output to text console
+else if (cmdLine.handleFlag(""ZoteroDebugText"", false)) {
+	CommandLineOptions.forceDebugLog = 1;
+}
+// Pressing Ctrl-C via the terminal is interpreted as a crash, and after three crashes
+// Firefox starts up in automatic safe mode (troubleshooting mode). To avoid this, we clear the crash
+// counter when using one of the debug-logging flags, which generally imply terminal usage.
+if (CommandLineOptions.forceDebugLog) {
+	Services.prefs.getBranch(""toolkit.startup."").clearUserPref(""recent_crashes"");
+}
+
+CommandLineOptions.forceDataDir = cmdLine.handleFlagWithParam(""datadir"", false);
+// Set here, to be acted upon in xpcom/commandLineHandler.js
+CommandLineOptions.file = cmdLine.handleFlagWithParam(""file"", false);
+CommandLineOptions.url = cmdLine.handleFlagWithParam(""url"", false);
+if (CommandLineOptions.url) {
+	CommandLineOptions.url = cmdLine.resolveURI(CommandLineOptions.url);
+}
+
+var processTestOptions = false;
+if (cmdLine.handleFlag(""ZoteroTest"", false)) {
+	CommandLineOptions.test = true;
+	processTestOptions = true;
+}
+if (cmdLine.handleFlag(""ZoteroAutomatedTest"", false)) {
+	CommandLineOptions.automatedTest = true;
+}
+if (cmdLine.handleFlag(""ZoteroSkipBundledFiles"", false)) {
+	CommandLineOptions.skipBundledFiles = true;
+}
+
+if (processTestOptions) {
+	TestOptions.tests = cmdLine.handleFlagWithParam(""test"", false);
+	TestOptions.noquit = cmdLine.handleFlag(""noquit"", false);
+	TestOptions.makeTestData = cmdLine.handleFlag(""makeTestData"", false);
+	TestOptions.noquit = !TestOptions.makeTestData && TestOptions.noquit;
+	TestOptions.runTests = !TestOptions.makeTestData;
+	TestOptions.bail = cmdLine.handleFlag(""bail"", false);
+	TestOptions.startAt = cmdLine.handleFlagWithParam(""startAtTestFile"", false);
+	TestOptions.stopAt = cmdLine.handleFlagWithParam(""stopAtTestFile"", false);
+	TestOptions.grep = cmdLine.handleFlagWithParam(""grep"", false);
+	TestOptions.timeout = cmdLine.handleFlagWithParam(""ZoteroTestTimeout"", false);
+	
+	Services.ww.openWindow(
+		null,
+		""chrome://zotero-unit/content/runtests.html"",
+		""_blank"",
+		""chrome,dialog=no,all"",
+		Cc[""@mozilla.org/array;1""].createInstance(Ci.nsIMutableArray)
+	);
+	cmdLine.preventDefault = true;
+}
+
+if (cmdLine.handleFlag(""debugger"", false)) {
+	(async function () {
+		try {
+			let portOrPath = Services.prefs.getBranch('').getIntPref('devtools.debugger.remote-port');
+			
+			const { DevToolsLoader } = ChromeUtils.import(
+				""resource://devtools/shared/loader/Loader.jsm""
+			);
+			const loader = new DevToolsLoader({
+				freshCompartment: true,
+			});
+			const { DevToolsServer } = loader.require(""devtools/server/devtools-server"");
+			const { SocketListener } = loader.require(""devtools/shared/security/socket"");
+			
+			if (DevToolsServer.initialized) {
+				dump(""Debugger server already initialized\n\n"");
+				return;
+			}
+			
+			DevToolsServer.init();
+			DevToolsServer.registerAllActors();
+			DevToolsServer.allowChromeProcess = true;
+			const socketOptions = { portOrPath };
+			const listener = new SocketListener(DevToolsServer, socketOptions);
+			await listener.open();
+			if (!DevToolsServer.listeningSockets) {
+				throw new Error(""No listening sockets"");
+			}
+			
+			dump(`Debugger server started on ${portOrPath}\n\n`);
+		}
+		catch (e) {
+			dump(e + ""\n\n"");
+			Components.utils.reportError(e);
+		}
+	})();
+}
+"
+mac\chrome\skin\preferences\preferences.css,Excluded by file type,,0,
+multilocale.txt,Included,text/plain,259,"en-US,ar,bg-BG,br,ca-AD,cs-CZ,da-DK,de,el-GR,en-AU,en-CA,en-GB,en-NZ,es-ES,et-EE,eu-ES,fa,fi-FI,fr-FR,gl-ES,hu-HU,id-ID,is-IS,it-IT,ja-JP,km,ko-KR,lt-LT,nb-NO,nl-NL,pl-PL,pt-BR,pt-PT,ro-RO,ru-RU,sk-SK,sl-SI,sr-RS,sv-SE,ta,th-TH,tr-TR,uk-UA,vi-VN,zh-CN,zh-TW
+"
+prefs.js,Truncated to 6000 bytes due to size > 6000,text/javascript,7400,"// We only want a single window, I think
+pref(""toolkit.singletonWindowType"", ""navigator:browser"");
+
+// For debugging purposes, show errors in console by default
+pref(""javascript.options.showInConsole"", true);
+
+// Don't retrieve unrequested links when performing standalone translation
+pref(""network.prefetch-next"", false);
+// Don't make DNS requests for links in snapshots
+pref(""network.dns.disablePrefetch"", true);
+// Don't open TCP connection when clicking on a link in a snapshot
+pref(""network.http.speculative-parallel-limit"", 0);
+
+// Let operations run as long as necessary
+pref(""dom.max_chrome_script_run_time"", 0);
+
+pref(""intl.locale.requested"", '');
+pref(""intl.regional_prefs.use_os_locales"", false);
+
+// Fix error initializing login manager after this was changed in Firefox 57
+// Could also disable this with MOZ_LOADER_SHARE_GLOBAL, supposedly
+pref(""jsloader.shareGlobal"", false);
+
+// Needed due to https://bugzilla.mozilla.org/show_bug.cgi?id=1181977
+pref(""browser.hiddenWindowChromeURL"", ""chrome://zotero/content/standalone/hiddenWindow.xhtml"");
+// Use basicViewer for opening new DOM windows from content (for TinyMCE)
+pref(""browser.chromeURL"", ""chrome://zotero/content/standalone/basicViewer.xhtml"");
+// We need these to get the save dialog working with contentAreaUtils.js
+pref(""browser.download.useDownloadDir"", false);
+pref(""browser.download.manager.showWhenStarting"", false);
+pref(""browser.download.folderList"", 1);
+
+// Don't show add-on selection dialog
+pref(""extensions.shownSelectionUI"", true);
+pref(""extensions.autoDisableScope"", 11);
+
+pref(""network.protocol-handler.expose-all"", false);
+pref(""network.protocol-handler.expose.zotero"", true);
+pref(""network.protocol-handler.expose.http"", true);
+pref(""network.protocol-handler.expose.https"", true);
+
+// Never go offline
+pref(""offline.autoDetect"", false);
+pref(""network.manage-offline-status"", false);
+
+// Without this, we will throw up dialogs if asked to translate strange pages
+pref(""browser.xul.error_pages.enabled"", true);
+
+// Without this, scripts may decide to open popups
+pref(""dom.disable_open_during_load"", true);
+
+// Don't show security warning. The ""warn_viewing_mixed"" warning just lets the user know that some
+// page elements were loaded over an insecure connection. This doesn't matter if all we're doing is
+// scraping the page, since we don't provide any information to the site.
+pref(""security.warn_viewing_mixed"", false);
+
+// Preferences for add-on discovery
+pref(""extensions.getAddons.cache.enabled"", false);
+//pref(""extensions.getAddons.maxResults"", 15);
+//pref(""extensions.getAddons.get.url"", ""https://services.addons.mozilla.org/%LOCALE%/%APP%/api/%API_VERSION%/search/guid:%IDS%?src=thunderbird&appOS=%OS%&appVersion=%VERSION%&tMain=%TIME_MAIN%&tFirstPaint=%TIME_FIRST_PAINT%&tSessionRestored=%TIME_SESSION_RESTORED%"");
+//pref(""extensions.getAddons.search.browseURL"", ""https://addons.mozilla.org/%LOCALE%/%APP%/search?q=%TERMS%"");
+//pref(""extensions.getAddons.search.url"", ""https://services.addons.mozilla.org/%LOCALE%/%APP%/api/%API_VERSION%/search/%TERMS%/all/%MAX_RESULTS%/%OS%/%VERSION%?src=thunderbird"");
+//pref(""extensions.webservice.discoverURL"", ""https://www.zotero.org/support/plugins"");
+
+// Check Windows certificate store for custom CAs
+pref(""security.enterprise_roots.enabled"", true);
+
+// Disable add-on signature checking with unbranded Firefox build
+pref(""xpinstall.signatures.required"", false);
+// Allow legacy extensions (though this might not be necessary)
+pref(""extensions.legacy.enabled"", true);
+// Allow installing XPIs from any host
+pref(""xpinstall.whitelist.required"", false);
+// Allow installing XPIs when using a custom CA
+pref(""extensions.install.requireBuiltInCerts"", false);
+pref(""extensions.update.requireBuiltInCerts"", false);
+
+// Don't connect to the Mozilla extensions blocklist
+pref(""extensions.blocklist.enabled"", false);
+// Avoid warning in console when opening Tools -> Add-ons
+pref(""extensions.getAddons.link.url"", """");
+
+// Disable places
+pref(""places.history.enabled"", false);
+
+// Probably not used, but prevent an error in the console
+pref(""app.support.baseURL"", ""https://www.zotero.org/support/"");
+
+// Disable Telemetry, Health Report, error reporting, and remote settings
+pref(""toolkit.telemetry.unified"", false);
+pref(""toolkit.telemetry.enabled"", false);
+pref(""datareporting.policy.dataSubmissionEnabled"", false);
+pref(""toolkit.crashreporter.enabled"", false);
+pref(""extensions.remoteSettings.disabled"", true);
+
+pref(""extensions.update.url"", """");
+
+// Don't try to load the ""Get Add-ons"" tab on first load of Add-ons window
+pref(""extensions.ui.lastCategory"", ""addons://list/extension"");
+
+// Don't show ""Using experimental APIs requires a privileged add-on"" warning
+pref(""extensions.experiments.enabled"", true);
+
+// Not set on Windows in Firefox anymore since it's a per-installation pref,
+// but we override that in fetch_xulrunner
+pref(""app.update.auto"", true);
+
+// URL user can browse to manually if for some reason all update installation
+// attempts fail.
+pref(""app.update.url.manual"", ""https://www.zotero.org/download"");
+
+// A default value for the ""More information about this update"" link
+// supplied in the ""An update is available"" page of the update wizard.
+pref(""app.update.url.details"", ""https://www.zotero.org/support/changelog"");
+
+// Interval: Time between checks for a new version (in seconds)
+//           default=1 day
+pref(""app.update.interval"", 86400);
+
+// The minimum delay in seconds for the timer to fire.
+// default=2 minutes
+pref(""app.update.timerMinimumDelay"", 120);
+
+// Whether or not we show a dialog box informing the user that the update was
+// successfully applied. This is off in Firefox by default since we show a
+// upgrade start page instead! Other apps may wish to show this UI, and supply
+// a whatsNewURL field in their brand.properties that contains a link to a page
+// which tells users what's new in this new update.
+
+// update channel for this build
+pref(""app.update.channel"", ""default"");
+
+// This should probably not be a pre"
+unix\skin\preferences\preferences.css,Excluded by file type,,0,
+updater.ini,Included,application/octet-stream,143,"; This file is in the UTF-8 encoding
+[Strings]
+Title=Zotero Update
+Info=Zotero is installing your updates and will start in a few momentsâ€¦"
+win\skin\preferences\preferences.css,Excluded by file type,,0,

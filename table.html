@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Handsontable + HyperFormula</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/handsontable/13.1.0/handsontable.full.min.css">
+</head>
+<body>
+  <h1>Handsontable with Formula Testing</h1>
+  <div id="status" style="padding: 10px; margin-bottom: 10px; background-color: #fff3cd; border: 1px solid #ffeaa7; color: #856404;">
+    Loading spreadsheet...
+  </div>
+  <div id="hot"></div>
+  
+  <div style="margin-top: 20px; padding: 15px; border: 1px solid #ccc; background-color: #f9f9f9;">
+    <h3>Formula Tester</h3>
+    <p>Enter a formula to test (e.g., =A1+B1, =SUM(A1:B2), =AVERAGE(A1:C1)):</p>
+    <input type="text" id="formulaInput" placeholder="=A1+B1" style="width: 200px; padding: 5px;">
+    <button onclick="testFormula()" style="padding: 5px 10px; margin-left: 10px;">Test Formula</button>
+    <button onclick="addRow()" style="padding: 5px 10px; margin-left: 10px;">Add Row</button>
+    <button onclick="addColumn()" style="padding: 5px 10px; margin-left: 10px;">Add Column</button>
+    <div id="result" style="margin-top: 10px; padding: 10px; background-color: #e8f5e8; display: none;">
+      <strong>Result:</strong> <span id="resultValue"></span>
+    </div>
+  </div>
+  
+  <div style="margin-top: 15px; padding: 10px; background-color: #f0f8ff; border-left: 4px solid #007acc;">
+    <h4>Sample Formulas to Try:</h4>
+    <ul>
+      <li><code>=A1+B1</code> - Add two cells</li>
+      <li><code>=SUM(A1:C1)</code> - Sum a range</li>
+      <li><code>=AVERAGE(A1:C2)</code> - Average of range</li>
+      <li><code>=MAX(A:A)</code> - Maximum in column A</li>
+      <li><code>=IF(A1>B1,"A is bigger","B is bigger")</code> - Conditional</li>
+      <li><code>=CONCATENATE(A1," + ",B1," = ",C1)</code> - Text joining</li>
+    </ul>
+  </div></body>
+
+  <!-- ✅ Load libraries from cdnjs.cloudflare.com -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hyperformula/2.7.1/hyperformula.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/handsontable/13.1.0/handsontable.full.min.js"></script>
+  <script>
+    // Simple initialization with timeout
+    setTimeout(function() {
+      initHandsontable();
+    }, 1000);
+    
+    function initHandsontable() {
+      // Check if both libraries are available
+      if (typeof HyperFormula === 'undefined') {
+        console.error('HyperFormula is not loaded');
+        document.getElementById('status').innerHTML = '<span style="color: red;">❌ HyperFormula failed to load</span>';
+        // Try again in 2 seconds
+        setTimeout(initHandsontable, 2000);
+        return;
+      }
+      if (typeof Handsontable === 'undefined') {
+        console.error('Handsontable is not loaded');
+        document.getElementById('status').innerHTML = '<span style="color: red;">❌ Handsontable failed to load</span>';
+        // Try again in 2 seconds
+        setTimeout(initHandsontable, 2000);
+        return;
+      }
+      
+      try {
+        // Create HyperFormula instance
+        const hfInstance = HyperFormula.buildEmpty({
+          licenseKey: 'gpl-v3'
+        });
+        
+        const container = document.getElementById('hot');
+        window.hot = new Handsontable(container, {
+          data: [
+            ['10', '20', '=A1+B1'],
+            ['5', '3', '=A2*B2'],
+            ['=C1+C2', '', ''],
+            ['100', '200', '=SUM(A1:B4)'],
+            ['=AVERAGE(A1:A4)', '=MAX(B1:B4)', '=MIN(C1:C4)']
+          ],
+          rowHeaders: true,
+          colHeaders: true,
+          formulas: {
+            engine: hfInstance
+          },
+          licenseKey: 'non-commercial-and-evaluation',
+          contextMenu: true,
+          width: '100%',
+          height: 300
+        });
+        
+        // Make hfInstance globally available for testing
+        window.hfInstance = hfInstance;
+        
+        // Update status
+        document.getElementById('status').innerHTML = '<span style="color: green;">✅ Spreadsheet ready! Formulas are working.</span>';
+        
+        console.log('Handsontable initialized successfully');
+        
+      } catch (error) {
+        console.error('Error initializing Handsontable:', error);
+        document.getElementById('status').innerHTML = '<span style="color: red;">❌ Error initializing spreadsheet: ' + error.message + '</span>';
+      }
+    }
+    
+    function testFormula() {
+      if (!window.hot) {
+        alert('Handsontable is not initialized yet. Please wait a moment and try again.');
+        return;
+      }
+      
+      const formulaInput = document.getElementById('formulaInput');
+      const resultDiv = document.getElementById('result');
+      const resultValue = document.getElementById('resultValue');
+      
+      const formula = formulaInput.value.trim();
+      if (!formula) {
+        alert('Please enter a formula');
+        return;
+      }
+      
+      try {
+        // Add the formula to the next available cell
+        const data = window.hot.getData();
+        let emptyRow = data.length;
+        let emptyCol = 0;
+        
+        // Find first empty cell in last row, or create new row
+        if (data.length > 0) {
+          for (let col = 0; col < Math.max(10, data[0].length); col++) {
+            if (!data[emptyRow - 1] || !data[emptyRow - 1][col]) {
+              emptyCol = col;
+              break;
+            }
+          }
+        }
+        
+        // Set the formula in the spreadsheet
+        window.hot.setDataAtCell(emptyRow - 1, emptyCol, formula);
+        
+        // Get the calculated value
+        setTimeout(() => {
+          const calculatedValue = window.hot.getDataAtCell(emptyRow - 1, emptyCol);
+          resultValue.textContent = calculatedValue !== null ? calculatedValue : 'No result';
+          resultDiv.style.display = 'block';
+        }, 100);
+        
+      } catch (error) {
+        resultValue.textContent = 'Error: ' + error.message;
+        resultDiv.style.display = 'block';
+        console.error('Formula test error:', error);
+      }
+    }
+    
+    function addRow() {
+      if (!window.hot) {
+        alert('Handsontable is not initialized yet. Please wait a moment and try again.');
+        return;
+      }
+      
+      try {
+        const currentData = window.hot.getData();
+        window.hot.alter('insert_row_below', currentData.length - 1);
+      } catch (error) {
+        console.error('Add row error:', error);
+        alert('Error adding row: ' + error.message);
+      }
+    }
+    
+    function addColumn() {
+      if (!window.hot) {
+        alert('Handsontable is not initialized yet. Please wait a moment and try again.');
+        return;
+      }
+      
+      try {
+        const currentData = window.hot.getData();
+        const colCount = currentData[0] ? currentData[0].length : 0;
+        window.hot.alter('insert_col_after', Math.max(0, colCount - 1));
+      } catch (error) {
+        console.error('Add column error:', error);
+        alert('Error adding column: ' + error.message);
+      }
+    }
+  </script>
+</body>
+</html>
+

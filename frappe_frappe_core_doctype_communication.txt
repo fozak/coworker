@@ -1,0 +1,1460 @@
+File: communication.js
+Comments: Truncated to 6000 bytes due to size > 6000
+Mime Type: text/javascript
+Size: 8400 bytes
+Content:
+frappe.ui.form.on("Communication", {
+	onload: function (frm) {
+		if (frm.doc.content) {
+			frm.doc.content = frappe.dom.remove_script_and_style(frm.doc.content);
+		}
+		frm.set_query("reference_doctype", function () {
+			return {
+				filters: {
+					issingle: 0,
+					istable: 0,
+				},
+			};
+		});
+	},
+	refresh: function (frm) {
+		if (frm.is_new()) return;
+
+		frm.convert_to_click && frm.set_convert_button();
+		frm.subject_field = "subject";
+
+		// content field contains weird table html that does not render well in Quill
+		// this field is not to be edited directly anyway, so setting it as read only
+		frm.set_df_property("content", "read_only", 1);
+
+		if (frm.doc.reference_doctype && frm.doc.reference_name) {
+			frm.add_custom_button(__(frm.doc.reference_name), function () {
+				frappe.set_route("Form", frm.doc.reference_doctype, frm.doc.reference_name);
+			});
+		} else {
+			// if an unlinked communication, set email field
+			if (frm.doc.sent_or_received === "Received") {
+				frm.email_field = "sender";
+			} else {
+				frm.email_field = "recipients";
+			}
+		}
+
+		if (frm.doc.status === "Open") {
+			frm.add_custom_button(__("Close"), function () {
+				frm.trigger("mark_as_closed_open");
+			});
+		} else if (frm.doc.status !== "Linked") {
+			frm.add_custom_button(__("Reopen"), function () {
+				frm.trigger("mark_as_closed_open");
+			});
+		}
+
+		frm.add_custom_button(__("Relink"), function () {
+			frm.trigger("show_relink_dialog");
+		});
+
+		if (
+			frm.doc.communication_type == "Communication" &&
+			frm.doc.communication_medium == "Email" &&
+			frm.doc.sent_or_received == "Received"
+		) {
+			frm.add_custom_button(__("Reply"), function () {
+				frm.trigger("reply");
+			});
+
+			frm.add_custom_button(
+				__("Reply All"),
+				function () {
+					frm.trigger("reply_all");
+				},
+				__("Actions")
+			);
+
+			frm.add_custom_button(
+				__("Forward"),
+				function () {
+					frm.trigger("forward_mail");
+				},
+				__("Actions")
+			);
+
+			frm.add_custom_button(
+				frm.doc.seen ? __("Mark as Unread") : __("Mark as Read"),
+				function () {
+					frm.trigger("mark_as_read_unread");
+				},
+				__("Actions")
+			);
+
+			frm.add_custom_button(
+				__("Move"),
+				function () {
+					frm.trigger("show_move_dialog");
+				},
+				__("Actions")
+			);
+
+			if (frm.doc.email_status != "Spam")
+				frm.add_custom_button(
+					__("Mark as Spam"),
+					function () {
+						frm.trigger("mark_as_spam");
+					},
+					__("Actions")
+				);
+
+			if (frm.doc.email_status != "Trash") {
+				frm.add_custom_button(
+					__("Move To Trash"),
+					function () {
+						frm.trigger("move_to_trash");
+					},
+					__("Actions")
+				);
+			}
+
+			frm.add_custom_button(
+				__("Contact"),
+				function () {
+					frm.trigger("add_to_contact");
+				},
+				__("Create")
+			);
+		}
+
+		if (
+			frm.doc.communication_type == "Communication" &&
+			frm.doc.communication_medium == "Phone" &&
+			frm.doc.sent_or_received == "Received"
+		) {
+			frm.add_custom_button(
+				__("Add Contact"),
+				function () {
+					frm.trigger("add_to_contact");
+				},
+				__("Actions")
+			);
+		}
+	},
+
+	show_relink_dialog: function (frm) {
+		var d = new frappe.ui.Dialog({
+			title: __("Relink Communication"),
+			fields: [
+				{
+					fieldtype: "Link",
+					options: "DocType",
+					label: __("Reference Doctype"),
+					fieldname: "reference_doctype",
+					get_query: function () {
+						return { query: "frappe.email.get_communication_doctype" };
+					},
+				},
+				{
+					fieldtype: "Dynamic Link",
+					options: "reference_doctype",
+					label: __("Reference Name"),
+					fieldname: "reference_name",
+				},
+			],
+		});
+		d.set_value("reference_doctype", frm.doc.reference_doctype);
+		d.set_value("reference_name", frm.doc.reference_name);
+		d.set_primary_action(__("Relink"), function () {
+			var values = d.get_values();
+			if (values) {
+				frappe.confirm(
+					__("Are you sure you want to relink this communication to {0}?", [
+						values["reference_name"],
+					]),
+					function () {
+						d.hide();
+						frappe.call({
+							method: "frappe.email.relink",
+							args: {
+								name: frm.doc.name,
+								reference_doctype: values["reference_doctype"],
+								reference_name: values["reference_name"],
+							},
+							callback: function () {
+								frm.refresh();
+							},
+						});
+					},
+					function () {
+						frappe.show_alert({
+							message: __("Document not Relinked"),
+							indicator: "info",
+						});
+					}
+				);
+			}
+		});
+		d.show();
+	},
+
+	show_move_dialog: function (frm) {
+		var d = new frappe.ui.Dialog({
+			title: __("Move"),
+			fields: [
+				{
+					fieldtype: "Link",
+					options: "Email Account",
+					label: __("Email Account"),
+					fieldname: "email_account",
+					reqd: 1,
+					get_query: function () {
+						return {
+							filters: {
+								name: ["!=", frm.doc.email_account],
+								enable_incoming: ["=", 1],
+							},
+						};
+					},
+				},
+			],
+			primary_action_label: __("Move"),
+			primary_action(values) {
+				d.hide();
+				frappe.call({
+					method: "frappe.email.inbox.move_email",
+					args: {
+						communication: frm.doc.name,
+						email_account: values.email_account,
+					},
+					freeze: true,
+					callback: function () {
+						window.history.back();
+					},
+				});
+			},
+		});
+		d.show();
+	},
+
+	mark_as_read_unread: function (frm) {
+		var action = frm.doc.seen ? "Unread" : "Read";
+		var flag = "(\\SEEN)";
+
+		return frappe.call({
+			method: "frappe.email.inbox.create_email_flag_queue",
+			args: {
+				names: [frm.doc.name],
+				action: action,
+				flag: flag,
+			},
+			freeze: true,
+			callback: function () {
+				frm.reload_doc();
+			},
+		});
+	},
+
+	mark_as_closed_open: function (frm) {
+		var status = frm.doc.status == "Open" ? "Closed" : "Open";
+
+		return frappe.call({
+			method: "frappe.email.inbox.mark_as_closed_open",
+			args: {
+				communication: frm.doc.name,
+				status: status,
+			},
+			freeze: true,
+			callback: function () {
+				frm.reload_doc();
+			},
+		});
+	},
+
+	reply: function (frm) {
+		var args = frm.events.get_mail_args(frm);
+		$.extend(args,
+--------------------------------------------------------------------------------
+
+File: communication.json
+Comments: Truncated to 6000 bytes due to size > 6000
+Mime Type: application/json
+Size: 9484 bytes
+Content:
+{
+ "actions": [],
+ "allow_import": 1,
+ "creation": "2013-01-29 10:47:14",
+ "default_view": "List",
+ "description": "Keeps track of all communications",
+ "doctype": "DocType",
+ "document_type": "Setup",
+ "email_append_to": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "subject",
+  "section_break_10",
+  "communication_medium",
+  "sender",
+  "column_break_4",
+  "recipients",
+  "cc",
+  "bcc",
+  "phone_no",
+  "delivery_status",
+  "section_break_8",
+  "content",
+  "status_section",
+  "text_content",
+  "communication_type",
+  "column_break_5",
+  "status",
+  "sent_or_received",
+  "additional_info",
+  "communication_date",
+  "read_receipt",
+  "send_after",
+  "column_break_14",
+  "sender_full_name",
+  "read_by_recipient",
+  "read_by_recipient_on",
+  "reference_section",
+  "reference_doctype",
+  "reference_name",
+  "reference_owner",
+  "email_account",
+  "in_reply_to",
+  "user",
+  "column_break_27",
+  "email_template",
+  "unread_notification_sent",
+  "seen",
+  "_user_tags",
+  "timeline_links_sections",
+  "timeline_links",
+  "email_inbox",
+  "message_id",
+  "uid",
+  "imap_folder",
+  "email_status",
+  "has_attachment"
+ ],
+ "fields": [
+  {
+   "fieldname": "subject",
+   "fieldtype": "Small Text",
+   "in_global_search": 1,
+   "label": "Subject",
+   "reqd": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_10",
+   "fieldtype": "Section Break",
+   "label": "To and CC"
+  },
+  {
+   "fieldname": "communication_medium",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Type",
+   "options": "\nEmail\nChat\nPhone\nSMS\nEvent\nMeeting\nVisit\nOther"
+  },
+  {
+   "depends_on": "eval:doc.communication_medium===\"Email\"",
+   "fieldname": "sender",
+   "fieldtype": "Data",
+   "in_global_search": 1,
+   "label": "From",
+   "length": 255,
+   "options": "Email"
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "recipients",
+   "fieldtype": "Code",
+   "label": "To",
+   "options": "Email"
+  },
+  {
+   "depends_on": "eval:doc.communication_medium===\"Email\"",
+   "fieldname": "cc",
+   "fieldtype": "Code",
+   "label": "CC",
+   "options": "Email"
+  },
+  {
+   "depends_on": "eval:doc.communication_medium===\"Email\"",
+   "fieldname": "bcc",
+   "fieldtype": "Code",
+   "label": "BCC",
+   "options": "Email"
+  },
+  {
+   "depends_on": "eval:in_list([\"Phone\",\"SMS\"],doc.communication_medium)",
+   "fieldname": "phone_no",
+   "fieldtype": "Data",
+   "label": "Phone No."
+  },
+  {
+   "description": "Integrations can use this field to set email delivery status",
+   "fieldname": "delivery_status",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Delivery Status",
+   "options": "\nSent\nBounced\nOpened\nMarked As Spam\nRejected\nDelayed\nSoft-Bounced\nClicked\nRecipient Unsubscribed\nError\nExpired\nSending\nRead\nScheduled"
+  },
+  {
+   "fieldname": "section_break_8",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "content",
+   "fieldtype": "Text Editor",
+   "label": "Message",
+   "width": "400"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "status_section",
+   "fieldtype": "Section Break",
+   "label": "Status"
+  },
+  {
+   "fieldname": "text_content",
+   "fieldtype": "Code",
+   "hidden": 1,
+   "label": "Text Content"
+  },
+  {
+   "default": "Communication",
+   "fieldname": "communication_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Communication Type",
+   "options": "Communication\nAutomated Message",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_5",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.communication_type===\"Communication\"",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Open\nReplied\nClosed\nLinked",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.communication_type===\"Communication\"",
+   "fieldname": "sent_or_received",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Sent or Received",
+   "options": "Sent\nReceived",
+   "reqd": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "additional_info",
+   "fieldtype": "Section Break",
+   "label": "More Information"
+  },
+  {
+   "default": "Now",
+   "fieldname": "communication_date",
+   "fieldtype": "Datetime",
+   "label": "Date"
+  },
+  {
+   "default": "0",
+   "fieldname": "read_receipt",
+   "fieldtype": "Check",
+   "label": "Sent Read Receipt",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_14",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sender_full_name",
+   "fieldtype": "Data",
+   "label": "From Full Name",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "read_by_recipient",
+   "fieldtype": "Check",
+   "label": "Read by Recipient",
+   "read_only": 1
+  },
+  {
+   "fieldname": "read_by_recipient_on",
+   "fieldtype": "Datetime",
+   "label": "Read by Recipient On",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "reference_section",
+   "fieldtype": "Section Break",
+   "label": "Reference"
+  },
+  {
+   "fieldname": "reference_doctype",
+   "fieldtype": "Link",
+   "label": "Reference Document Type",
+   "options": "DocType"
+  },
+  {
+   "fieldname": "reference_name",
+   "fieldtype": "Dynamic Link",
+   "label": "Reference Name",
+   "options": "reference_doctype"
+  },
+  {
+   "fetch_from": "reference_name.owner",
+   "fieldname": "reference_owner",
+   "fieldtype": "Read Only",
+   "label": "Reference Owner",
+   "search_index": 1
+  },
+  {
+   "depends_on": "eval:doc.communication_medium===\"Email\"",
+   "fieldname": "email_account",
+   "fieldtype": "Link",
+   "label": "Email Account",
+   "options": "Email Account",
+   "read_only": 1
+  },
+  {
+   "fieldname": "in_reply_to",
+   "fieldtype": "Link",
+   "label": "In Reply To",
+   "options": "Communication",
+   "read_only": 1
+  },
+  {
+   "default": "__user",
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "ignore_user_permissions": 1,
+   "label": "User",
+   "o
+--------------------------------------------------------------------------------
+
+File: communication.py
+Comments: Truncated to 6000 bytes due to size > 6000
+Mime Type: text/x-python
+Size: 21077 bytes
+Content:
+# Copyright (c) 2015, Frappe Technologies Pvt. Ltd. and Contributors
+# License: MIT. See LICENSE
+
+from collections import Counter
+from email.utils import getaddresses
+from urllib.parse import unquote_plus
+
+from bs4 import BeautifulSoup
+
+import frappe
+from frappe import _
+from frappe.automation.doctype.assignment_rule.assignment_rule import (
+	apply as apply_assignment_rule,
+)
+from frappe.contacts.doctype.contact.contact import get_contact_name
+from frappe.core.doctype.comment.comment import update_comment_in_doc
+from frappe.core.doctype.communication.email import validate_email
+from frappe.core.doctype.communication.mixins import CommunicationEmailMixin
+from frappe.core.utils import get_parent_doc
+from frappe.model.document import Document
+from frappe.utils import (
+	cstr,
+	parse_addr,
+	split_emails,
+	strip_html,
+	time_diff_in_seconds,
+	validate_email_address,
+)
+from frappe.utils.user import is_system_user
+
+exclude_from_linked_with = True
+
+
+class Communication(Document, CommunicationEmailMixin):
+	# begin: auto-generated types
+	# This code is auto-generated. Do not modify anything in this block.
+
+	from typing import TYPE_CHECKING
+
+	if TYPE_CHECKING:
+		from frappe.core.doctype.communication_link.communication_link import CommunicationLink
+		from frappe.types import DF
+
+		_user_tags: DF.Data | None
+		bcc: DF.Code | None
+		cc: DF.Code | None
+		communication_date: DF.Datetime | None
+		communication_medium: DF.Literal[
+			"", "Email", "Chat", "Phone", "SMS", "Event", "Meeting", "Visit", "Other"
+		]
+		communication_type: DF.Literal["Communication", "Automated Message"]
+		content: DF.TextEditor | None
+		delivery_status: DF.Literal[
+			"",
+			"Sent",
+			"Bounced",
+			"Opened",
+			"Marked As Spam",
+			"Rejected",
+			"Delayed",
+			"Soft-Bounced",
+			"Clicked",
+			"Recipient Unsubscribed",
+			"Error",
+			"Expired",
+			"Sending",
+			"Read",
+			"Scheduled",
+		]
+		email_account: DF.Link | None
+		email_status: DF.Literal["Open", "Spam", "Trash"]
+		email_template: DF.Link | None
+		has_attachment: DF.Check
+		imap_folder: DF.Data | None
+		in_reply_to: DF.Link | None
+		message_id: DF.SmallText | None
+		phone_no: DF.Data | None
+		read_by_recipient: DF.Check
+		read_by_recipient_on: DF.Datetime | None
+		read_receipt: DF.Check
+		recipients: DF.Code | None
+		reference_doctype: DF.Link | None
+		reference_name: DF.DynamicLink | None
+		reference_owner: DF.ReadOnly | None
+		seen: DF.Check
+		send_after: DF.Datetime | None
+		sender: DF.Data | None
+		sender_full_name: DF.Data | None
+		sent_or_received: DF.Literal["Sent", "Received"]
+		status: DF.Literal["Open", "Replied", "Closed", "Linked"]
+		subject: DF.SmallText
+		text_content: DF.Code | None
+		timeline_links: DF.Table[CommunicationLink]
+		uid: DF.Int
+		unread_notification_sent: DF.Check
+		user: DF.Link | None
+	# end: auto-generated types
+
+	"""Communication represents an external communication like Email."""
+
+	no_feed_on_delete = True
+	DOCTYPE = "Communication"
+
+	def onload(self):
+		"""create email flag queue"""
+		if (
+			self.communication_type == "Communication"
+			and self.communication_medium == "Email"
+			and self.sent_or_received == "Received"
+			and self.uid
+			and self.uid != -1
+		):
+			email_flag_queue = frappe.db.get_value(
+				"Email Flag Queue", {"communication": self.name, "is_completed": 0}
+			)
+			if email_flag_queue:
+				return
+
+			frappe.get_doc(
+				{
+					"doctype": "Email Flag Queue",
+					"action": "Read",
+					"communication": self.name,
+					"uid": self.uid,
+					"email_account": self.email_account,
+				}
+			).insert(ignore_permissions=True)
+			frappe.db.commit()
+
+	def validate(self):
+		self.validate_reference()
+
+		if not self.user:
+			self.user = frappe.session.user
+
+		if not self.subject:
+			self.subject = strip_html((self.content or "")[:141])
+
+		if not self.sent_or_received:
+			self.seen = 1
+			self.sent_or_received = "Sent"
+
+		if not self.send_after:  # Handle empty string, always set NULL
+			self.send_after = None
+
+		validate_email(self)
+
+		if self.communication_medium == "Email":
+			self.parse_email_for_timeline_links()
+			self.set_timeline_links()
+			self.deduplicate_timeline_links()
+
+		self.set_sender_full_name()
+
+		if self.is_new():
+			self.set_status()
+			self.mark_email_as_spam()
+
+	def validate_reference(self):
+		if self.reference_doctype and self.reference_name:
+			if not self.reference_owner:
+				self.reference_owner = frappe.db.get_value(
+					self.reference_doctype, self.reference_name, "owner"
+				)
+
+			# prevent communication against a child table
+			if frappe.get_meta(self.reference_doctype).istable:
+				frappe.throw(
+					_("Cannot create a {0} against a child document: {1}").format(
+						_(self.communication_type), _(self.reference_doctype)
+					)
+				)
+
+			# Prevent circular linking of Communication DocTypes
+			if self.reference_doctype == "Communication":
+				circular_linking = False
+				doc = get_parent_doc(self)
+				while doc.reference_doctype == "Communication":
+					if get_parent_doc(doc).name == self.name:
+						circular_linking = True
+						break
+					doc = get_parent_doc(doc)
+
+				if circular_linking:
+					frappe.throw(
+						_("Please make sure the Reference Communication Docs are not circularly linked."),
+						frappe.CircularLinkingError,
+					)
+
+	def after_insert(self):
+		if not (self.reference_doctype and self.reference_name):
+			return
+
+		if self.reference_doctype == "Communication" and self.sent_or_received == "Sent":
+			frappe.db.set_value("Communication", self.reference_name, "status", "Replied")
+
+		self.notify_change("add")
+
+	def set_signature_in_email_content(self):
+		"""Set sender's User.email_signature or default outgoing's EmailAccount.signature to the email"""
+		if not self.content:
+			return
+
+		soup = BeautifulSoup(self.content, "html.parser")
+		email_body = soup.find("div", {"class": "ql-editor read-mode"})
+
+		if not email_body:
+			return
+
+		user_email_signature = (
+			frappe.db.get_value(
+				"User",
+				self.sender,
+				"email_signature",
+			)
+			if self.sender
+			else None
+		)
+
+		signature = u
+--------------------------------------------------------------------------------
+
+File: communication_list.js
+Comments: Included
+Mime Type: text/javascript
+Size: 765 bytes
+Content:
+frappe.listview_settings["Communication"] = {
+	add_fields: [
+		"sent_or_received",
+		"recipients",
+		"subject",
+		"communication_medium",
+		"communication_type",
+		"sender",
+		"seen",
+		"reference_doctype",
+		"reference_name",
+		"has_attachment",
+		"communication_date",
+	],
+
+	onload: function (list_view) {
+		let method = "frappe.email.inbox.create_email_flag_queue";
+
+		list_view.page.add_menu_item(__("Mark as Read"), function () {
+			list_view.call_for_selected_items(method, { action: "Read" });
+		});
+		list_view.page.add_menu_item(__("Mark as Unread"), function () {
+			list_view.call_for_selected_items(method, { action: "Unread" });
+		});
+	},
+
+	primary_action: function () {
+		new frappe.views.CommunicationComposer();
+	},
+};
+
+--------------------------------------------------------------------------------
+
+File: email.py
+Comments: Truncated to 6000 bytes due to size > 6000
+Mime Type: text/x-python
+Size: 8663 bytes
+Content:
+# Copyright (c) 2022, Frappe Technologies Pvt. Ltd. and Contributors
+# License: MIT. See LICENSE
+
+import json
+from collections.abc import Iterable
+from typing import TYPE_CHECKING
+
+import frappe
+import frappe.email.smtp
+from frappe import _
+from frappe.email.email_body import get_message_id
+from frappe.utils import (
+	cint,
+	get_datetime,
+	get_formatted_email,
+	get_imaginary_pixel_response,
+	get_string_between,
+	list_to_str,
+	split_emails,
+	validate_email_address,
+)
+
+if TYPE_CHECKING:
+	from frappe.core.doctype.communication.communication import Communication
+
+
+@frappe.whitelist()
+def make(
+	doctype=None,
+	name=None,
+	content=None,
+	subject=None,
+	sent_or_received="Sent",
+	sender=None,
+	sender_full_name=None,
+	recipients=None,
+	communication_medium="Email",
+	send_email=False,
+	print_html=None,
+	print_format=None,
+	attachments=None,
+	send_me_a_copy=False,
+	cc=None,
+	bcc=None,
+	read_receipt=None,
+	print_letterhead=True,
+	email_template=None,
+	communication_type=None,
+	send_after=None,
+	print_language=None,
+	now=False,
+	**kwargs,
+) -> dict[str, str]:
+	"""Make a new communication. Checks for email permissions for specified Document.
+
+	:param doctype: Reference DocType.
+	:param name: Reference Document name.
+	:param content: Communication body.
+	:param subject: Communication subject.
+	:param sent_or_received: Sent or Received (default **Sent**).
+	:param sender: Communcation sender (default current user).
+	:param recipients: Communication recipients as list.
+	:param communication_medium: Medium of communication (default **Email**).
+	:param send_email: Send via email (default **False**).
+	:param print_html: HTML Print format to be sent as attachment.
+	:param print_format: Print Format name of parent document to be sent as attachment.
+	:param attachments: List of File names or dicts with keys "fname" and "fcontent"
+	:param send_me_a_copy: Send a copy to the sender (default **False**).
+	:param email_template: Template which is used to compose mail .
+	:param send_after: Send after the given datetime.
+	"""
+	if kwargs:
+		from frappe.utils.commands import warn
+
+		warn(
+			f"Options {kwargs} used in frappe.core.doctype.communication.email.make "
+			"are deprecated or unsupported",
+			category=DeprecationWarning,
+		)
+
+	if doctype and name:
+		frappe.has_permission(doctype, doc=name, ptype="email", throw=True)
+
+	return _make(
+		doctype=doctype,
+		name=name,
+		content=content,
+		subject=subject,
+		sent_or_received=sent_or_received,
+		sender=sender,
+		sender_full_name=sender_full_name,
+		recipients=recipients,
+		communication_medium=communication_medium,
+		send_email=send_email,
+		print_html=print_html,
+		print_format=print_format,
+		attachments=attachments,
+		send_me_a_copy=cint(send_me_a_copy),
+		cc=cc,
+		bcc=bcc,
+		read_receipt=cint(read_receipt),
+		print_letterhead=print_letterhead,
+		email_template=email_template,
+		communication_type=communication_type,
+		add_signature=False,
+		send_after=send_after,
+		print_language=print_language,
+		now=now,
+	)
+
+
+def _make(
+	doctype=None,
+	name=None,
+	content=None,
+	subject=None,
+	sent_or_received="Sent",
+	sender=None,
+	sender_full_name=None,
+	recipients=None,
+	communication_medium="Email",
+	send_email=False,
+	print_html=None,
+	print_format=None,
+	attachments=None,
+	send_me_a_copy=False,
+	cc=None,
+	bcc=None,
+	read_receipt=None,
+	print_letterhead=True,
+	email_template=None,
+	communication_type=None,
+	add_signature=True,
+	send_after=None,
+	print_language=None,
+	now=False,
+) -> dict[str, str]:
+	"""Internal method to make a new communication that ignores Permission checks."""
+
+	sender = sender or get_formatted_email(frappe.session.user)
+	recipients = list_to_str(recipients) if isinstance(recipients, list) else recipients
+	cc = list_to_str(cc) if isinstance(cc, list) else cc
+	bcc = list_to_str(bcc) if isinstance(bcc, list) else bcc
+
+	comm: Communication = frappe.get_doc(
+		{
+			"doctype": "Communication",
+			"subject": subject,
+			"content": content,
+			"sender": sender,
+			"sender_full_name": sender_full_name,
+			"recipients": recipients,
+			"cc": cc or None,
+			"bcc": bcc or None,
+			"communication_medium": communication_medium,
+			"sent_or_received": sent_or_received,
+			"reference_doctype": doctype,
+			"reference_name": name,
+			"email_template": email_template,
+			"message_id": get_string_between("<", get_message_id(), ">"),
+			"read_receipt": read_receipt,
+			"has_attachment": 1 if attachments else 0,
+			"communication_type": communication_type,
+			"send_after": send_after,
+		}
+	)
+	comm.flags.skip_add_signature = not add_signature
+	comm.insert(ignore_permissions=True)
+
+	# if not committed, delayed task doesn't find the communication
+	if attachments:
+		if isinstance(attachments, str):
+			attachments = json.loads(attachments)
+		add_attachments(comm.name, attachments)
+
+	if cint(send_email):
+		if not comm.get_outgoing_email_account():
+			frappe.throw(
+				_(
+					"Unable to send mail because of a missing email account. Please setup default Email Account from Settings > Email Account"
+				),
+				exc=frappe.OutgoingEmailError,
+			)
+
+		comm.send_email(
+			print_html=print_html,
+			print_format=print_format,
+			send_me_a_copy=send_me_a_copy,
+			print_letterhead=print_letterhead,
+			print_language=print_language,
+			now=now,
+		)
+
+	emails_not_sent_to = comm.exclude_emails_list(include_sender=send_me_a_copy)
+
+	return {"name": comm.name, "emails_not_sent_to": ", ".join(emails_not_sent_to)}
+
+
+def validate_email(doc: "Communication") -> None:
+	"""Validate Email Addresses of Recipients and CC"""
+	if (
+		doc.communication_type != "Communication"
+		or doc.communication_medium != "Email"
+		or doc.flags.in_receive
+	):
+		return
+
+	# validate recipients
+	for email in split_emails(doc.recipients):
+		validate_email_address(email, throw=True)
+
+	# validate CC
+	for email in split_emails(doc.cc):
+		validate_email_address(email, throw=True)
+
+	for email in split_emails(doc.bcc):
+		validate_email_address(email, throw=True)
+
+
+def set_incoming_outgoing_accounts(doc):
+	from frappe.email.doctype.ema
+--------------------------------------------------------------------------------
+
+File: mixins.py
+Comments: Truncated to 6000 bytes due to size > 6000
+Mime Type: text/x-python
+Size: 12132 bytes
+Content:
+import frappe
+from frappe import _
+from frappe.core.utils import get_parent_doc
+from frappe.desk.doctype.notification_settings.notification_settings import (
+	is_email_notifications_enabled_for_type,
+)
+from frappe.desk.doctype.todo.todo import ToDo
+from frappe.email.doctype.email_account.email_account import EmailAccount
+from frappe.utils import cstr, get_formatted_email, get_url, parse_addr
+
+
+class CommunicationEmailMixin:
+	"""Mixin class to handle communication mails."""
+
+	def is_email_communication(self):
+		return self.communication_type == "Communication" and self.communication_medium == "Email"
+
+	def get_owner(self):
+		"""Get owner of the communication docs parent."""
+		parent_doc = get_parent_doc(self)
+		return parent_doc.owner if parent_doc else None
+
+	def get_all_email_addresses(self, exclude_displayname=False):
+		"""Get all Email addresses mentioned in the doc along with display name."""
+		return (
+			self.to_list(exclude_displayname=exclude_displayname)
+			+ self.cc_list(exclude_displayname=exclude_displayname)
+			+ self.bcc_list(exclude_displayname=exclude_displayname)
+		)
+
+	def get_email_with_displayname(self, email_address):
+		"""Return email address after adding displayname."""
+		display_name, email = parse_addr(email_address)
+		if display_name and display_name != email:
+			return email_address
+
+		# emailid to emailid with display name map.
+		email_map = {parse_addr(email)[1]: email for email in self.get_all_email_addresses()}
+		return email_map.get(email, email)
+
+	def mail_recipients(self, is_inbound_mail_communcation=False):
+		"""Build to(recipient) list to send an email."""
+		# Incase of inbound mail, recipients already received the mail, no need to send again.
+		if is_inbound_mail_communcation:
+			return []
+
+		if hasattr(self, "_final_recipients"):
+			return self._final_recipients
+
+		to = self.to_list()
+		self._final_recipients = list(filter(lambda id: id != "Administrator", to))
+		return self._final_recipients
+
+	def get_mail_recipients_with_displayname(self, is_inbound_mail_communcation=False):
+		"""Build to(recipient) list to send an email including displayname in email."""
+		to_list = self.mail_recipients(is_inbound_mail_communcation=is_inbound_mail_communcation)
+		return [self.get_email_with_displayname(email) for email in to_list]
+
+	def mail_cc(self, is_inbound_mail_communcation=False, include_sender=False):
+		"""Build cc list to send an email.
+
+		* if email copy is requested by sender, then add sender to CC.
+		* If this doc is created through inbound mail, then add doc owner to cc list
+		* remove all the thread_notify disabled users.
+		* Remove standard users from email list
+		"""
+		if hasattr(self, "_final_cc"):
+			return self._final_cc
+
+		cc = self.cc_list()
+
+		if include_sender:
+			sender = self.sender_mailid
+			# if user has selected send_me_a_copy, use their email as sender
+			if frappe.session.user not in frappe.STANDARD_USERS:
+				sender = frappe.db.get_value("User", frappe.session.user, "email")
+			cc.append(sender)
+
+		if is_inbound_mail_communcation:
+			# inform parent document owner incase communication is created through inbound mail
+			if doc_owner := self.get_owner():
+				cc.append(doc_owner)
+			cc = set(cc) - {self.sender_mailid}
+			assignees = set(self.get_assignees()) - {self.sender_mailid}
+			# Check and remove If user disabled notifications for incoming emails on assigned document.
+			for assignee in assignees.copy():
+				if not is_email_notifications_enabled_for_type(assignee, "threads_on_assigned_document"):
+					assignees.remove(assignee)
+			cc.update(assignees)
+
+		cc = set(cc) - set(self.filter_thread_notification_disbled_users(cc))
+		cc = cc - set(self.mail_recipients(is_inbound_mail_communcation=is_inbound_mail_communcation))
+
+		# # Incase of inbound mail, to and cc already received the mail, no need to send again.
+		if is_inbound_mail_communcation:
+			cc = cc - set(self.cc_list() + self.to_list())
+
+		self._final_cc = [m for m in cc if m and m not in frappe.STANDARD_USERS]
+		return self._final_cc
+
+	def get_mail_cc_with_displayname(self, is_inbound_mail_communcation=False, include_sender=False):
+		cc_list = self.mail_cc(
+			is_inbound_mail_communcation=is_inbound_mail_communcation, include_sender=include_sender
+		)
+		return [self.get_email_with_displayname(email) for email in cc_list if email]
+
+	def mail_bcc(self, is_inbound_mail_communcation=False):
+		"""
+		* Thread_notify check
+		* Email unsubscribe list
+		* remove standard users.
+		"""
+		if hasattr(self, "_final_bcc"):
+			return self._final_bcc
+
+		bcc = set(self.bcc_list())
+		if is_inbound_mail_communcation:
+			bcc = bcc - {self.sender_mailid}
+		bcc = bcc - set(self.filter_thread_notification_disbled_users(bcc))
+		bcc = bcc - set(self.mail_recipients(is_inbound_mail_communcation=is_inbound_mail_communcation))
+
+		# Incase of inbound mail, to and cc & bcc already received the mail, no need to send again.
+		if is_inbound_mail_communcation:
+			bcc = bcc - set(self.bcc_list() + self.to_list())
+
+		self._final_bcc = [m for m in bcc if m not in frappe.STANDARD_USERS]
+		return self._final_bcc
+
+	def get_mail_bcc_with_displayname(self, is_inbound_mail_communcation=False):
+		bcc_list = self.mail_bcc(is_inbound_mail_communcation=is_inbound_mail_communcation)
+		return [self.get_email_with_displayname(email) for email in bcc_list if email]
+
+	def mail_sender(self):
+		email_account = self.get_outgoing_email_account()
+		if not self.sender_mailid and email_account:
+			return email_account.email_id
+		return self.sender_mailid
+
+	def mail_sender_fullname(self):
+		email_account = self.get_outgoing_email_account()
+		if not self.sender_full_name:
+			return (email_account and email_account.name) or _("Notification")
+		return self.sender_full_name
+
+	def get_mail_sender_with_displayname(self):
+		return get_formatted_email(self.mail_sender_fullname(), mail=self.mail_sender())
+
+	def get_content(self, print_format=None):
+		if print_format and frappe.get_system_settings("attach_view_link"):
+			return cstr(self.content) 
+--------------------------------------------------------------------------------
+
+File: README.md
+Comments: Excluded by file type
+Mime Type: 
+Size: 0 bytes
+Content:
+
+--------------------------------------------------------------------------------
+
+File: test_communication.py
+Comments: Truncated to 6000 bytes due to size > 6000
+Mime Type: text/x-python
+Size: 15094 bytes
+Content:
+# Copyright (c) 2022, Frappe Technologies Pvt. Ltd. and Contributors
+# License: MIT. See LICENSE
+from typing import TYPE_CHECKING
+
+import frappe
+from frappe.core.doctype.communication.communication import Communication, get_emails, parse_email
+from frappe.core.doctype.communication.email import add_attachments, make
+from frappe.email.doctype.email_queue.email_queue import EmailQueue
+from frappe.tests import IntegrationTestCase, UnitTestCase
+
+if TYPE_CHECKING:
+	from frappe.contacts.doctype.contact.contact import Contact
+	from frappe.email.doctype.email_account.email_account import EmailAccount
+
+
+class UnitTestCommunication(UnitTestCase):
+	"""
+	Unit tests for Communication.
+	Use this class for testing individual functions and methods.
+	"""
+
+	pass
+
+
+class TestCommunication(IntegrationTestCase):
+	def test_email(self):
+		valid_email_list = [
+			"Full Name <full@example.com>",
+			'"Full Name with quotes and <weird@chars.com>" <weird@example.com>',
+			"Surname, Name <name.surname@domain.com>",
+			"Purchase@ABC <purchase@abc.com>",
+			"xyz@abc2.com <xyz@abc.com>",
+			"Name [something else] <name@domain.com>",
+		]
+
+		invalid_email_list = [
+			"[invalid!email]",
+			"invalid-email",
+			"tes2",
+			"e",
+			"rrrrrrrr",
+			"manas",
+			"[[[sample]]]",
+			"[invalid!email].com",
+		]
+
+		for i, x in enumerate(valid_email_list):
+			with self.subTest(i=i, x=x):
+				self.assertTrue(frappe.utils.parse_addr(x)[1])
+
+		for i, x in enumerate(invalid_email_list):
+			with self.subTest(i=i, x=x):
+				self.assertFalse(frappe.utils.parse_addr(x)[0])
+
+	def test_name(self):
+		valid_email_list = [
+			"Full Name <full@example.com>",
+			'"Full Name with quotes and <weird@chars.com>" <weird@example.com>',
+			"Surname, Name <name.surname@domain.com>",
+			"Purchase@ABC <purchase@abc.com>",
+			"xyz@abc2.com <xyz@abc.com>",
+			"Name [something else] <name@domain.com>",
+		]
+
+		invalid_email_list = [
+			"[invalid!email]",
+			"invalid-email",
+			"tes2",
+			"e",
+			"rrrrrrrr",
+			"manas",
+			"[[[sample]]]",
+			"[invalid!email].com",
+		]
+
+		for x in valid_email_list:
+			self.assertTrue(frappe.utils.parse_addr(x)[0])
+
+		for x in invalid_email_list:
+			self.assertFalse(frappe.utils.parse_addr(x)[0])
+
+	def test_circular_linking(self):
+		a = frappe.get_doc(
+			{
+				"doctype": "Communication",
+				"communication_type": "Communication",
+				"content": "This was created to test circular linking: Communication A",
+			}
+		).insert(ignore_permissions=True)
+
+		b = frappe.get_doc(
+			{
+				"doctype": "Communication",
+				"communication_type": "Communication",
+				"content": "This was created to test circular linking: Communication B",
+				"reference_doctype": "Communication",
+				"reference_name": a.name,
+			}
+		).insert(ignore_permissions=True)
+
+		c = frappe.get_doc(
+			{
+				"doctype": "Communication",
+				"communication_type": "Communication",
+				"content": "This was created to test circular linking: Communication C",
+				"reference_doctype": "Communication",
+				"reference_name": b.name,
+			}
+		).insert(ignore_permissions=True)
+
+		a = frappe.get_doc("Communication", a.name)
+		a.reference_doctype = "Communication"
+		a.reference_name = c.name
+
+		self.assertRaises(frappe.CircularLinkingError, a.save)
+
+	def test_deduplication_timeline_links(self):
+		frappe.delete_doc_if_exists("Note", "deduplication timeline links")
+
+		note = frappe.get_doc(
+			{
+				"doctype": "Note",
+				"title": "deduplication timeline links",
+				"content": "deduplication timeline links",
+			}
+		).insert(ignore_permissions=True)
+
+		comm = frappe.get_doc(
+			{
+				"doctype": "Communication",
+				"communication_type": "Communication",
+				"content": "Deduplication of Links",
+				"communication_medium": "Email",
+			}
+		).insert(ignore_permissions=True)
+
+		# adding same link twice
+		comm.add_link(link_doctype="Note", link_name=note.name, autosave=True)
+		comm.add_link(link_doctype="Note", link_name=note.name, autosave=True)
+
+		comm = frappe.get_doc("Communication", comm.name)
+
+		self.assertNotEqual(2, len(comm.timeline_links))
+
+	def test_contacts_attached(self):
+		contact_sender: Contact = frappe.get_doc(
+			{
+				"doctype": "Contact",
+				"first_name": "contact_sender",
+			}
+		)
+		contact_sender.add_email("comm_sender@example.com")
+		contact_sender.insert(ignore_permissions=True)
+
+		contact_recipient: Contact = frappe.get_doc(
+			{
+				"doctype": "Contact",
+				"first_name": "contact_recipient",
+			}
+		)
+		contact_recipient.add_email("comm_recipient@example.com")
+		contact_recipient.insert(ignore_permissions=True)
+
+		contact_cc: Contact = frappe.get_doc(
+			{
+				"doctype": "Contact",
+				"first_name": "contact_cc",
+			}
+		)
+		contact_cc.add_email("comm_cc@example.com")
+		contact_cc.insert(ignore_permissions=True)
+
+		comm: Communication = frappe.get_doc(
+			{
+				"doctype": "Communication",
+				"communication_medium": "Email",
+				"subject": "Contacts Attached Test",
+				"sender": "comm_sender@example.com",
+				"recipients": "comm_recipient@example.com",
+				"cc": "comm_cc@example.com",
+			}
+		).insert(ignore_permissions=True)
+
+		comm = frappe.get_doc("Communication", comm.name)
+		contact_links = [x.link_name for x in comm.timeline_links]
+
+		self.assertIn(contact_sender.name, contact_links)
+		self.assertIn(contact_recipient.name, contact_links)
+		self.assertIn(contact_cc.name, contact_links)
+
+	def test_get_communication_data(self):
+		from frappe.desk.form.load import get_communication_data
+
+		frappe.delete_doc_if_exists("Note", "get communication data")
+
+		note = frappe.get_doc(
+			{"doctype": "Note", "title": "get communication data", "content": "get communication data"}
+		).insert(ignore_permissions=True)
+
+		comm_note_1 = frappe.get_doc(
+			{
+				"doctype": "Communication",
+				"communication_type": "Communication",
+				"content": "Test Get Communication Data 1",
+				"communication_medium": "Email",
+			}
+		).insert(ignore_permissions=True)
+
+		comm_note_1.add_link(link_doctype="Note", link_name=note.name, autosave=True)
+
+		comm_note_2 = frappe.get_doc(
+			{
+				"doctype": "Co
+--------------------------------------------------------------------------------
+
+File: test_records.json
+Comments: Included
+Mime Type: application/json
+Size: 200 bytes
+Content:
+[
+	{
+		"doctype": "Communication",
+		"name": "_Test Communication 1",
+		"subject": "Test Subject",
+		"sent_or_received": "Received",
+		"parenttype": "User",
+		"parent": "Administrator"
+	}
+]
+
+--------------------------------------------------------------------------------
+
+File: __init__.py
+Comments: Included
+Mime Type: text/x-python
+Size: 99 bytes
+Content:
+# Copyright (c) 2015, Frappe Technologies Pvt. Ltd. and Contributors
+# License: MIT. See LICENSE
+
+--------------------------------------------------------------------------------
+

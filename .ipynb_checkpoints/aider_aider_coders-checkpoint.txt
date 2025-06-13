@@ -1,0 +1,3199 @@
+File: architect_coder.py
+Comments: Included
+Mime Type: text/x-python
+Size: 1670 bytes
+Content:
+from .architect_prompts import ArchitectPrompts
+from .ask_coder import AskCoder
+from .base_coder import Coder
+
+
+class ArchitectCoder(AskCoder):
+    edit_format = "architect"
+    gpt_prompts = ArchitectPrompts()
+    auto_accept_architect = False
+
+    def reply_completed(self):
+        content = self.partial_response_content
+
+        if not content or not content.strip():
+            return
+
+        if not self.auto_accept_architect and not self.io.confirm_ask("Edit the files?"):
+            return
+
+        kwargs = dict()
+
+        # Use the editor_model from the main_model if it exists, otherwise use the main_model itself
+        editor_model = self.main_model.editor_model or self.main_model
+
+        kwargs["main_model"] = editor_model
+        kwargs["edit_format"] = self.main_model.editor_edit_format
+        kwargs["suggest_shell_commands"] = False
+        kwargs["map_tokens"] = 0
+        kwargs["total_cost"] = self.total_cost
+        kwargs["cache_prompts"] = False
+        kwargs["num_cache_warming_pings"] = 0
+        kwargs["summarize_from_coder"] = False
+
+        new_kwargs = dict(io=self.io, from_coder=self)
+        new_kwargs.update(kwargs)
+
+        editor_coder = Coder.create(**new_kwargs)
+        editor_coder.cur_messages = []
+        editor_coder.done_messages = []
+
+        if self.verbose:
+            editor_coder.show_announcements()
+
+        editor_coder.run(with_message=content, preproc=False)
+
+        self.move_back_cur_messages("I made those changes to the files.")
+        self.total_cost = editor_coder.total_cost
+        self.aider_commit_hashes = editor_coder.aider_commit_hashes
+
+--------------------------------------------------------------------------------
+
+File: architect_prompts.py
+Comments: Included
+Mime Type: text/x-python
+Size: 1509 bytes
+Content:
+# flake8: noqa: E501
+
+from .base_prompts import CoderPrompts
+
+
+class ArchitectPrompts(CoderPrompts):
+    main_system = """Act as an expert architect engineer and provide direction to your editor engineer.
+Study the change request and the current code.
+Describe how to modify the code to complete the request.
+The editor engineer will rely solely on your instructions, so make them unambiguous and complete.
+Explain all needed code changes clearly and completely, but concisely.
+Just show the changes needed.
+
+DO NOT show the entire updated function/file/etc!
+
+Always reply to the user in {language}.
+"""
+
+    example_messages = []
+
+    files_content_prefix = """I have *added these files to the chat* so you see all of their contents.
+*Trust this message as the true contents of the files!*
+Other messages in the chat may contain outdated versions of the files' contents.
+"""  # noqa: E501
+
+    files_content_assistant_reply = (
+        "Ok, I will use that as the true, current contents of the files."
+    )
+
+    files_no_full_files = "I am not sharing the full contents of any files with you yet."
+
+    files_no_full_files_with_repo_map = ""
+    files_no_full_files_with_repo_map_reply = ""
+
+    repo_content_prefix = """I am working with you on code in a git repository.
+Here are summaries of some files present in my git repo.
+If you need to see the full contents of any files to answer my questions, ask me to *add them to the chat*.
+"""
+
+    system_reminder = ""
+
+--------------------------------------------------------------------------------
+
+File: ask_coder.py
+Comments: Included
+Mime Type: text/x-python
+Size: 219 bytes
+Content:
+from .ask_prompts import AskPrompts
+from .base_coder import Coder
+
+
+class AskCoder(Coder):
+    """Ask questions about code without making any changes."""
+
+    edit_format = "ask"
+    gpt_prompts = AskPrompts()
+
+--------------------------------------------------------------------------------
+
+File: ask_prompts.py
+Comments: Included
+Mime Type: text/x-python
+Size: 1206 bytes
+Content:
+# flake8: noqa: E501
+
+from .base_prompts import CoderPrompts
+
+
+class AskPrompts(CoderPrompts):
+    main_system = """Act as an expert code analyst.
+Answer questions about the supplied code.
+Always reply to the user in {language}.
+
+If you need to describe code changes, do so *briefly*.
+"""
+
+    example_messages = []
+
+    files_content_prefix = """I have *added these files to the chat* so you see all of their contents.
+*Trust this message as the true contents of the files!*
+Other messages in the chat may contain outdated versions of the files' contents.
+"""  # noqa: E501
+
+    files_content_assistant_reply = (
+        "Ok, I will use that as the true, current contents of the files."
+    )
+
+    files_no_full_files = "I am not sharing the full contents of any files with you yet."
+
+    files_no_full_files_with_repo_map = ""
+    files_no_full_files_with_repo_map_reply = ""
+
+    repo_content_prefix = """I am working with you on code in a git repository.
+Here are summaries of some files present in my git repo.
+If you need to see the full contents of any files to answer my questions, ask me to *add them to the chat*.
+"""
+
+    system_reminder = "{final_reminders}"
+
+--------------------------------------------------------------------------------
+
+File: base_coder.py
+Comments: Truncated to 6000 bytes due to size > 6000
+Mime Type: text/x-python
+Size: 88511 bytes
+Content:
+#!/usr/bin/env python
+
+import base64
+import hashlib
+import json
+import locale
+import math
+import mimetypes
+import os
+import platform
+import re
+import sys
+import threading
+import time
+import traceback
+from collections import defaultdict
+from datetime import datetime
+
+# Optional dependency: used to convert locale codes (eg ``en_US``)
+# into human-readable language names (eg ``English``).
+try:
+    from babel import Locale  # type: ignore
+except ImportError:  # Babel not installed â€“ we will fall back to a small mapping
+    Locale = None
+from json.decoder import JSONDecodeError
+from pathlib import Path
+from typing import List
+
+from rich.console import Console
+
+from aider import __version__, models, prompts, urls, utils
+from aider.analytics import Analytics
+from aider.commands import Commands
+from aider.exceptions import LiteLLMExceptions
+from aider.history import ChatSummary
+from aider.io import ConfirmGroup, InputOutput
+from aider.linter import Linter
+from aider.llm import litellm
+from aider.models import RETRY_TIMEOUT
+from aider.reasoning_tags import (
+    REASONING_TAG,
+    format_reasoning_content,
+    remove_reasoning_content,
+    replace_reasoning_tags,
+)
+from aider.repo import ANY_GIT_ERROR, GitRepo
+from aider.repomap import RepoMap
+from aider.run_cmd import run_cmd
+from aider.utils import format_content, format_messages, format_tokens, is_image_file
+from aider.waiting import WaitingSpinner
+
+from ..dump import dump  # noqa: F401
+from .chat_chunks import ChatChunks
+
+
+class UnknownEditFormat(ValueError):
+    def __init__(self, edit_format, valid_formats):
+        self.edit_format = edit_format
+        self.valid_formats = valid_formats
+        super().__init__(
+            f"Unknown edit format {edit_format}. Valid formats are: {', '.join(valid_formats)}"
+        )
+
+
+class MissingAPIKeyError(ValueError):
+    pass
+
+
+class FinishReasonLength(Exception):
+    pass
+
+
+def wrap_fence(name):
+    return f"<{name}>", f"</{name}>"
+
+
+all_fences = [
+    ("`" * 3, "`" * 3),
+    ("`" * 4, "`" * 4),  # LLMs ignore and revert to triple-backtick, causing #2879
+    wrap_fence("source"),
+    wrap_fence("code"),
+    wrap_fence("pre"),
+    wrap_fence("codeblock"),
+    wrap_fence("sourcecode"),
+]
+
+
+class Coder:
+    abs_fnames = None
+    abs_read_only_fnames = None
+    repo = None
+    last_aider_commit_hash = None
+    aider_edited_files = None
+    last_asked_for_commit_time = 0
+    repo_map = None
+    functions = None
+    num_exhausted_context_windows = 0
+    num_malformed_responses = 0
+    last_keyboard_interrupt = None
+    num_reflections = 0
+    max_reflections = 3
+    edit_format = None
+    yield_stream = False
+    temperature = None
+    auto_lint = True
+    auto_test = False
+    test_cmd = None
+    lint_outcome = None
+    test_outcome = None
+    multi_response_content = ""
+    partial_response_content = ""
+    commit_before_message = []
+    message_cost = 0.0
+    add_cache_headers = False
+    cache_warming_thread = None
+    num_cache_warming_pings = 0
+    suggest_shell_commands = True
+    detect_urls = True
+    ignore_mentions = None
+    chat_language = None
+    file_watcher = None
+
+    @classmethod
+    def create(
+        self,
+        main_model=None,
+        edit_format=None,
+        io=None,
+        from_coder=None,
+        summarize_from_coder=True,
+        **kwargs,
+    ):
+        import aider.coders as coders
+
+        if not main_model:
+            if from_coder:
+                main_model = from_coder.main_model
+            else:
+                main_model = models.Model(models.DEFAULT_MODEL_NAME)
+
+        if edit_format == "code":
+            edit_format = None
+        if edit_format is None:
+            if from_coder:
+                edit_format = from_coder.edit_format
+            else:
+                edit_format = main_model.edit_format
+
+        if not io and from_coder:
+            io = from_coder.io
+
+        if from_coder:
+            use_kwargs = dict(from_coder.original_kwargs)  # copy orig kwargs
+
+            # If the edit format changes, we can't leave old ASSISTANT
+            # messages in the chat history. The old edit format will
+            # confused the new LLM. It may try and imitate it, disobeying
+            # the system prompt.
+            done_messages = from_coder.done_messages
+            if edit_format != from_coder.edit_format and done_messages and summarize_from_coder:
+                try:
+                    done_messages = from_coder.summarizer.summarize_all(done_messages)
+                except ValueError:
+                    # If summarization fails, keep the original messages and warn the user
+                    io.tool_warning(
+                        "Chat history summarization failed, continuing with full history"
+                    )
+
+            # Bring along context from the old Coder
+            update = dict(
+                fnames=list(from_coder.abs_fnames),
+                read_only_fnames=list(from_coder.abs_read_only_fnames),  # Copy read-only files
+                done_messages=done_messages,
+                cur_messages=from_coder.cur_messages,
+                aider_commit_hashes=from_coder.aider_commit_hashes,
+                commands=from_coder.commands.clone(),
+                total_cost=from_coder.total_cost,
+                ignore_mentions=from_coder.ignore_mentions,
+                total_tokens_sent=from_coder.total_tokens_sent,
+                total_tokens_received=from_coder.total_tokens_received,
+                file_watcher=from_coder.file_watcher,
+            )
+            use_kwargs.update(update)  # override to complete the switch
+            use_kwargs.update(kwargs)  # override passed kwargs
+
+            kwargs = use_kwargs
+            from_coder.ok_to_warm_cache = False
+
+        for coder in coders.__all__:
+            if hasattr(coder, "edit_format") and coder.edit_format == edit_format:
+                res = coder(main_model, io, **kwargs)
+                res.original_kwargs = dict(kwargs)
+                return res
+
+        vali
+--------------------------------------------------------------------------------
+
+File: base_prompts.py
+Comments: Included
+Mime Type: text/x-python
+Size: 2444 bytes
+Content:
+class CoderPrompts:
+    system_reminder = ""
+
+    files_content_gpt_edits = "I committed the changes with git hash {hash} & commit msg: {message}"
+
+    files_content_gpt_edits_no_repo = "I updated the files."
+
+    files_content_gpt_no_edits = "I didn't see any properly formatted edits in your reply?!"
+
+    files_content_local_edits = "I edited the files myself."
+
+    lazy_prompt = """You are diligent and tireless!
+You NEVER leave comments describing code without implementing it!
+You always COMPLETELY IMPLEMENT the needed code!
+"""
+
+    overeager_prompt = """Pay careful attention to the scope of the user's request.
+Do what they ask, but no more.
+Do not improve, comment, fix or modify unrelated parts of the code in any way!
+"""
+
+    example_messages = []
+
+    files_content_prefix = """I have *added these files to the chat* so you can go ahead and edit them.
+
+*Trust this message as the true contents of these files!*
+Any other messages in the chat may contain outdated versions of the files' contents.
+"""  # noqa: E501
+
+    files_content_assistant_reply = "Ok, any changes I propose will be to those files."
+
+    files_no_full_files = "I am not sharing any files that you can edit yet."
+
+    files_no_full_files_with_repo_map = """Don't try and edit any existing code without asking me to add the files to the chat!
+Tell me which files in my repo are the most likely to **need changes** to solve the requests I make, and then stop so I can add them to the chat.
+Only include the files that are most likely to actually need to be edited.
+Don't include files that might contain relevant context, just files that will need to be changed.
+"""  # noqa: E501
+
+    files_no_full_files_with_repo_map_reply = (
+        "Ok, based on your requests I will suggest which files need to be edited and then"
+        " stop and wait for your approval."
+    )
+
+    repo_content_prefix = """Here are summaries of some files present in my git repository.
+Do not propose changes to these files, treat them as *read-only*.
+If you need to edit any of these files, ask me to *add them to the chat* first.
+"""
+
+    read_only_files_prefix = """Here are some READ ONLY files, provided for your reference.
+Do not edit these files!
+"""
+
+    shell_cmd_prompt = ""
+    shell_cmd_reminder = ""
+    no_shell_cmd_prompt = ""
+    no_shell_cmd_reminder = ""
+
+    rename_with_shell = ""
+    go_ahead_tip = ""
+
+--------------------------------------------------------------------------------
+
+File: chat_chunks.py
+Comments: Included
+Mime Type: text/x-python
+Size: 2045 bytes
+Content:
+from dataclasses import dataclass, field
+from typing import List
+
+
+@dataclass
+class ChatChunks:
+    system: List = field(default_factory=list)
+    examples: List = field(default_factory=list)
+    done: List = field(default_factory=list)
+    repo: List = field(default_factory=list)
+    readonly_files: List = field(default_factory=list)
+    chat_files: List = field(default_factory=list)
+    cur: List = field(default_factory=list)
+    reminder: List = field(default_factory=list)
+
+    def all_messages(self):
+        return (
+            self.system
+            + self.examples
+            + self.readonly_files
+            + self.repo
+            + self.done
+            + self.chat_files
+            + self.cur
+            + self.reminder
+        )
+
+    def add_cache_control_headers(self):
+        if self.examples:
+            self.add_cache_control(self.examples)
+        else:
+            self.add_cache_control(self.system)
+
+        if self.repo:
+            # this will mark both the readonly_files and repomap chunk as cacheable
+            self.add_cache_control(self.repo)
+        else:
+            # otherwise, just cache readonly_files if there are any
+            self.add_cache_control(self.readonly_files)
+
+        self.add_cache_control(self.chat_files)
+
+    def add_cache_control(self, messages):
+        if not messages:
+            return
+
+        content = messages[-1]["content"]
+        if type(content) is str:
+            content = dict(
+                type="text",
+                text=content,
+            )
+        content["cache_control"] = {"type": "ephemeral"}
+
+        messages[-1]["content"] = [content]
+
+    def cacheable_messages(self):
+        messages = self.all_messages()
+        for i, message in enumerate(reversed(messages)):
+            if isinstance(message.get("content"), list) and message["content"][0].get(
+                "cache_control"
+            ):
+                return messages[: len(messages) - i]
+        return messages
+
+--------------------------------------------------------------------------------
+
+File: context_coder.py
+Comments: Included
+Mime Type: text/x-python
+Size: 1624 bytes
+Content:
+from .base_coder import Coder
+from .context_prompts import ContextPrompts
+
+
+class ContextCoder(Coder):
+    """Identify which files need to be edited for a given request."""
+
+    edit_format = "context"
+    gpt_prompts = ContextPrompts()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if not self.repo_map:
+            return
+
+        self.repo_map.refresh = "always"
+        self.repo_map.max_map_tokens *= self.repo_map.map_mul_no_files
+        self.repo_map.map_mul_no_files = 1.0
+
+    def reply_completed(self):
+        content = self.partial_response_content
+        if not content or not content.strip():
+            return True
+
+        # dump(repr(content))
+        current_rel_fnames = set(self.get_inchat_relative_files())
+        mentioned_rel_fnames = set(self.get_file_mentions(content, ignore_current=True))
+
+        # dump(current_rel_fnames)
+        # dump(mentioned_rel_fnames)
+        # dump(current_rel_fnames == mentioned_rel_fnames)
+
+        if mentioned_rel_fnames == current_rel_fnames:
+            return True
+
+        if self.num_reflections >= self.max_reflections - 1:
+            return True
+
+        self.abs_fnames = set()
+        for fname in mentioned_rel_fnames:
+            self.add_rel_fname(fname)
+        # dump(self.get_inchat_relative_files())
+
+        self.reflected_message = self.gpt_prompts.try_again
+
+        # mentioned_idents = self.get_ident_mentions(cur_msg_text)
+        # if mentioned_idents:
+
+        return True
+
+    def check_for_file_mentions(self, content):
+        pass
+
+--------------------------------------------------------------------------------
+
+File: context_prompts.py
+Comments: Included
+Mime Type: text/x-python
+Size: 3157 bytes
+Content:
+# flake8: noqa: E501
+
+from .base_prompts import CoderPrompts
+
+
+class ContextPrompts(CoderPrompts):
+    main_system = """Act as an expert code analyst.
+Understand the user's question or request, solely to determine ALL the existing sources files which will need to be modified.
+Return the *complete* list of files which will need to be modified based on the user's request.
+Explain why each file is needed, including names of key classes/functions/methods/variables.
+Be sure to include or omit the names of files already added to the chat, based on whether they are actually needed or not.
+
+The user will use every file you mention, regardless of your commentary.
+So *ONLY* mention the names of relevant files.
+If a file is not relevant DO NOT mention it.
+
+Only return files that will need to be modified, not files that contain useful/relevant functions.
+
+You are only to discuss EXISTING files and symbols.
+Only return existing files, don't suggest the names of new files or functions that we will need to create.
+
+Always reply to the user in {language}.
+
+Be concise in your replies.
+Return:
+1. A bulleted list of files the will need to be edited, and symbols that are highly relevant to the user's request.
+2. A list of classes/functions/methods/variables that are located OUTSIDE those files which will need to be understood. Just the symbols names, *NOT* file names.
+
+# Your response *MUST* use this format:
+
+## ALL files we need to modify, with their relevant symbols:
+
+- alarms/buzz.py
+  - `Buzzer` class which can make the needed sound
+  - `Buzzer.buzz_buzz()` method triggers the sound
+- alarms/time.py
+  - `Time.set_alarm(hour, minute)` to set the alarm
+
+## Relevant symbols from OTHER files:
+
+- AlarmManager class for setup/teardown of alarms
+- SoundFactory will be used to create a Buzzer
+"""
+
+    example_messages = []
+
+    files_content_prefix = """These files have been *added these files to the chat* so we can see all of their contents.
+*Trust this message as the true contents of the files!*
+Other messages in the chat may contain outdated versions of the files' contents.
+"""  # noqa: E501
+
+    files_content_assistant_reply = (
+        "Ok, I will use that as the true, current contents of the files."
+    )
+
+    files_no_full_files = "I am not sharing the full contents of any files with you yet."
+
+    files_no_full_files_with_repo_map = ""
+    files_no_full_files_with_repo_map_reply = ""
+
+    repo_content_prefix = """I am working with you on code in a git repository.
+Here are summaries of some files present in my git repo.
+If you need to see the full contents of any files to answer my questions, ask me to *add them to the chat*.
+"""
+
+    system_reminder = """
+NEVER RETURN CODE!
+"""
+
+    try_again = """I have updated the set of files added to the chat.
+Review them to decide if this is the correct set of files or if we need to add more or remove files.
+
+If this is the right set, just return the current list of files.
+Or return a smaller or larger set of files which need to be edited, with symbols that are highly relevant to the user's request.
+"""
+
+--------------------------------------------------------------------------------
+
+File: editblock_coder.py
+Comments: Truncated to 6000 bytes due to size > 6000
+Mime Type: text/x-python
+Size: 20271 bytes
+Content:
+import difflib
+import math
+import re
+import sys
+from difflib import SequenceMatcher
+from pathlib import Path
+
+from aider import utils
+
+from ..dump import dump  # noqa: F401
+from .base_coder import Coder
+from .editblock_prompts import EditBlockPrompts
+
+
+class EditBlockCoder(Coder):
+    """A coder that uses search/replace blocks for code modifications."""
+
+    edit_format = "diff"
+    gpt_prompts = EditBlockPrompts()
+
+    def get_edits(self):
+        content = self.partial_response_content
+
+        # might raise ValueError for malformed ORIG/UPD blocks
+        edits = list(
+            find_original_update_blocks(
+                content,
+                self.fence,
+                self.get_inchat_relative_files(),
+            )
+        )
+
+        self.shell_commands += [edit[1] for edit in edits if edit[0] is None]
+        edits = [edit for edit in edits if edit[0] is not None]
+
+        return edits
+
+    def apply_edits_dry_run(self, edits):
+        return self.apply_edits(edits, dry_run=True)
+
+    def apply_edits(self, edits, dry_run=False):
+        failed = []
+        passed = []
+        updated_edits = []
+
+        for edit in edits:
+            path, original, updated = edit
+            full_path = self.abs_root_path(path)
+            new_content = None
+
+            if Path(full_path).exists():
+                content = self.io.read_text(full_path)
+                new_content = do_replace(full_path, content, original, updated, self.fence)
+
+            # If the edit failed, and
+            # this is not a "create a new file" with an empty original...
+            # https://github.com/Aider-AI/aider/issues/2258
+            if not new_content and original.strip():
+                # try patching any of the other files in the chat
+                for full_path in self.abs_fnames:
+                    content = self.io.read_text(full_path)
+                    new_content = do_replace(full_path, content, original, updated, self.fence)
+                    if new_content:
+                        path = self.get_rel_fname(full_path)
+                        break
+
+            updated_edits.append((path, original, updated))
+
+            if new_content:
+                if not dry_run:
+                    self.io.write_text(full_path, new_content)
+                passed.append(edit)
+            else:
+                failed.append(edit)
+
+        if dry_run:
+            return updated_edits
+
+        if not failed:
+            return
+
+        blocks = "block" if len(failed) == 1 else "blocks"
+
+        res = f"# {len(failed)} SEARCH/REPLACE {blocks} failed to match!\n"
+        for edit in failed:
+            path, original, updated = edit
+
+            full_path = self.abs_root_path(path)
+            content = self.io.read_text(full_path)
+
+            res += f"""
+## SearchReplaceNoExactMatch: This SEARCH block failed to exactly match lines in {path}
+<<<<<<< SEARCH
+{original}=======
+{updated}>>>>>>> REPLACE
+
+"""
+            did_you_mean = find_similar_lines(original, content)
+            if did_you_mean:
+                res += f"""Did you mean to match some of these actual lines from {path}?
+
+{self.fence[0]}
+{did_you_mean}
+{self.fence[1]}
+
+"""
+
+            if updated in content and updated:
+                res += f"""Are you sure you need this SEARCH/REPLACE block?
+The REPLACE lines are already in {path}!
+
+"""
+        res += (
+            "The SEARCH section must exactly match an existing block of lines including all white"
+            " space, comments, indentation, docstrings, etc\n"
+        )
+        if passed:
+            pblocks = "block" if len(passed) == 1 else "blocks"
+            res += f"""
+# The other {len(passed)} SEARCH/REPLACE {pblocks} were applied successfully.
+Don't re-send them.
+Just reply with fixed versions of the {blocks} above that failed to match.
+"""
+        raise ValueError(res)
+
+
+def prep(content):
+    if content and not content.endswith("\n"):
+        content += "\n"
+    lines = content.splitlines(keepends=True)
+    return content, lines
+
+
+def perfect_or_whitespace(whole_lines, part_lines, replace_lines):
+    # Try for a perfect match
+    res = perfect_replace(whole_lines, part_lines, replace_lines)
+    if res:
+        return res
+
+    # Try being flexible about leading whitespace
+    res = replace_part_with_missing_leading_whitespace(whole_lines, part_lines, replace_lines)
+    if res:
+        return res
+
+
+def perfect_replace(whole_lines, part_lines, replace_lines):
+    part_tup = tuple(part_lines)
+    part_len = len(part_lines)
+
+    for i in range(len(whole_lines) - part_len + 1):
+        whole_tup = tuple(whole_lines[i : i + part_len])
+        if part_tup == whole_tup:
+            res = whole_lines[:i] + replace_lines + whole_lines[i + part_len :]
+            return "".join(res)
+
+
+def replace_most_similar_chunk(whole, part, replace):
+    """Best efforts to find the `part` lines in `whole` and replace them with `replace`"""
+
+    whole, whole_lines = prep(whole)
+    part, part_lines = prep(part)
+    replace, replace_lines = prep(replace)
+
+    res = perfect_or_whitespace(whole_lines, part_lines, replace_lines)
+    if res:
+        return res
+
+    # drop leading empty line, GPT sometimes adds them spuriously (issue #25)
+    if len(part_lines) > 2 and not part_lines[0].strip():
+        skip_blank_line_part_lines = part_lines[1:]
+        res = perfect_or_whitespace(whole_lines, skip_blank_line_part_lines, replace_lines)
+        if res:
+            return res
+
+    # Try to handle when it elides code with ...
+    try:
+        res = try_dotdotdots(whole, part, replace)
+        if res:
+            return res
+    except ValueError:
+        pass
+
+    return
+    # Try fuzzy matching
+    res = replace_closest_edit_distance(whole_lines, part, part_lines, replace_lines)
+    if res:
+        return res
+
+
+def try_dotdotdots(whole, part, replace):
+    """
+    See if the edit block has ... lines.
+    If not, return none.
+
+    If yes, try and do a perfect edit with the ... chunks.
+    If there's a mism
+--------------------------------------------------------------------------------
+
+File: editblock_fenced_coder.py
+Comments: Included
+Mime Type: text/x-python
+Size: 356 bytes
+Content:
+from ..dump import dump  # noqa: F401
+from .editblock_coder import EditBlockCoder
+from .editblock_fenced_prompts import EditBlockFencedPrompts
+
+
+class EditBlockFencedCoder(EditBlockCoder):
+    """A coder that uses fenced search/replace blocks for code modifications."""
+
+    edit_format = "diff-fenced"
+    gpt_prompts = EditBlockFencedPrompts()
+
+--------------------------------------------------------------------------------
+
+File: editblock_fenced_prompts.py
+Comments: Included
+Mime Type: text/x-python
+Size: 4558 bytes
+Content:
+# flake8: noqa: E501
+
+from .editblock_prompts import EditBlockPrompts
+
+
+class EditBlockFencedPrompts(EditBlockPrompts):
+    example_messages = [
+        dict(
+            role="user",
+            content="Change get_factorial() to use math.factorial",
+        ),
+        dict(
+            role="assistant",
+            content="""To make this change we need to modify `mathweb/flask/app.py` to:
+
+1. Import the math package.
+2. Remove the existing factorial() function.
+3. Update get_factorial() to call math.factorial instead.
+
+Here are the *SEARCH/REPLACE* blocks:
+
+{fence[0]}python
+mathweb/flask/app.py
+<<<<<<< SEARCH
+from flask import Flask
+=======
+import math
+from flask import Flask
+>>>>>>> REPLACE
+{fence[1]}
+
+{fence[0]}python
+mathweb/flask/app.py
+<<<<<<< SEARCH
+def factorial(n):
+    "compute factorial"
+
+    if n == 0:
+        return 1
+    else:
+        return n * factorial(n-1)
+
+=======
+>>>>>>> REPLACE
+{fence[1]}
+
+{fence[0]}python
+mathweb/flask/app.py
+<<<<<<< SEARCH
+    return str(factorial(n))
+=======
+    return str(math.factorial(n))
+>>>>>>> REPLACE
+{fence[1]}
+<<<<<<< HEAD
+""",
+        ),
+        dict(
+            role="user",
+            content="Refactor hello() into its own file.",
+        ),
+        dict(
+            role="assistant",
+            content="""To make this change we need to modify `main.py` and make a new file `hello.py`:
+
+1. Make a new hello.py file with hello() in it.
+2. Remove hello() from main.py and replace it with an import.
+
+Here are the *SEARCH/REPLACE* blocks:
+
+{fence[0]}python
+hello.py
+<<<<<<< SEARCH
+=======
+def hello():
+    "print a greeting"
+
+    print("hello")
+>>>>>>> REPLACE
+{fence[1]}
+
+{fence[0]}python
+main.py
+<<<<<<< SEARCH
+def hello():
+    "print a greeting"
+
+    print("hello")
+=======
+from hello import hello
+>>>>>>> REPLACE
+{fence[1]}
+""",
+        ),
+    ]
+
+    system_reminder = """
+# *SEARCH/REPLACE block* Rules:
+
+Every *SEARCH/REPLACE block* must use this format:
+1. The opening fence and code language, eg: {fence[0]}python
+2. The *FULL* file path alone on a line, verbatim. No bold asterisks, no quotes around it, no escaping of characters, etc.
+3. The start of search block: <<<<<<< SEARCH
+4. A contiguous chunk of lines to search for in the existing source code
+5. The dividing line: =======
+6. The lines to replace into the source code
+7. The end of the replace block: >>>>>>> REPLACE
+8. The closing fence: {fence[1]}
+
+Use the *FULL* file path, as shown to you by the user.
+{quad_backtick_reminder}
+Every *SEARCH* section must *EXACTLY MATCH* the existing file content, character for character, including all comments, docstrings, etc.
+If the file contains code or other data wrapped/escaped in json/xml/quotes or other containers, you need to propose edits to the literal contents of the file, including the container markup.
+
+*SEARCH/REPLACE* blocks will *only* replace the first match occurrence.
+Including multiple unique *SEARCH/REPLACE* blocks if needed.
+Include enough lines in each SEARCH section to uniquely match each set of lines that need to change.
+
+Keep *SEARCH/REPLACE* blocks concise.
+Break large *SEARCH/REPLACE* blocks into a series of smaller blocks that each change a small portion of the file.
+Include just the changing lines, and a few surrounding lines if needed for uniqueness.
+Do not include long runs of unchanging lines in *SEARCH/REPLACE* blocks.
+
+Only create *SEARCH/REPLACE* blocks for files that the user has added to the chat!
+
+To move code within a file, use 2 *SEARCH/REPLACE* blocks: 1 to delete it from its current location, 1 to insert it in the new location.
+
+Pay attention to which filenames the user wants you to edit, especially if they are asking you to create a new file.
+
+If you want to put code in a new file, use a *SEARCH/REPLACE block* with:
+- A new file path, including dir name if needed
+- An empty `SEARCH` section
+- The new file's contents in the `REPLACE` section
+
+To rename files which have been added to the chat, use shell commands at the end of your response.
+
+If the user just says something like "ok" or "go ahead" or "do that" they probably want you to make SEARCH/REPLACE blocks for the code changes you just proposed.
+The user will say when they've applied your edits. If they haven't explicitly confirmed the edits have been applied, they probably want proper SEARCH/REPLACE blocks.
+
+{final_reminders}
+ONLY EVER RETURN CODE IN A *SEARCH/REPLACE BLOCK*!
+{shell_cmd_reminder}
+"""
+
+--------------------------------------------------------------------------------
+
+File: editblock_func_coder.py
+Comments: Included
+Mime Type: text/x-python
+Size: 5458 bytes
+Content:
+import json
+
+from ..dump import dump  # noqa: F401
+from .base_coder import Coder
+from .editblock_coder import do_replace
+from .editblock_func_prompts import EditBlockFunctionPrompts
+
+
+class EditBlockFunctionCoder(Coder):
+    functions = [
+        dict(
+            name="replace_lines",
+            description="create or update one or more files",
+            parameters=dict(
+                type="object",
+                required=["explanation", "edits"],
+                properties=dict(
+                    explanation=dict(
+                        type="string",
+                        description=(
+                            "Step by step plan for the changes to be made to the code (future"
+                            " tense, markdown format)"
+                        ),
+                    ),
+                    edits=dict(
+                        type="array",
+                        items=dict(
+                            type="object",
+                            required=["path", "original_lines", "updated_lines"],
+                            properties=dict(
+                                path=dict(
+                                    type="string",
+                                    description="Path of file to edit",
+                                ),
+                                original_lines=dict(
+                                    type="array",
+                                    items=dict(
+                                        type="string",
+                                    ),
+                                    description=(
+                                        "A unique stretch of lines from the original file,"
+                                        " including all whitespace, without skipping any lines"
+                                    ),
+                                ),
+                                updated_lines=dict(
+                                    type="array",
+                                    items=dict(
+                                        type="string",
+                                    ),
+                                    description="New content to replace the `original_lines` with",
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    ]
+
+    def __init__(self, code_format, *args, **kwargs):
+        raise RuntimeError("Deprecated, needs to be refactored to support get_edits/apply_edits")
+        self.code_format = code_format
+
+        if code_format == "string":
+            original_lines = dict(
+                type="string",
+                description=(
+                    "A unique stretch of lines from the original file, including all"
+                    " whitespace and newlines, without skipping any lines"
+                ),
+            )
+            updated_lines = dict(
+                type="string",
+                description="New content to replace the `original_lines` with",
+            )
+
+            self.functions[0]["parameters"]["properties"]["edits"]["items"]["properties"][
+                "original_lines"
+            ] = original_lines
+            self.functions[0]["parameters"]["properties"]["edits"]["items"]["properties"][
+                "updated_lines"
+            ] = updated_lines
+
+        self.gpt_prompts = EditBlockFunctionPrompts()
+        super().__init__(*args, **kwargs)
+
+    def render_incremental_response(self, final=False):
+        if self.partial_response_content:
+            return self.partial_response_content
+
+        args = self.parse_partial_args()
+        res = json.dumps(args, indent=4)
+        return res
+
+    def _update_files(self):
+        name = self.partial_response_function_call.get("name")
+
+        if name and name != "replace_lines":
+            raise ValueError(f'Unknown function_call name="{name}", use name="replace_lines"')
+
+        args = self.parse_partial_args()
+        if not args:
+            return
+
+        edits = args.get("edits", [])
+
+        edited = set()
+        for edit in edits:
+            path = get_arg(edit, "path")
+            original = get_arg(edit, "original_lines")
+            updated = get_arg(edit, "updated_lines")
+
+            # gpt-3.5 returns lists even when instructed to return a string!
+            if self.code_format == "list" or type(original) is list:
+                original = "\n".join(original)
+            if self.code_format == "list" or type(updated) is list:
+                updated = "\n".join(updated)
+
+            if original and not original.endswith("\n"):
+                original += "\n"
+            if updated and not updated.endswith("\n"):
+                updated += "\n"
+
+            full_path = self.allowed_to_edit(path)
+            if not full_path:
+                continue
+            content = self.io.read_text(full_path)
+            content = do_replace(full_path, content, original, updated)
+            if content:
+                self.io.write_text(full_path, content)
+                edited.add(path)
+                continue
+            self.io.tool_error(f"Failed to apply edit to {path}")
+
+        return edited
+
+
+def get_arg(edit, arg):
+    if arg not in edit:
+        raise ValueError(f"Missing `{arg}` parameter: {edit}")
+    return edit[arg]
+
+--------------------------------------------------------------------------------
+
+File: editblock_func_prompts.py
+Comments: Included
+Mime Type: text/x-python
+Size: 913 bytes
+Content:
+# flake8: noqa: E501
+
+from .base_prompts import CoderPrompts
+
+
+class EditBlockFunctionPrompts(CoderPrompts):
+    main_system = """Act as an expert software developer.
+Take requests for changes to the supplied code.
+If the request is ambiguous, ask questions.
+
+Once you understand the request you MUST use the `replace_lines` function to edit the files to make the needed changes.
+"""
+
+    system_reminder = """
+ONLY return code using the `replace_lines` function.
+NEVER return code outside the `replace_lines` function.
+"""
+
+    files_content_prefix = "Here is the current content of the files:\n"
+    files_no_full_files = "I am not sharing any files yet."
+
+    redacted_edit_message = "No changes are needed."
+
+    repo_content_prefix = (
+        "Below here are summaries of other files! Do not propose changes to these *read-only*"
+        " files without asking me first.\n"
+    )
+
+--------------------------------------------------------------------------------
+
+File: editblock_prompts.py
+Comments: Included
+Mime Type: text/x-python
+Size: 5938 bytes
+Content:
+# flake8: noqa: E501
+
+from . import shell
+from .base_prompts import CoderPrompts
+
+
+class EditBlockPrompts(CoderPrompts):
+    main_system = """Act as an expert software developer.
+Always use best practices when coding.
+Respect and use existing conventions, libraries, etc that are already present in the code base.
+{final_reminders}
+Take requests for changes to the supplied code.
+If the request is ambiguous, ask questions.
+
+Always reply to the user in {language}.
+
+Once you understand the request you MUST:
+
+1. Decide if you need to propose *SEARCH/REPLACE* edits to any files that haven't been added to the chat. You can create new files without asking!
+
+But if you need to propose edits to existing files not already added to the chat, you *MUST* tell the user their full path names and ask them to *add the files to the chat*.
+End your reply and wait for their approval.
+You can keep asking if you then decide you need to edit more files.
+
+2. Think step-by-step and explain the needed changes in a few short sentences.
+
+3. Describe each change with a *SEARCH/REPLACE block* per the examples below.
+
+All changes to files must use this *SEARCH/REPLACE block* format.
+ONLY EVER RETURN CODE IN A *SEARCH/REPLACE BLOCK*!
+{shell_cmd_prompt}
+"""
+    example_messages = [
+        dict(
+            role="user",
+            content="Change get_factorial() to use math.factorial",
+        ),
+        dict(
+            role="assistant",
+            content="""To make this change we need to modify `mathweb/flask/app.py` to:
+
+1. Import the math package.
+2. Remove the existing factorial() function.
+3. Update get_factorial() to call math.factorial instead.
+
+Here are the *SEARCH/REPLACE* blocks:
+
+mathweb/flask/app.py
+{fence[0]}python
+<<<<<<< SEARCH
+from flask import Flask
+=======
+import math
+from flask import Flask
+>>>>>>> REPLACE
+{fence[1]}
+
+mathweb/flask/app.py
+{fence[0]}python
+<<<<<<< SEARCH
+def factorial(n):
+    "compute factorial"
+
+    if n == 0:
+        return 1
+    else:
+        return n * factorial(n-1)
+
+=======
+>>>>>>> REPLACE
+{fence[1]}
+
+mathweb/flask/app.py
+{fence[0]}python
+<<<<<<< SEARCH
+    return str(factorial(n))
+=======
+    return str(math.factorial(n))
+>>>>>>> REPLACE
+{fence[1]}
+""",
+        ),
+        dict(
+            role="user",
+            content="Refactor hello() into its own file.",
+        ),
+        dict(
+            role="assistant",
+            content="""To make this change we need to modify `main.py` and make a new file `hello.py`:
+
+1. Make a new hello.py file with hello() in it.
+2. Remove hello() from main.py and replace it with an import.
+
+Here are the *SEARCH/REPLACE* blocks:
+
+hello.py
+{fence[0]}python
+<<<<<<< SEARCH
+=======
+def hello():
+    "print a greeting"
+
+    print("hello")
+>>>>>>> REPLACE
+{fence[1]}
+
+main.py
+{fence[0]}python
+<<<<<<< SEARCH
+def hello():
+    "print a greeting"
+
+    print("hello")
+=======
+from hello import hello
+>>>>>>> REPLACE
+{fence[1]}
+""",
+        ),
+    ]
+
+    system_reminder = """# *SEARCH/REPLACE block* Rules:
+
+Every *SEARCH/REPLACE block* must use this format:
+1. The *FULL* file path alone on a line, verbatim. No bold asterisks, no quotes around it, no escaping of characters, etc.
+2. The opening fence and code language, eg: {fence[0]}python
+3. The start of search block: <<<<<<< SEARCH
+4. A contiguous chunk of lines to search for in the existing source code
+5. The dividing line: =======
+6. The lines to replace into the source code
+7. The end of the replace block: >>>>>>> REPLACE
+8. The closing fence: {fence[1]}
+
+Use the *FULL* file path, as shown to you by the user.
+{quad_backtick_reminder}
+Every *SEARCH* section must *EXACTLY MATCH* the existing file content, character for character, including all comments, docstrings, etc.
+If the file contains code or other data wrapped/escaped in json/xml/quotes or other containers, you need to propose edits to the literal contents of the file, including the container markup.
+
+*SEARCH/REPLACE* blocks will *only* replace the first match occurrence.
+Including multiple unique *SEARCH/REPLACE* blocks if needed.
+Include enough lines in each SEARCH section to uniquely match each set of lines that need to change.
+
+Keep *SEARCH/REPLACE* blocks concise.
+Break large *SEARCH/REPLACE* blocks into a series of smaller blocks that each change a small portion of the file.
+Include just the changing lines, and a few surrounding lines if needed for uniqueness.
+Do not include long runs of unchanging lines in *SEARCH/REPLACE* blocks.
+
+Only create *SEARCH/REPLACE* blocks for files that the user has added to the chat!
+
+To move code within a file, use 2 *SEARCH/REPLACE* blocks: 1 to delete it from its current location, 1 to insert it in the new location.
+
+Pay attention to which filenames the user wants you to edit, especially if they are asking you to create a new file.
+
+If you want to put code in a new file, use a *SEARCH/REPLACE block* with:
+- A new file path, including dir name if needed
+- An empty `SEARCH` section
+- The new file's contents in the `REPLACE` section
+
+{rename_with_shell}{go_ahead_tip}{final_reminders}ONLY EVER RETURN CODE IN A *SEARCH/REPLACE BLOCK*!
+{shell_cmd_reminder}
+"""
+
+    rename_with_shell = """To rename files which have been added to the chat, use shell commands at the end of your response.
+
+"""
+
+    go_ahead_tip = """If the user just says something like "ok" or "go ahead" or "do that" they probably want you to make SEARCH/REPLACE blocks for the code changes you just proposed.
+The user will say when they've applied your edits. If they haven't explicitly confirmed the edits have been applied, they probably want proper SEARCH/REPLACE blocks.
+
+"""
+
+    shell_cmd_prompt = shell.shell_cmd_prompt
+    no_shell_cmd_prompt = shell.no_shell_cmd_prompt
+    shell_cmd_reminder = shell.shell_cmd_reminder
+
+--------------------------------------------------------------------------------
+
+File: editor_diff_fenced_coder.py
+Comments: Included
+Mime Type: text/x-python
+Size: 347 bytes
+Content:
+from .editblock_fenced_coder import EditBlockFencedCoder
+from .editor_diff_fenced_prompts import EditorDiffFencedPrompts
+
+
+class EditorDiffFencedCoder(EditBlockFencedCoder):
+    "A coder that uses search/replace blocks, focused purely on editing files."
+
+    edit_format = "editor-diff-fenced"
+    gpt_prompts = EditorDiffFencedPrompts()
+
+--------------------------------------------------------------------------------
+
+File: editor_diff_fenced_prompts.py
+Comments: Included
+Mime Type: text/x-python
+Size: 283 bytes
+Content:
+# flake8: noqa: E501
+
+from .editblock_fenced_prompts import EditBlockFencedPrompts
+
+
+class EditorDiffFencedPrompts(EditBlockFencedPrompts):
+    shell_cmd_prompt = ""
+    no_shell_cmd_prompt = ""
+    shell_cmd_reminder = ""
+    go_ahead_tip = ""
+    rename_with_shell = ""
+
+--------------------------------------------------------------------------------
+
+File: editor_editblock_coder.py
+Comments: Included
+Mime Type: text/x-python
+Size: 314 bytes
+Content:
+from .editblock_coder import EditBlockCoder
+from .editor_editblock_prompts import EditorEditBlockPrompts
+
+
+class EditorEditBlockCoder(EditBlockCoder):
+    "A coder that uses search/replace blocks, focused purely on editing files."
+    edit_format = "editor-diff"
+    gpt_prompts = EditorEditBlockPrompts()
+
+--------------------------------------------------------------------------------
+
+File: editor_editblock_prompts.py
+Comments: Included
+Mime Type: text/x-python
+Size: 565 bytes
+Content:
+# flake8: noqa: E501
+
+from .editblock_prompts import EditBlockPrompts
+
+
+class EditorEditBlockPrompts(EditBlockPrompts):
+    main_system = """Act as an expert software developer who edits source code.
+{final_reminders}
+Describe each change with a *SEARCH/REPLACE block* per the examples below.
+All changes to files must use this *SEARCH/REPLACE block* format.
+ONLY EVER RETURN CODE IN A *SEARCH/REPLACE BLOCK*!
+"""
+
+    shell_cmd_prompt = ""
+    no_shell_cmd_prompt = ""
+    shell_cmd_reminder = ""
+    go_ahead_tip = ""
+    rename_with_shell = ""
+
+--------------------------------------------------------------------------------
+
+File: editor_whole_coder.py
+Comments: Included
+Mime Type: text/x-python
+Size: 309 bytes
+Content:
+from .editor_whole_prompts import EditorWholeFilePrompts
+from .wholefile_coder import WholeFileCoder
+
+
+class EditorWholeFileCoder(WholeFileCoder):
+    "A coder that operates on entire files, focused purely on editing files."
+    edit_format = "editor-whole"
+    gpt_prompts = EditorWholeFilePrompts()
+
+--------------------------------------------------------------------------------
+
+File: editor_whole_prompts.py
+Comments: Included
+Mime Type: text/x-python
+Size: 289 bytes
+Content:
+# flake8: noqa: E501
+
+from .wholefile_prompts import WholeFilePrompts
+
+
+class EditorWholeFilePrompts(WholeFilePrompts):
+    main_system = """Act as an expert software developer and make changes to source code.
+{final_reminders}
+Output a copy of each file that needs changes.
+"""
+
+--------------------------------------------------------------------------------
+
+File: help_coder.py
+Comments: Included
+Mime Type: text/x-python
+Size: 371 bytes
+Content:
+from ..dump import dump  # noqa: F401
+from .base_coder import Coder
+from .help_prompts import HelpPrompts
+
+
+class HelpCoder(Coder):
+    """Interactive help and documentation about aider."""
+
+    edit_format = "help"
+    gpt_prompts = HelpPrompts()
+
+    def get_edits(self, mode="update"):
+        return []
+
+    def apply_edits(self, edits):
+        pass
+
+--------------------------------------------------------------------------------
+
+File: help_prompts.py
+Comments: Included
+Mime Type: text/x-python
+Size: 1570 bytes
+Content:
+# flake8: noqa: E501
+
+from .base_prompts import CoderPrompts
+
+
+class HelpPrompts(CoderPrompts):
+    main_system = """You are an expert on the AI coding tool called Aider.
+Answer the user's questions about how to use aider.
+
+The user is currently chatting with you using aider, to write and edit code.
+
+Use the provided aider documentation *if it is relevant to the user's question*.
+
+Include a bulleted list of urls to the aider docs that might be relevant for the user to read.
+Include *bare* urls. *Do not* make [markdown links](http://...).
+For example:
+- https://aider.chat/docs/usage.html
+- https://aider.chat/docs/faq.html
+
+If you don't know the answer, say so and suggest some relevant aider doc urls.
+
+If asks for something that isn't possible with aider, be clear about that.
+Don't suggest a solution that isn't supported.
+
+Be helpful but concise.
+
+Unless the question indicates otherwise, assume the user wants to use aider as a CLI tool.
+
+Keep this info about the user's system in mind:
+{platform}
+"""
+
+    example_messages = []
+    system_reminder = ""
+
+    files_content_prefix = """These are some files we have been discussing that we may want to edit after you answer my questions:
+"""
+
+    files_no_full_files = "I am not sharing any files with you."
+
+    files_no_full_files_with_repo_map = ""
+    files_no_full_files_with_repo_map_reply = ""
+
+    repo_content_prefix = """Here are summaries of some files present in my git repository.
+We may look at these in more detail after you answer my questions.
+"""
+
+--------------------------------------------------------------------------------
+
+File: patch_coder.py
+Comments: Truncated to 6000 bytes due to size > 6000
+Mime Type: text/x-python
+Size: 30994 bytes
+Content:
+import pathlib
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Dict, List, Optional, Tuple
+
+from .base_coder import Coder
+from .patch_prompts import PatchPrompts
+
+
+# --------------------------------------------------------------------------- #
+#  Domain objects & Exceptions (Adapted from apply_patch.py)
+# --------------------------------------------------------------------------- #
+class DiffError(ValueError):
+    """Any problem detected while parsing or applying a patch."""
+
+
+class ActionType(str, Enum):
+    ADD = "Add"
+    DELETE = "Delete"
+    UPDATE = "Update"
+
+
+@dataclass
+class Chunk:
+    orig_index: int = -1  # Line number in the *original* file block where the change starts
+    del_lines: List[str] = field(default_factory=list)
+    ins_lines: List[str] = field(default_factory=list)
+
+
+@dataclass
+class PatchAction:
+    type: ActionType
+    path: str
+    # For ADD:
+    new_content: Optional[str] = None
+    # For UPDATE:
+    chunks: List[Chunk] = field(default_factory=list)
+    move_path: Optional[str] = None
+
+
+# Type alias for the return type of get_edits
+EditResult = Tuple[str, PatchAction]
+
+
+@dataclass
+class Patch:
+    actions: Dict[str, PatchAction] = field(default_factory=dict)
+    fuzz: int = 0  # Track fuzziness used during parsing
+
+
+# --------------------------------------------------------------------------- #
+#  Helper functions (Adapted from apply_patch.py)
+# --------------------------------------------------------------------------- #
+def _norm(line: str) -> str:
+    """Strip CR so comparisons work for both LF and CRLF input."""
+    return line.rstrip("\r")
+
+
+def find_context_core(lines: List[str], context: List[str], start: int) -> Tuple[int, int]:
+    """Finds context block, returns start index and fuzz level."""
+    if not context:
+        return start, 0
+
+    # Exact match
+    for i in range(start, len(lines) - len(context) + 1):
+        if lines[i : i + len(context)] == context:
+            return i, 0
+    # Rstrip match
+    norm_context = [s.rstrip() for s in context]
+    for i in range(start, len(lines) - len(context) + 1):
+        if [s.rstrip() for s in lines[i : i + len(context)]] == norm_context:
+            return i, 1  # Fuzz level 1
+    # Strip match
+    norm_context_strip = [s.strip() for s in context]
+    for i in range(start, len(lines) - len(context) + 1):
+        if [s.strip() for s in lines[i : i + len(context)]] == norm_context_strip:
+            return i, 100  # Fuzz level 100
+    return -1, 0
+
+
+def find_context(lines: List[str], context: List[str], start: int, eof: bool) -> Tuple[int, int]:
+    """Finds context, handling EOF marker."""
+    if eof:
+        # If EOF marker, first try matching at the very end
+        if len(lines) >= len(context):
+            new_index, fuzz = find_context_core(lines, context, len(lines) - len(context))
+            if new_index != -1:
+                return new_index, fuzz
+        # If not found at end, search from `start` as fallback
+        new_index, fuzz = find_context_core(lines, context, start)
+        return new_index, fuzz + 10_000  # Add large fuzz penalty if EOF wasn't at end
+    # Normal case: search from `start`
+    return find_context_core(lines, context, start)
+
+
+def peek_next_section(lines: List[str], index: int) -> Tuple[List[str], List[Chunk], int, bool]:
+    """
+    Parses one section (context, -, + lines) of an Update block.
+    Returns: (context_lines, chunks_in_section, next_index, is_eof)
+    """
+    context_lines: List[str] = []
+    del_lines: List[str] = []
+    ins_lines: List[str] = []
+    chunks: List[Chunk] = []
+    mode = "keep"  # Start by expecting context lines
+    start_index = index
+
+    while index < len(lines):
+        line = lines[index]
+        norm_line = _norm(line)
+
+        # Check for section terminators
+        if norm_line.startswith(
+            (
+                "@@",
+                "*** End Patch",
+                "*** Update File:",
+                "*** Delete File:",
+                "*** Add File:",
+                "*** End of File",  # Special terminator
+            )
+        ):
+            break
+        if norm_line == "***":  # Legacy/alternative terminator? Handle just in case.
+            break
+        if norm_line.startswith("***"):  # Invalid line
+            raise DiffError(f"Invalid patch line found in update section: {line}")
+
+        index += 1
+        last_mode = mode
+
+        # Determine line type and strip prefix
+        if line.startswith("+"):
+            mode = "add"
+            line_content = line[1:]
+        elif line.startswith("-"):
+            mode = "delete"
+            line_content = line[1:]
+        elif line.startswith(" "):
+            mode = "keep"
+            line_content = line[1:]
+        elif line.strip() == "":  # Treat blank lines in patch as context ' '
+            mode = "keep"
+            line_content = ""  # Keep it as a blank line
+        else:
+            # Assume lines without prefix are context if format is loose,
+            # but strict format requires ' '. Raise error for strictness.
+            raise DiffError(f"Invalid line prefix in update section: {line}")
+
+        # If mode changes from add/delete back to keep, finalize the previous chunk
+        if mode == "keep" and last_mode != "keep":
+            if del_lines or ins_lines:
+                chunks.append(
+                    Chunk(
+                        # orig_index is relative to the start of the *context* block found
+                        orig_index=len(context_lines) - len(del_lines),
+                        del_lines=del_lines,
+                        ins_lines=ins_lines,
+                    )
+                )
+            del_lines, ins_lines = [], []
+
+        # Collect lines based on mode
+        if mode == "delete":
+            del_lines.append(line_content)
+            context_lines.append(line_content)  # Deleted lines are part of the original context
+        elif mode == "add":
+            ins_lines.append(line_content)
+   
+--------------------------------------------------------------------------------
+
+File: patch_prompts.py
+Comments: Truncated to 6000 bytes due to size > 6000
+Mime Type: text/x-python
+Size: 6214 bytes
+Content:
+# flake8: noqa: E501
+
+from .base_prompts import CoderPrompts
+from .editblock_prompts import EditBlockPrompts
+
+
+class PatchPrompts(EditBlockPrompts):
+    # --------------------------------------------------------------------- #
+    #  SYSTEM PROMPT
+    # --------------------------------------------------------------------- #
+    main_system = """Act as an expert software developer.
+Always use best practices when coding.
+Respect and use existing conventions, libraries, etc that are already present in the code base.
+{final_reminders}
+Take requests for changes to the supplied code.
+If the request is ambiguous, ask questions.
+
+Always reply to the user in {language}.
+
+Once you understand the request you MUST:
+
+1. Decide if you need to propose edits to any files that haven't been added to the chat. You can create new files without asking!
+
+   â€¢ If you need to propose edits to existing files not already added to the chat, you *MUST* tell the user their full path names and ask them to *add the files to the chat*.
+   â€¢ End your reply and wait for their approval.
+   â€¢ You can keep asking if you then decide you need to edit more files.
+
+2. Think stepâ€‘byâ€‘step and explain the needed changes in a few short sentences.
+
+3. Describe the changes using the V4A diff format, enclosed within `*** Begin Patch` and `*** End Patch` markers.
+
+IMPORTANT: Each file MUST appear only once in the patch.
+Consolidate **all** edits for a given file into a single `*** [ACTION] File:` block.
+{shell_cmd_prompt}
+"""
+
+    # --------------------------------------------------------------------- #
+    #  EXAMPLE MESSAGES
+    # --------------------------------------------------------------------- #
+    example_messages = [
+        # --- Example 1 ---------------------------------------------------- #
+        dict(
+            role="user",
+            content="Change get_factorial() to use math.factorial",
+        ),
+        dict(
+            role="assistant",
+            content="""To make this change we need to modify `mathweb/flask/app.py`:
+
+1. Import the `math` module.
+2. Replace the custom recursive `factorial()` helper with `math.factorial`.
+3. Update `get_factorial()` to call `math.factorial`.
+
+Here is the patch:
+
+*** Begin Patch
+*** Update File: mathweb/flask/app.py
+@@
+-from flask import Flask
+-
+-from flask import Flask
++from flask import Flask
++import math
+@@
+-def factorial(n):
+-    "compute factorial"
+-
+-    if n == 0:
+-        return 1
+-    else:
+-        return n * factorial(n-1)
++def factorial(n):
++    "compute factorial"
++
++    return math.factorial(n)
+@@     def get_factorial(self, n):
+-    return str(factorial(n))
++    return str(math.factorial(n))
+*** End Patch
+""",
+        ),
+        # --- Example 2 ---------------------------------------------------- #
+        dict(
+            role="user",
+            content="Refactor hello() into its own file.",
+        ),
+        dict(
+            role="assistant",
+            content="""To make this change we need to modify `main.py` and create a new file `hello.py`:
+
+1. Create `hello.py` with the `hello()` function.
+2. Remove `hello()` from `main.py` and import it instead.
+
+Here is the patch:
+
+*** Begin Patch
+*** Add File: hello.py
++# A simple function
++def hello():
++    "print a greeting"
++
++    print("hello")
+*** Update File: main.py
+@@
+-def hello():
+-    "print a greeting"
+-
+-    print("hello")
++from hello import hello
+*** End Patch
+""",
+        ),
+    ]
+
+    # --------------------------------------------------------------------- #
+    #  SYSTEM REMINDER
+    # --------------------------------------------------------------------- #
+    system_reminder = """# V4A Diff Format Rules:
+
+Your entire response containing the patch MUST start with `*** Begin Patch` on a line by itself.
+Your entire response containing the patch MUST end with `*** End Patch` on a line by itself.
+
+Use the *FULL* file path, as shown to you by the user.
+{quad_backtick_reminder}
+
+For each file you need to modify, start with a marker line:
+
+    *** [ACTION] File: [path/to/file]
+
+Where `[ACTION]` is one of `Add`, `Update`, or `Delete`.
+
+â‡¨ **Each file MUST appear only once in the patch.**  
+   Consolidate all changes for that file into the same block.  
+   If you are moving code within a file, include both the deletions and the
+   insertions as separate hunks inside this single `*** Update File:` block
+   (do *not* open a second block for the same file).
+
+For `Update` actions, describe each snippet of code that needs to be changed using the following format:
+1. Context lines: Include 3 lines of context *before* the change. These lines MUST start with a single space ` `.
+2. Lines to remove: Precede each line to be removed with a minus sign `-`.
+3. Lines to add: Precede each line to be added with a plus sign `+`.
+4. Context lines: Include 3 lines of context *after* the change. These lines MUST start with a single space ` `.
+
+Context lines MUST exactly match the existing file content, character for character, including indentation.
+If a change is near the beginning or end of the file, include fewer than 3 context lines as appropriate.
+If 3 lines of context is insufficient to uniquely identify the snippet, use `@@ [CLASS_OR_FUNCTION_NAME]` markers on their own lines *before* the context lines to specify the scope. You can use multiple `@@` markers if needed.
+Do not include line numbers.
+
+Only create patches for files that the user has added to the chat!
+
+When moving code *within* a single file, keep everything inside one
+`*** Update File:` block. Provide one hunk that deletes the code from its
+original location and another hunk that inserts it at the new location.
+
+For `Add` actions, use the `*** Add File: [path/to/new/file]` marker, followed by the lines of the new file, each preceded by a plus sign `+`.
+
+For `Delete` actions, use the `*** Delete File: [path/to/file]` marker. No other lines are needed for the deletion.
+
+{rename_with_shell}{go_ahead_tip}{final_reminders}ONLY EVER RETURN CODE IN THE
+--------------------------------------------------------------------------------
+
+File: search_replace.py
+Comments: Truncated to 6000 bytes due to size > 6000
+Mime Type: text/x-python
+Size: 20569 bytes
+Content:
+#!/usr/bin/env python
+
+import sys
+from pathlib import Path
+
+try:
+    import git
+except ImportError:
+    git = None
+
+from diff_match_patch import diff_match_patch
+from tqdm import tqdm
+
+from aider.dump import dump
+from aider.utils import GitTemporaryDirectory
+
+
+class RelativeIndenter:
+    """Rewrites text files to have relative indentation, which involves
+    reformatting the leading white space on lines.  This format makes
+    it easier to search and apply edits to pairs of code blocks which
+    may differ significantly in their overall level of indentation.
+
+    It removes leading white space which is shared with the preceding
+    line.
+
+    Original:
+    ```
+            Foo # indented 8
+                Bar # indented 4 more than the previous line
+                Baz # same indent as the previous line
+                Fob # same indent as the previous line
+    ```
+
+    Becomes:
+    ```
+            Foo # indented 8
+        Bar # indented 4 more than the previous line
+    Baz # same indent as the previous line
+    Fob # same indent as the previous line
+    ```
+
+    If the current line is *less* indented then the previous line,
+    uses a unicode character to indicate outdenting.
+
+    Original
+    ```
+            Foo
+                Bar
+                Baz
+            Fob # indented 4 less than the previous line
+    ```
+
+    Becomes:
+    ```
+            Foo
+        Bar
+    Baz
+    â†�â†�â†�â†�Fob # indented 4 less than the previous line
+    ```
+
+    This is a similar original to the last one, but every line has
+    been uniformly outdented:
+    ```
+    Foo
+        Bar
+        Baz
+    Fob # indented 4 less than the previous line
+    ```
+
+    It becomes this result, which is very similar to the previous
+    result.  Only the white space on the first line differs.  From the
+    word Foo onwards, it is identical to the previous result.
+    ```
+    Foo
+        Bar
+    Baz
+    â†�â†�â†�â†�Fob # indented 4 less than the previous line
+    ```
+
+    """
+
+    def __init__(self, texts):
+        """
+        Based on the texts, choose a unicode character that isn't in any of them.
+        """
+
+        chars = set()
+        for text in texts:
+            chars.update(text)
+
+        ARROW = "â†�"
+        if ARROW not in chars:
+            self.marker = ARROW
+        else:
+            self.marker = self.select_unique_marker(chars)
+
+    def select_unique_marker(self, chars):
+        for codepoint in range(0x10FFFF, 0x10000, -1):
+            marker = chr(codepoint)
+            if marker not in chars:
+                return marker
+
+        raise ValueError("Could not find a unique marker")
+
+    def make_relative(self, text):
+        """
+        Transform text to use relative indents.
+        """
+
+        if self.marker in text:
+            raise ValueError("Text already contains the outdent marker: {self.marker}")
+
+        lines = text.splitlines(keepends=True)
+
+        output = []
+        prev_indent = ""
+        for line in lines:
+            line_without_end = line.rstrip("\n\r")
+
+            len_indent = len(line_without_end) - len(line_without_end.lstrip())
+            indent = line[:len_indent]
+            change = len_indent - len(prev_indent)
+            if change > 0:
+                cur_indent = indent[-change:]
+            elif change < 0:
+                cur_indent = self.marker * -change
+            else:
+                cur_indent = ""
+
+            out_line = cur_indent + "\n" + line[len_indent:]
+            # dump(len_indent, change, out_line)
+            # print(out_line)
+            output.append(out_line)
+            prev_indent = indent
+
+        res = "".join(output)
+        return res
+
+    def make_absolute(self, text):
+        """
+        Transform text from relative back to absolute indents.
+        """
+        lines = text.splitlines(keepends=True)
+
+        output = []
+        prev_indent = ""
+        for i in range(0, len(lines), 2):
+            dent = lines[i].rstrip("\r\n")
+            non_indent = lines[i + 1]
+
+            if dent.startswith(self.marker):
+                len_outdent = len(dent)
+                cur_indent = prev_indent[:-len_outdent]
+            else:
+                cur_indent = prev_indent + dent
+
+            if not non_indent.rstrip("\r\n"):
+                out_line = non_indent  # don't indent a blank line
+            else:
+                out_line = cur_indent + non_indent
+
+            output.append(out_line)
+            prev_indent = cur_indent
+
+        res = "".join(output)
+        if self.marker in res:
+            # dump(res)
+            raise ValueError("Error transforming text back to absolute indents")
+
+        return res
+
+
+# The patches are created to change S->R.
+# So all the patch offsets are relative to S.
+# But O has a lot more content. So all the offsets are very wrong.
+#
+# But patch_apply() seems to imply that once patch N is located,
+# then it adjusts the offset of the next patch.
+#
+# This is great, because once we sync up after a big gap the nearby
+# patches are close to being located right.
+# Except when indentation has been changed by GPT.
+#
+# It would help to use the diff trick to build map_S_offset_to_O_offset().
+# Then update all the S offsets in the S->R patches to be O offsets.
+# Do we also need to update the R offsets?
+#
+# What if this gets funky/wrong?
+#
+
+
+def map_patches(texts, patches, debug):
+    search_text, replace_text, original_text = texts
+
+    dmp = diff_match_patch()
+    dmp.Diff_Timeout = 5
+
+    diff_s_o = dmp.diff_main(search_text, original_text)
+    # diff_r_s = dmp.diff_main(replace_text, search_text)
+
+    # dmp.diff_cleanupSemantic(diff_s_o)
+    # dmp.diff_cleanupEfficiency(diff_s_o)
+
+    if debug:
+        html = dmp.diff_prettyHtml(diff_s_o)
+        Path("tmp.html").write_text(html)
+
+        dump(len(search_text))
+        dump(len(original_text))
+
+    for patch in patches:
+        start1 = patch.start1
+        start2 = patch.start2
+
+        patch.start1 = dmp.diff_xIndex(diff_s_o, start1)
+        patch.start2 = dmp.diff_xI
+--------------------------------------------------------------------------------
+
+File: shell.py
+Comments: Included
+Mime Type: text/x-python
+Size: 1838 bytes
+Content:
+shell_cmd_prompt = """
+4. *Concisely* suggest any shell commands the user might want to run in ```bash blocks.
+
+Just suggest shell commands this way, not example code.
+Only suggest complete shell commands that are ready to execute, without placeholders.
+Only suggest at most a few shell commands at a time, not more than 1-3, one per line.
+Do not suggest multi-line shell commands.
+All shell commands will run from the root directory of the user's project.
+
+Use the appropriate shell based on the user's system info:
+{platform}
+Examples of when to suggest shell commands:
+
+- If you changed a self-contained html file, suggest an OS-appropriate command to open a browser to view it to see the updated content.
+- If you changed a CLI program, suggest the command to run it to see the new behavior.
+- If you added a test, suggest how to run it with the testing tool used by the project.
+- Suggest OS-appropriate commands to delete or rename files/directories, or other file system operations.
+- If your code changes add new dependencies, suggest the command to install them.
+- Etc.
+"""  # noqa
+
+no_shell_cmd_prompt = """
+Keep in mind these details about the user's platform and environment:
+{platform}
+"""  # noqa
+
+shell_cmd_reminder = """
+Examples of when to suggest shell commands:
+
+- If you changed a self-contained html file, suggest an OS-appropriate command to open a browser to view it to see the updated content.
+- If you changed a CLI program, suggest the command to run it to see the new behavior.
+- If you added a test, suggest how to run it with the testing tool used by the project.
+- Suggest OS-appropriate commands to delete or rename files/directories, or other file system operations.
+- If your code changes add new dependencies, suggest the command to install them.
+- Etc.
+
+"""  # noqa
+
+--------------------------------------------------------------------------------
+
+File: single_wholefile_func_coder.py
+Comments: Included
+Mime Type: text/x-python
+Size: 3069 bytes
+Content:
+from aider import diffs
+
+from ..dump import dump  # noqa: F401
+from .base_coder import Coder
+from .single_wholefile_func_prompts import SingleWholeFileFunctionPrompts
+
+
+class SingleWholeFileFunctionCoder(Coder):
+    edit_format = "func"
+
+    functions = [
+        dict(
+            name="write_file",
+            description="write new content into the file",
+            # strict=True,
+            parameters=dict(
+                type="object",
+                properties=dict(
+                    explanation=dict(
+                        type="string",
+                        description=(
+                            "Step by step plan for the changes to be made to the code (future"
+                            " tense, markdown format)"
+                        ),
+                    ),
+                    content=dict(
+                        type="string",
+                        description="Content to write to the file",
+                    ),
+                ),
+                required=["explanation", "content"],
+                additionalProperties=False,
+            ),
+        ),
+    ]
+
+    def __init__(self, *args, **kwargs):
+        self.gpt_prompts = SingleWholeFileFunctionPrompts()
+        super().__init__(*args, **kwargs)
+
+    def add_assistant_reply_to_cur_messages(self, edited):
+        if edited:
+            self.cur_messages += [
+                dict(role="assistant", content=self.gpt_prompts.redacted_edit_message)
+            ]
+        else:
+            self.cur_messages += [dict(role="assistant", content=self.partial_response_content)]
+
+    def render_incremental_response(self, final=False):
+        res = ""
+        if self.partial_response_content:
+            res += self.partial_response_content
+
+        args = self.parse_partial_args()
+
+        if not args:
+            return ""
+
+        for k, v in args.items():
+            res += "\n"
+            res += f"{k}:\n"
+            res += v
+
+        return res
+
+    def live_diffs(self, fname, content, final):
+        lines = content.splitlines(keepends=True)
+
+        # ending an existing block
+        full_path = self.abs_root_path(fname)
+
+        content = self.io.read_text(full_path)
+        if content is None:
+            orig_lines = []
+        else:
+            orig_lines = content.splitlines()
+
+        show_diff = diffs.diff_partial_update(
+            orig_lines,
+            lines,
+            final,
+            fname=fname,
+        ).splitlines()
+
+        return "\n".join(show_diff)
+
+    def get_edits(self):
+        chat_files = self.get_inchat_relative_files()
+        assert len(chat_files) == 1, chat_files
+
+        args = self.parse_partial_args()
+        if not args:
+            return []
+
+        res = chat_files[0], args["content"]
+        dump(res)
+        return [res]
+
+    def apply_edits(self, edits):
+        for path, content in edits:
+            full_path = self.abs_root_path(path)
+            self.io.write_text(full_path, content)
+
+--------------------------------------------------------------------------------
+
+File: single_wholefile_func_prompts.py
+Comments: Included
+Mime Type: text/x-python
+Size: 894 bytes
+Content:
+# flake8: noqa: E501
+
+from .base_prompts import CoderPrompts
+
+
+class SingleWholeFileFunctionPrompts(CoderPrompts):
+    main_system = """Act as an expert software developer.
+Take requests for changes to the supplied code.
+If the request is ambiguous, ask questions.
+
+Once you understand the request you MUST use the `write_file` function to update the file to make the changes.
+"""
+
+    system_reminder = """
+ONLY return code using the `write_file` function.
+NEVER return code outside the `write_file` function.
+"""
+
+    files_content_prefix = "Here is the current content of the file:\n"
+    files_no_full_files = "I am not sharing any files yet."
+
+    redacted_edit_message = "No changes are needed."
+
+    # TODO: should this be present for using this with gpt-4?
+    repo_content_prefix = None
+
+    # TODO: fix the chat history, except we can't keep the whole file
+
+--------------------------------------------------------------------------------
+
+File: udiff_coder.py
+Comments: Truncated to 6000 bytes due to size > 6000
+Mime Type: text/x-python
+Size: 11470 bytes
+Content:
+import difflib
+from itertools import groupby
+from pathlib import Path
+
+from ..dump import dump  # noqa: F401
+from .base_coder import Coder
+from .search_replace import (
+    SearchTextNotUnique,
+    all_preprocs,
+    diff_lines,
+    flexible_search_and_replace,
+    search_and_replace,
+)
+from .udiff_prompts import UnifiedDiffPrompts
+
+no_match_error = """UnifiedDiffNoMatch: hunk failed to apply!
+
+{path} does not contain lines that match the diff you provided!
+Try again.
+DO NOT skip blank lines, comments, docstrings, etc!
+The diff needs to apply cleanly to the lines in {path}!
+
+{path} does not contain these {num_lines} exact lines in a row:
+```
+{original}```
+"""
+
+
+not_unique_error = """UnifiedDiffNotUnique: hunk failed to apply!
+
+{path} contains multiple sets of lines that match the diff you provided!
+Try again.
+Use additional ` ` lines to provide context that uniquely indicates which code needs to be changed.
+The diff needs to apply to a unique set of lines in {path}!
+
+{path} contains multiple copies of these {num_lines} lines:
+```
+{original}```
+"""
+
+other_hunks_applied = (
+    "Note: some hunks did apply successfully. See the updated source code shown above.\n\n"
+)
+
+
+class UnifiedDiffCoder(Coder):
+    """A coder that uses unified diff format for code modifications."""
+
+    edit_format = "udiff"
+    gpt_prompts = UnifiedDiffPrompts()
+
+    def get_edits(self):
+        content = self.partial_response_content
+
+        # might raise ValueError for malformed ORIG/UPD blocks
+        raw_edits = list(find_diffs(content))
+
+        last_path = None
+        edits = []
+        for path, hunk in raw_edits:
+            if path:
+                last_path = path
+            else:
+                path = last_path
+            edits.append((path, hunk))
+
+        return edits
+
+    def apply_edits(self, edits):
+        seen = set()
+        uniq = []
+        for path, hunk in edits:
+            hunk = normalize_hunk(hunk)
+            if not hunk:
+                continue
+
+            this = [path + "\n"] + hunk
+            this = "".join(this)
+
+            if this in seen:
+                continue
+            seen.add(this)
+
+            uniq.append((path, hunk))
+
+        errors = []
+        for path, hunk in uniq:
+            full_path = self.abs_root_path(path)
+            content = self.io.read_text(full_path)
+
+            original, _ = hunk_to_before_after(hunk)
+
+            try:
+                content = do_replace(full_path, content, hunk)
+            except SearchTextNotUnique:
+                errors.append(
+                    not_unique_error.format(
+                        path=path, original=original, num_lines=len(original.splitlines())
+                    )
+                )
+                continue
+
+            if not content:
+                errors.append(
+                    no_match_error.format(
+                        path=path, original=original, num_lines=len(original.splitlines())
+                    )
+                )
+                continue
+
+            # SUCCESS!
+            self.io.write_text(full_path, content)
+
+        if errors:
+            errors = "\n\n".join(errors)
+            if len(errors) < len(uniq):
+                errors += other_hunks_applied
+            raise ValueError(errors)
+
+
+def do_replace(fname, content, hunk):
+    fname = Path(fname)
+
+    before_text, after_text = hunk_to_before_after(hunk)
+
+    # does it want to make a new file?
+    if not fname.exists() and not before_text.strip():
+        fname.touch()
+        content = ""
+
+    if content is None:
+        return
+
+    # TODO: handle inserting into new file
+    if not before_text.strip():
+        # append to existing file, or start a new file
+        new_content = content + after_text
+        return new_content
+
+    new_content = None
+
+    new_content = apply_hunk(content, hunk)
+    if new_content:
+        return new_content
+
+
+def collapse_repeats(s):
+    return "".join(k for k, g in groupby(s))
+
+
+def apply_hunk(content, hunk):
+    before_text, after_text = hunk_to_before_after(hunk)
+
+    res = directly_apply_hunk(content, hunk)
+    if res:
+        return res
+
+    hunk = make_new_lines_explicit(content, hunk)
+
+    # just consider space vs not-space
+    ops = "".join([line[0] for line in hunk])
+    ops = ops.replace("-", "x")
+    ops = ops.replace("+", "x")
+    ops = ops.replace("\n", " ")
+
+    cur_op = " "
+    section = []
+    sections = []
+
+    for i in range(len(ops)):
+        op = ops[i]
+        if op != cur_op:
+            sections.append(section)
+            section = []
+            cur_op = op
+        section.append(hunk[i])
+
+    sections.append(section)
+    if cur_op != " ":
+        sections.append([])
+
+    all_done = True
+    for i in range(2, len(sections), 2):
+        preceding_context = sections[i - 2]
+        changes = sections[i - 1]
+        following_context = sections[i]
+
+        res = apply_partial_hunk(content, preceding_context, changes, following_context)
+        if res:
+            content = res
+        else:
+            all_done = False
+            # FAILED!
+            # this_hunk = preceding_context + changes + following_context
+            break
+
+    if all_done:
+        return content
+
+
+def flexi_just_search_and_replace(texts):
+    strategies = [
+        (search_and_replace, all_preprocs),
+    ]
+
+    return flexible_search_and_replace(texts, strategies)
+
+
+def make_new_lines_explicit(content, hunk):
+    before, after = hunk_to_before_after(hunk)
+
+    diff = diff_lines(before, content)
+
+    back_diff = []
+    for line in diff:
+        if line[0] == "+":
+            continue
+        # if line[0] == "-":
+        #    line = "+" + line[1:]
+
+        back_diff.append(line)
+
+    new_before = directly_apply_hunk(before, back_diff)
+    if not new_before:
+        return hunk
+
+    if len(new_before.strip()) < 10:
+        return hunk
+
+    before = before.splitlines(keepends=True)
+    new_before = new_before.splitlines(keepends=True)
+    after = after.splitlines(keepends=True)
+
+    if len(new_before) 
+--------------------------------------------------------------------------------
+
+File: udiff_prompts.py
+Comments: Included
+Mime Type: text/x-python
+Size: 3476 bytes
+Content:
+# flake8: noqa: E501
+
+from . import shell
+from .base_prompts import CoderPrompts
+
+
+class UnifiedDiffPrompts(CoderPrompts):
+    main_system = """Act as an expert software developer.
+{final_reminders}
+Always use best practices when coding.
+Respect and use existing conventions, libraries, etc that are already present in the code base.
+
+Take requests for changes to the supplied code.
+If the request is ambiguous, ask questions.
+
+Always reply to the user in {language}.
+
+For each file that needs to be changed, write out the changes similar to a unified diff like `diff -U0` would produce.
+"""
+
+    example_messages = [
+        dict(
+            role="user",
+            content="Replace is_prime with a call to sympy.",
+        ),
+        dict(
+            role="assistant",
+            content="""Ok, I will:
+
+1. Add an imports of sympy.
+2. Remove the is_prime() function.
+3. Replace the existing call to is_prime() with a call to sympy.isprime().
+
+Here are the diffs for those changes:
+
+```diff
+--- mathweb/flask/app.py
++++ mathweb/flask/app.py
+@@ ... @@
+-class MathWeb:
++import sympy
++
++class MathWeb:
+@@ ... @@
+-def is_prime(x):
+-    if x < 2:
+-        return False
+-    for i in range(2, int(math.sqrt(x)) + 1):
+-        if x % i == 0:
+-            return False
+-    return True
+@@ ... @@
+-@app.route('/prime/<int:n>')
+-def nth_prime(n):
+-    count = 0
+-    num = 1
+-    while count < n:
+-        num += 1
+-        if is_prime(num):
+-            count += 1
+-    return str(num)
++@app.route('/prime/<int:n>')
++def nth_prime(n):
++    count = 0
++    num = 1
++    while count < n:
++        num += 1
++        if sympy.isprime(num):
++            count += 1
++    return str(num)
+```
+""",
+        ),
+    ]
+
+    system_reminder = """# File editing rules:
+
+Return edits similar to unified diffs that `diff -U0` would produce.
+
+Make sure you include the first 2 lines with the file paths.
+Don't include timestamps with the file paths.
+
+Start each hunk of changes with a `@@ ... @@` line.
+Don't include line numbers like `diff -U0` does.
+The user's patch tool doesn't need them.
+
+The user's patch tool needs CORRECT patches that apply cleanly against the current contents of the file!
+Think carefully and make sure you include and mark all lines that need to be removed or changed as `-` lines.
+Make sure you mark all new or modified lines with `+`.
+Don't leave out any lines or the diff patch won't apply correctly.
+
+Indentation matters in the diffs!
+
+Start a new hunk for each section of the file that needs changes.
+
+Only output hunks that specify changes with `+` or `-` lines.
+Skip any hunks that are entirely unchanging ` ` lines.
+
+Output hunks in whatever order makes the most sense.
+Hunks don't need to be in any particular order.
+
+When editing a function, method, loop, etc use a hunk to replace the *entire* code block.
+Delete the entire existing version with `-` lines and then add a new, updated version with `+` lines.
+This will help you generate correct code and correct diffs.
+
+To move code within a file, use 2 hunks: 1 to delete it from its current location, 1 to insert it in the new location.
+
+To make a new file, show a diff from `--- /dev/null` to `+++ path/to/new/file.ext`.
+
+{final_reminders}
+"""
+
+    shell_cmd_prompt = shell.shell_cmd_prompt
+    no_shell_cmd_prompt = shell.no_shell_cmd_prompt
+    shell_cmd_reminder = shell.shell_cmd_reminder
+
+--------------------------------------------------------------------------------
+
+File: udiff_simple.py
+Comments: Included
+Mime Type: text/x-python
+Size: 466 bytes
+Content:
+from .udiff_coder import UnifiedDiffCoder
+from .udiff_simple_prompts import UnifiedDiffSimplePrompts
+
+
+class UnifiedDiffSimpleCoder(UnifiedDiffCoder):
+    """
+    A coder that uses unified diff format for code modifications.
+    This variant uses a simpler prompt that doesn't mention specific
+    diff rules like using `@@ ... @@` lines or avoiding line numbers.
+    """
+
+    edit_format = "udiff-simple"
+
+    gpt_prompts = UnifiedDiffSimplePrompts()
+
+--------------------------------------------------------------------------------
+
+File: udiff_simple_prompts.py
+Comments: Included
+Mime Type: text/x-python
+Size: 913 bytes
+Content:
+from .udiff_prompts import UnifiedDiffPrompts
+
+
+class UnifiedDiffSimplePrompts(UnifiedDiffPrompts):
+    """
+    Prompts for the UnifiedDiffSimpleCoder.
+    Inherits from UnifiedDiffPrompts and can override specific prompts
+    if a simpler wording is desired for this edit format.
+    """
+
+    example_messages = []
+
+    system_reminder = """# File editing rules:
+
+Return edits similar to unified diffs that `diff -U0` would produce.
+
+The user's patch tool needs CORRECT patches that apply cleanly against the current contents of the file!
+Think carefully and make sure you include and mark all lines that need to be removed or changed as `-` lines.
+Make sure you mark all new or modified lines with `+`.
+Don't leave out any lines or the diff patch won't apply correctly.
+
+To make a new file, show a diff from `--- /dev/null` to `+++ path/to/new/file.ext`.
+
+{final_reminders}
+"""  # noqa
+
+--------------------------------------------------------------------------------
+
+File: wholefile_coder.py
+Comments: Included
+Mime Type: text/x-python
+Size: 5275 bytes
+Content:
+from pathlib import Path
+
+from aider import diffs
+
+from ..dump import dump  # noqa: F401
+from .base_coder import Coder
+from .wholefile_prompts import WholeFilePrompts
+
+
+class WholeFileCoder(Coder):
+    """A coder that operates on entire files for code modifications."""
+
+    edit_format = "whole"
+    gpt_prompts = WholeFilePrompts()
+
+    def render_incremental_response(self, final):
+        try:
+            return self.get_edits(mode="diff")
+        except ValueError:
+            return self.get_multi_response_content_in_progress()
+
+    def get_edits(self, mode="update"):
+        content = self.get_multi_response_content_in_progress()
+
+        chat_files = self.get_inchat_relative_files()
+
+        output = []
+        lines = content.splitlines(keepends=True)
+
+        edits = []
+
+        saw_fname = None
+        fname = None
+        fname_source = None
+        new_lines = []
+        for i, line in enumerate(lines):
+            if line.startswith(self.fence[0]) or line.startswith(self.fence[1]):
+                if fname is not None:
+                    # ending an existing block
+                    saw_fname = None
+
+                    full_path = self.abs_root_path(fname)
+
+                    if mode == "diff":
+                        output += self.do_live_diff(full_path, new_lines, True)
+                    else:
+                        edits.append((fname, fname_source, new_lines))
+
+                    fname = None
+                    fname_source = None
+                    new_lines = []
+                    continue
+
+                # fname==None ... starting a new block
+                if i > 0:
+                    fname_source = "block"
+                    fname = lines[i - 1].strip()
+                    fname = fname.strip("*")  # handle **filename.py**
+                    fname = fname.rstrip(":")
+                    fname = fname.strip("`")
+                    fname = fname.lstrip("#")
+                    fname = fname.strip()
+
+                    # Issue #1232
+                    if len(fname) > 250:
+                        fname = ""
+
+                    # Did gpt prepend a bogus dir? It especially likes to
+                    # include the path/to prefix from the one-shot example in
+                    # the prompt.
+                    if fname and fname not in chat_files and Path(fname).name in chat_files:
+                        fname = Path(fname).name
+                if not fname:  # blank line? or ``` was on first line i==0
+                    if saw_fname:
+                        fname = saw_fname
+                        fname_source = "saw"
+                    elif len(chat_files) == 1:
+                        fname = chat_files[0]
+                        fname_source = "chat"
+                    else:
+                        # TODO: sense which file it is by diff size
+                        raise ValueError(
+                            f"No filename provided before {self.fence[0]} in file listing"
+                        )
+
+            elif fname is not None:
+                new_lines.append(line)
+            else:
+                for word in line.strip().split():
+                    word = word.rstrip(".:,;!")
+                    for chat_file in chat_files:
+                        quoted_chat_file = f"`{chat_file}`"
+                        if word == quoted_chat_file:
+                            saw_fname = chat_file
+
+                output.append(line)
+
+        if mode == "diff":
+            if fname is not None:
+                # ending an existing block
+                full_path = (Path(self.root) / fname).absolute()
+                output += self.do_live_diff(full_path, new_lines, False)
+            return "\n".join(output)
+
+        if fname:
+            edits.append((fname, fname_source, new_lines))
+
+        seen = set()
+        refined_edits = []
+        # process from most reliable filename, to least reliable
+        for source in ("block", "saw", "chat"):
+            for fname, fname_source, new_lines in edits:
+                if fname_source != source:
+                    continue
+                # if a higher priority source already edited the file, skip
+                if fname in seen:
+                    continue
+
+                seen.add(fname)
+                refined_edits.append((fname, fname_source, new_lines))
+
+        return refined_edits
+
+    def apply_edits(self, edits):
+        for path, fname_source, new_lines in edits:
+            full_path = self.abs_root_path(path)
+            new_lines = "".join(new_lines)
+            self.io.write_text(full_path, new_lines)
+
+    def do_live_diff(self, full_path, new_lines, final):
+        if Path(full_path).exists():
+            orig_lines = self.io.read_text(full_path)
+            if orig_lines is not None:
+                orig_lines = orig_lines.splitlines(keepends=True)
+
+                show_diff = diffs.diff_partial_update(
+                    orig_lines,
+                    new_lines,
+                    final=final,
+                ).splitlines()
+                return show_diff
+
+        output = ["```"] + new_lines + ["```"]
+        return output
+
+--------------------------------------------------------------------------------
+
+File: wholefile_func_coder.py
+Comments: Included
+Mime Type: text/x-python
+Size: 4383 bytes
+Content:
+from aider import diffs
+
+from ..dump import dump  # noqa: F401
+from .base_coder import Coder
+from .wholefile_func_prompts import WholeFileFunctionPrompts
+
+
+class WholeFileFunctionCoder(Coder):
+    functions = [
+        dict(
+            name="write_file",
+            description="create or update one or more files",
+            parameters=dict(
+                type="object",
+                required=["explanation", "files"],
+                properties=dict(
+                    explanation=dict(
+                        type="string",
+                        description=(
+                            "Step by step plan for the changes to be made to the code (future"
+                            " tense, markdown format)"
+                        ),
+                    ),
+                    files=dict(
+                        type="array",
+                        items=dict(
+                            type="object",
+                            required=["path", "content"],
+                            properties=dict(
+                                path=dict(
+                                    type="string",
+                                    description="Path of file to write",
+                                ),
+                                content=dict(
+                                    type="string",
+                                    description="Content to write to the file",
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    ]
+
+    def __init__(self, *args, **kwargs):
+        raise RuntimeError("Deprecated, needs to be refactored to support get_edits/apply_edits")
+
+        self.gpt_prompts = WholeFileFunctionPrompts()
+        super().__init__(*args, **kwargs)
+
+    def add_assistant_reply_to_cur_messages(self, edited):
+        if edited:
+            self.cur_messages += [
+                dict(role="assistant", content=self.gpt_prompts.redacted_edit_message)
+            ]
+        else:
+            self.cur_messages += [dict(role="assistant", content=self.partial_response_content)]
+
+    def render_incremental_response(self, final=False):
+        if self.partial_response_content:
+            return self.partial_response_content
+
+        args = self.parse_partial_args()
+
+        if not args:
+            return
+
+        explanation = args.get("explanation")
+        files = args.get("files", [])
+
+        res = ""
+        if explanation:
+            res += f"{explanation}\n\n"
+
+        for i, file_upd in enumerate(files):
+            path = file_upd.get("path")
+            if not path:
+                continue
+            content = file_upd.get("content")
+            if not content:
+                continue
+
+            this_final = (i < len(files) - 1) or final
+            res += self.live_diffs(path, content, this_final)
+
+        return res
+
+    def live_diffs(self, fname, content, final):
+        lines = content.splitlines(keepends=True)
+
+        # ending an existing block
+        full_path = self.abs_root_path(fname)
+
+        content = self.io.read_text(full_path)
+        if content is None:
+            orig_lines = []
+        else:
+            orig_lines = content.splitlines()
+
+        show_diff = diffs.diff_partial_update(
+            orig_lines,
+            lines,
+            final,
+            fname=fname,
+        ).splitlines()
+
+        return "\n".join(show_diff)
+
+    def _update_files(self):
+        name = self.partial_response_function_call.get("name")
+        if name and name != "write_file":
+            raise ValueError(f'Unknown function_call name="{name}", use name="write_file"')
+
+        args = self.parse_partial_args()
+        if not args:
+            return
+
+        files = args.get("files", [])
+
+        edited = set()
+        for file_upd in files:
+            path = file_upd.get("path")
+            if not path:
+                raise ValueError(f"Missing path parameter: {file_upd}")
+
+            content = file_upd.get("content")
+            if not content:
+                raise ValueError(f"Missing content parameter: {file_upd}")
+
+            if self.allowed_to_edit(path, content):
+                edited.add(path)
+
+        return edited
+
+--------------------------------------------------------------------------------
+
+File: wholefile_func_prompts.py
+Comments: Included
+Mime Type: text/x-python
+Size: 895 bytes
+Content:
+# flake8: noqa: E501
+
+from .base_prompts import CoderPrompts
+
+
+class WholeFileFunctionPrompts(CoderPrompts):
+    main_system = """Act as an expert software developer.
+Take requests for changes to the supplied code.
+If the request is ambiguous, ask questions.
+
+Once you understand the request you MUST use the `write_file` function to edit the files to make the needed changes.
+"""
+
+    system_reminder = """
+ONLY return code using the `write_file` function.
+NEVER return code outside the `write_file` function.
+"""
+
+    files_content_prefix = "Here is the current content of the files:\n"
+    files_no_full_files = "I am not sharing any files yet."
+
+    redacted_edit_message = "No changes are needed."
+
+    # TODO: should this be present for using this with gpt-4?
+    repo_content_prefix = None
+
+    # TODO: fix the chat history, except we can't keep the whole file
+
+--------------------------------------------------------------------------------
+
+File: wholefile_prompts.py
+Comments: Included
+Mime Type: text/x-python
+Size: 1978 bytes
+Content:
+# flake8: noqa: E501
+
+from .base_prompts import CoderPrompts
+
+
+class WholeFilePrompts(CoderPrompts):
+    main_system = """Act as an expert software developer.
+Take requests for changes to the supplied code.
+If the request is ambiguous, ask questions.
+
+Always reply to the user in {language}.
+
+{final_reminders}
+Once you understand the request you MUST:
+1. Determine if any code changes are needed.
+2. Explain any needed changes.
+3. If changes are needed, output a copy of each file that needs changes.
+"""
+
+    example_messages = [
+        dict(
+            role="user",
+            content="Change the greeting to be more casual",
+        ),
+        dict(
+            role="assistant",
+            content="""Ok, I will:
+
+1. Switch the greeting text from "Hello" to "Hey".
+
+show_greeting.py
+{fence[0]}
+import sys
+
+def greeting(name):
+    print(f"Hey {{name}}")
+
+if __name__ == '__main__':
+    greeting(sys.argv[1])
+{fence[1]}
+""",
+        ),
+    ]
+
+    system_reminder = """To suggest changes to a file you MUST return the entire content of the updated file.
+You MUST use this *file listing* format:
+
+path/to/filename.js
+{fence[0]}
+// entire file content ...
+// ... goes in between
+{fence[1]}
+
+Every *file listing* MUST use this format:
+- First line: the filename with any originally provided path; no extra markup, punctuation, comments, etc. **JUST** the filename with path.
+- Second line: opening {fence[0]}
+- ... entire content of the file ...
+- Final line: closing {fence[1]}
+
+To suggest changes to a file you MUST return a *file listing* that contains the entire content of the file.
+*NEVER* skip, omit or elide content from a *file listing* using "..." or by adding comments like "... rest of code..."!
+Create a new file you MUST return a *file listing* which includes an appropriate filename, including any appropriate path.
+
+{final_reminders}
+"""
+
+    redacted_edit_message = "No changes are needed."
+
+--------------------------------------------------------------------------------
+
+File: __init__.py
+Comments: Included
+Mime Type: text/x-python
+Size: 1072 bytes
+Content:
+from .architect_coder import ArchitectCoder
+from .ask_coder import AskCoder
+from .base_coder import Coder
+from .context_coder import ContextCoder
+from .editblock_coder import EditBlockCoder
+from .editblock_fenced_coder import EditBlockFencedCoder
+from .editor_diff_fenced_coder import EditorDiffFencedCoder
+from .editor_editblock_coder import EditorEditBlockCoder
+from .editor_whole_coder import EditorWholeFileCoder
+from .help_coder import HelpCoder
+from .patch_coder import PatchCoder
+from .udiff_coder import UnifiedDiffCoder
+from .udiff_simple import UnifiedDiffSimpleCoder
+from .wholefile_coder import WholeFileCoder
+
+# from .single_wholefile_func_coder import SingleWholeFileFunctionCoder
+
+__all__ = [
+    HelpCoder,
+    AskCoder,
+    Coder,
+    EditBlockCoder,
+    EditBlockFencedCoder,
+    WholeFileCoder,
+    PatchCoder,
+    UnifiedDiffCoder,
+    UnifiedDiffSimpleCoder,
+    #    SingleWholeFileFunctionCoder,
+    ArchitectCoder,
+    EditorEditBlockCoder,
+    EditorWholeFileCoder,
+    EditorDiffFencedCoder,
+    ContextCoder,
+]
+
+--------------------------------------------------------------------------------
+

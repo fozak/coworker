@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Task Viewer</title>
+</head>
+<body>
+  <textarea id="taskInput" rows="4" cols="100">
+/task/TASK-0002 Setup payment gateway /assigned/dennisd,lobanovaa /due/2025-06-20 /status/Working
+  </textarea>
+  <button onclick="renderTask()">Render</button>
+
+  <div id="output"></div>
+
+  <script>
+    function renderTask() {
+      const users = ["dennisd", "lobanovaa", "johndoe"];
+      const statuses = ["Open", "Working", "Completed"];
+      const text = document.getElementById("taskInput").value;
+      const output = document.getElementById("output");
+
+      const id = text.match(/\/task\/(\S+)/)?.[1] || "N/A";
+      const description = text.split('/task/' + id)[1].split('/')[0].trim();
+      const assignedRaw = text.match(/\/assigned\/(\S+)/)?.[1] || "";
+      const due = text.match(/\/due\/(\S+)/)?.[1] || "";
+      const status = text.match(/\/status\/(\S+)/)?.[1] || "";
+
+      const assignedHTML = users.map(u => {
+        const checked = assignedRaw.split(',').includes(u) ? "selected" : "";
+        return `<option ${checked}>${u}</option>`;
+      }).join('');
+
+      const statusHTML = statuses.map(s => {
+        const selected = s === status ? "selected" : "";
+        return `<option ${selected}>${s}</option>`;
+      }).join('');
+
+      output.innerHTML = `
+        <p><strong>Task ID:</strong> ${id}</p>
+        <p><strong>Description:</strong> ${description}</p>
+        <p><strong>Assigned:</strong> 
+          <select multiple>${assignedHTML}</select>
+        </p>
+        <p><strong>Due:</strong> 
+          <input type="date" value="${due}" />
+        </p>
+        <p><strong>Status:</strong> 
+          <select>${statusHTML}</select>
+        </p>
+      `;
+    }
+  </script>
+</body>
+</html>

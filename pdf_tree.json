@@ -1,0 +1,1799 @@
+{
+  "pages": [
+    {
+      "page_number": 1,
+      "text_blocks": [
+        {
+          "bbox": [
+            1442.87939453125,
+            2080.56005859375,
+            1454.7630615234375,
+            2122.818359375
+          ],
+          "text": "Legend",
+          "block_no": 0,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1410.4427490234375,
+            2130.47998046875,
+            1432.165771484375,
+            2301.634521484375
+          ],
+          "text": "Denotes Propsoed (Min.) 800mm Wide\nAccess Walkway",
+          "block_no": 1,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1381.9427490234375,
+            2130.47998046875,
+            1403.7857666015625,
+            2291.741455078125
+          ],
+          "text": "Denotes Outline of Existing Car Park\nBoundary/ Kerb Line",
+          "block_no": 2,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            286.0469970703125,
+            399.60009765625,
+            305.84759521484375,
+            1207.1868896484375
+          ],
+          "text": "Proposed GRP Switchroom & Generator Locations (Option 02) - General Arrangement",
+          "block_no": 3,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            269.90350341796875,
+            780.60009765625,
+            279.8038024902344,
+            827.3692016601562
+          ],
+          "text": "Scale 1:50",
+          "block_no": 4,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            954.7493896484375,
+            585.164306640625,
+            974.338134765625,
+            695.7236328125
+          ],
+          "text": "Existing Boundary Fence",
+          "block_no": 5,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            451.6434631347656,
+            87.84033203125,
+            485.36376953125,
+            296.9476013183594
+          ],
+          "text": "Proposed 6160x2450x150mm thk R.C. Base\nc/w 2 No. Layers A393 Mesh (1 Top. 1 Bottom).\nMin. 40mm Cover, Min C35 Concrete.",
+          "block_no": 6,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            416.0198974609375,
+            100.980224609375,
+            437.7837829589844,
+            296.34637451171875
+          ],
+          "text": "Proposed 5960x2250 Generator -\nFinal Specifications TBC by M&E Contractor",
+          "block_no": 7,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            795.099853515625,
+            235.080322265625,
+            837.5802001953125,
+            470.88690185546875
+          ],
+          "text": "Existing\nTransformer\nRoom\nExisting\nSwitchgear",
+          "block_no": 8,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            789.9927368164062,
+            676.799072265625,
+            801.6581420898438,
+            699.5524291992188
+          ],
+          "text": "2450",
+          "block_no": 9,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            804.166015625,
+            677.946533203125,
+            815.7581176757812,
+            700.6668090820312
+          ],
+          "text": "2250",
+          "block_no": 10,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            734.5875854492188,
+            730.1527709960938,
+            757.3409423828125,
+            741.818359375
+          ],
+          "text": "6160",
+          "block_no": 11,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            735.813232421875,
+            716.06640625,
+            758.5335083007812,
+            727.6583251953125
+          ],
+          "text": "5960",
+          "block_no": 12,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            738.57275390625,
+            1312.259033203125,
+            750.2381591796875,
+            1335.012451171875
+          ],
+          "text": "2450",
+          "block_no": 13,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            752.6727294921875,
+            1313.3990478515625,
+            764.338134765625,
+            1336.1524658203125
+          ],
+          "text": "2250",
+          "block_no": 14,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            683.1675415039062,
+            1365.552734375,
+            705.9209594726562,
+            1377.21826171875
+          ],
+          "text": "6160",
+          "block_no": 15,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            684.3075561523438,
+            1351.45263671875,
+            707.0609741210938,
+            1363.1182861328125
+          ],
+          "text": "5960",
+          "block_no": 16,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            770.5060424804688,
+            896.879150390625,
+            798.0581665039062,
+            1117.3668212890625
+          ],
+          "text": "2800\n2800",
+          "block_no": 17,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            715.6876220703125,
+            950.4127807617188,
+            738.4409790039062,
+            962.078369140625
+          ],
+          "text": "5800",
+          "block_no": 18,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            699.7532348632812,
+            1148.306396484375,
+            722.4735107421875,
+            1159.8983154296875
+          ],
+          "text": "5800",
+          "block_no": 19,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            746.7460327148438,
+            775.2664794921875,
+            793.6781616210938,
+            1235.806884765625
+          ],
+          "text": "1050\n3200\n300\n3202\n1045",
+          "block_no": 20,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            714.547607421875,
+            964.5726928710938,
+            737.3009643554688,
+            976.23828125
+          ],
+          "text": "6200",
+          "block_no": 21,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            698.5275268554688,
+            1162.3326416015625,
+            721.2809448242188,
+            1173.998291015625
+          ],
+          "text": "6200",
+          "block_no": 22,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            887.783447265625,
+            1492.14013671875,
+            921.5637817382812,
+            1701.6541748046875
+          ],
+          "text": "Proposed 5200x3200x150mm thk R.C. Base\nc/w 2 No. Layers A393 Mesh (1 Top. 1 Bottom).\nMin. 40mm Cover, Min C35 Concrete.",
+          "block_no": 23,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            932.4834594726562,
+            1492.080078125,
+            954.3237915039062,
+            1686.2940673828125
+          ],
+          "text": "Proposed 5000x3000 New GRP Enclosure -\nFinal Specifications TBC by M&E Contractor",
+          "block_no": 24,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            811.1034545898438,
+            1492.14013671875,
+            844.8237915039062,
+            1701.6541748046875
+          ],
+          "text": "Proposed 6160x2450x150mm thk R.C. Base\nc/w 2 No. Layers A393 Mesh (1 Top. 1 Bottom).\nMin. 40mm Cover, Min C35 Concrete.",
+          "block_no": 25,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            779.619873046875,
+            1492.14013671875,
+            801.4437866210938,
+            1686.6541748046875
+          ],
+          "text": "Proposed 5960x2250 Generator -\nFinal Specifications TBC by M&E Contractor",
+          "block_no": 26,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            798.2127075195312,
+            574.6790771484375,
+            809.8781127929688,
+            597.4324340820312
+          ],
+          "text": "1150",
+          "block_no": 27,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            527.2276000976562,
+            713.4127807617188,
+            549.98095703125,
+            725.078369140625
+          ],
+          "text": "1190",
+          "block_no": 28,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            507.1876220703125,
+            947.8327026367188,
+            529.9409790039062,
+            959.498291015625
+          ],
+          "text": "1150",
+          "block_no": 29,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            491.1676330566406,
+            1145.5926513671875,
+            513.9209594726562,
+            1157.25830078125
+          ],
+          "text": "1150",
+          "block_no": 30,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            475.8076477050781,
+            1348.5726318359375,
+            498.56097412109375,
+            1360.23828125
+          ],
+          "text": "1190",
+          "block_no": 31,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            730.2327270507812,
+            1413.6590576171875,
+            741.8981323242188,
+            1436.4124755859375
+          ],
+          "text": "1155",
+          "block_no": 32,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            485.0634765625,
+            1492.14013671875,
+            506.9037780761719,
+            1688.572021484375
+          ],
+          "text": "Proposed External Fencing Details & Access\nGate Requirements to Contractors Design",
+          "block_no": 33,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1000.823486328125,
+            87.84033203125,
+            1034.603759765625,
+            296.9476013183594
+          ],
+          "text": "Proposed 5200x3200x150mm thk R.C. Base\nc/w 2 No. Layers A393 Mesh (1 Top. 1 Bottom).\nMin. 40mm Cover, Min C35 Concrete.",
+          "block_no": 34,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1045.58349609375,
+            101.7001953125,
+            1067.36376953125,
+            296.35052490234375
+          ],
+          "text": "Proposed 5000x3000 New GRP Enclosure -\nFinal Specifications TBC by M&E Contractor",
+          "block_no": 35,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1418.5599365234375,
+            666.1201171875,
+            1464.263671875,
+            860.9609375
+          ],
+          "text": "Proposed R.C. Base c/w 2 No. Layers A393\nMesh (1 Top. 1 Bottom).\nSize Varies - Refer  to General Arrangement\nMin. 40mm Cover, Min C35 Concrete.",
+          "block_no": 36,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1376.00341796875,
+            666.1201171875,
+            1409.78369140625,
+            851.5845336914062
+          ],
+          "text": "Proposed 1200g Visqueen Layer Between\nExisting External Ground Construction &\nProposed Concrete Slab",
+          "block_no": 37,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1371.31982421875,
+            136.25633239746094,
+            1387.833740234375,
+            146.15667724609375
+          ],
+          "text": "100",
+          "block_no": 38,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1420.8233642578125,
+            196.980224609375,
+            1430.7237548828125,
+            596.2339477539062
+          ],
+          "text": "100\n100",
+          "block_no": 39,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1382.2999267578125,
+            119.9365005493164,
+            1393.3092041015625,
+            129.83685302734375
+          ],
+          "text": "50",
+          "block_no": 40,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1273.04345703125,
+            665.8201904296875,
+            1306.7037353515625,
+            806.6632080078125
+          ],
+          "text": "Proposed 300thk (Min.) MOT\nType 1 to be Laid in Max.\n150mm Well Compacted Layers",
+          "block_no": 41,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1332.38330078125,
+            721.2000732421875,
+            1354.2237548828125,
+            801.53173828125
+          ],
+          "text": "Existing External\nGround Level",
+          "block_no": 42,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1202.3197021484375,
+            296.460205078125,
+            1242.20751953125,
+            595.7675170898438
+          ],
+          "text": "Detail 01\nTypical R.C. Base Construction - Elevation",
+          "block_no": 43,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1185.86328125,
+            423.5400390625,
+            1195.763671875,
+            470.3094177246094
+          ],
+          "text": "Scale 1:10",
+          "block_no": 44,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1468.5399169921875,
+            666.1201171875,
+            1502.1837158203125,
+            859.8619384765625
+          ],
+          "text": "Proposed GRP Housing/ M&E Equipment.\nSize/ Specification Varies - Refer to General\nArrangement",
+          "block_no": 45,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            323.1003112792969,
+            2042.7000732421875,
+            334.9801940917969,
+            2088.16455078125
+          ],
+          "text": "PROJECT",
+          "block_no": 46,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1643.206787109375,
+            2343.719970703125,
+            1651.1265869140625,
+            2353.40625
+          ],
+          "text": "A1",
+          "block_no": 47,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1140.94677734375,
+            2043.0,
+            1148.8665771484375,
+            2079.53466796875
+          ],
+          "text": "KEYPLAN",
+          "block_no": 48,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            574.310546875,
+            2049.419921875,
+            582.4818725585938,
+            2341.490966796875
+          ],
+          "text": "REV.\nDESCRIPTION\nDATE\nDRW.\nCHK.",
+          "block_no": 49,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            252.2403106689453,
+            2043.239990234375,
+            264.12017822265625,
+            2069.767822265625
+          ],
+          "text": "TITLE",
+          "block_no": 50,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            181.38031005859375,
+            2043.0,
+            193.2601776123047,
+            2209.383056640625
+          ],
+          "text": "STATUS\nPURPOSE OF ISSUE",
+          "block_no": 51,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            138.9003143310547,
+            2042.7000732421875,
+            150.78018188476562,
+            2280.361328125
+          ],
+          "text": "DRAWN BY\nCHECKED BY\nDATE",
+          "block_no": 52,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            96.36031341552734,
+            2043.0,
+            108.24019622802734,
+            2291.84228515625
+          ],
+          "text": "SCALE (@A1)\nPROJECT NUMBER",
+          "block_no": 53,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            53.820316314697266,
+            2042.6400146484375,
+            65.70020294189453,
+            2340.41796875
+          ],
+          "text": "FILE DRAWING NUMBER\nREV.",
+          "block_no": 54,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            408.1802978515625,
+            2043.47998046875,
+            420.0601806640625,
+            2236.730224609375
+          ],
+          "text": "APPOINTED PARTY LOGO/INFORMATION",
+          "block_no": 55,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            34.17703628540039,
+            2086.5,
+            48.03691482543945,
+            2213.8837890625
+          ],
+          "text": "-CCS -\n-\n- DR - S -",
+          "block_no": 56,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            284.197021484375,
+            2098.320068359375,
+            314.7369079589844,
+            2296.28076171875
+          ],
+          "text": "Wythenshawe Hospital -\n CSB Switchboard Replacement",
+          "block_no": 57,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            206.7187042236328,
+            2067.840087890625,
+            250.6085662841797,
+            2326.04833984375
+          ],
+          "text": "Clinical Science Building -\nProposed Switch Rooms & Generators Plan -\n(Option 02)",
+          "block_no": 58,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            163.89706420898438,
+            2066.699951171875,
+            177.75692749023438,
+            2178.595703125
+          ],
+          "text": "D2\nFor Tender",
+          "block_no": 59,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            121.41706848144531,
+            2085.1201171875,
+            135.27694702148438,
+            2322.819091796875
+          ],
+          "text": "JF\nWFF\nJan. '22",
+          "block_no": 60,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            78.0970687866211,
+            2065.860107421875,
+            91.95694732666016,
+            2251.984375
+          ],
+          "text": "As Shown\n21-2127",
+          "block_no": 61,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            34.17707443237305,
+            2043.47998046875,
+            50.19695281982422,
+            2341.3837890625
+          ],
+          "text": "T1\n212127\nD2 XX\n0410",
+          "block_no": 62,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1621.481201171875,
+            2046.1199951171875,
+            1638.8060302734375,
+            2102.91064453125
+          ],
+          "text": "notes :",
+          "block_no": 63,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1577.7857666015625,
+            2044.5,
+            1609.529296875,
+            2344.386474609375
+          ],
+          "text": "1.\nIF THIS DRAWING HAS BEEN RECEIVED ELECTRONICALLY IT \nIS THE RECIPIENTS RESPONSIBILTY TO PRINT THE \nDOCUMENT TO THE CORRECT SCALE",
+          "block_no": 64,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1547.90576171875,
+            2044.5,
+            1569.6893310546875,
+            2324.12353515625
+          ],
+          "text": "2.\nALL DIMENSIONS ARE IN MILLIMETRES UNLESS STATED \nOTHERWISE.",
+          "block_no": 65,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1518.0257568359375,
+            2044.5,
+            1539.809326171875,
+            2330.8310546875
+          ],
+          "text": "3.\nTHIS DRAWING SHOULD BE READ IN CONJUNCTION WITH \nALL OTHER RELEVANT DRAWINGS AND SPECIFICATIONS",
+          "block_no": 66,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1488.4569091796875,
+            2044.5,
+            1511.4893798828125,
+            2346.500732421875
+          ],
+          "text": "4.\nANY DISCREPANCIES NOTED ON SITE ARE TO BE REPORTED \nTO THE ENGINEER IMMEDIATELY.",
+          "block_no": 67,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            586.4635620117188,
+            2052.89990234375,
+            597.4434204101562,
+            2341.76318359375
+          ],
+          "text": "P1\nPreliminary Issue\nJF\n19.01.22\nWFF",
+          "block_no": 68,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1632.876953125,
+            33.7802734375,
+            1646.73681640625,
+            220.916748046875
+          ],
+          "text": "TO BE PRINTED IN COLOUR",
+          "block_no": 69,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1616.8121337890625,
+            1364.340087890625,
+            1626.31591796875,
+            1454.627197265625
+          ],
+          "text": "IN-SITU CONCRETE",
+          "block_no": 70,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1584.712158203125,
+            1363.9801025390625,
+            1607.4158935546875,
+            1688.833740234375
+          ],
+          "text": "1.\nREFER TO CCS CONSULTING IN-SITU CONCRETE SPECIFICATION\nFOR ALL RELEVANT NOTES.",
+          "block_no": 71,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1565.6129150390625,
+            1374.6600341796875,
+            1575.6580810546875,
+            1676.402099609375
+          ],
+          "text": "·\nCONCRETE GRADE FOR ALL OTHER ELEMENTS UNO - C32/40",
+          "block_no": 72,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1511.4521484375,
+            1364.7000732421875,
+            1547.416015625,
+            1688.8812255859375
+          ],
+          "text": "2.\nALL CONCRETE TO BE STANDARD RC35 MIX TO BS8110: MIN\nCEMENT CONTENT 300kg/m³ OPC; MAX FREE WATER / CEMENT\nRATIO 0.6, MAX AGGREGATE SIZE 20mm & 5% AIR ENTRAINMENT.",
+          "block_no": 73,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1479.3521728515625,
+            1364.580078125,
+            1502.115966796875,
+            1665.83203125
+          ],
+          "text": "3.\nALL DIMENSIONS TO SLAB EDGE TO BE CONFIRMED BY THE\nARCHITECT.",
+          "block_no": 74,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1447.4322509765625,
+            1364.880126953125,
+            1470.0159912109375,
+            1678.7880859375
+          ],
+          "text": "4.\nUNO CONCRETE COVER TO OUTERMOST REINFORCEMENT TO\nBE:",
+          "block_no": 75,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1428.3330078125,
+            1374.6600341796875,
+            1438.378173828125,
+            1640.1173095703125
+          ],
+          "text": "·\nFOUNDATIONS - 40mm BOTTOM, 40mm SIDE AND TOP",
+          "block_no": 76,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1360.972412109375,
+            1364.8800048828125,
+            1410.1361083984375,
+            1690.44921875
+          ],
+          "text": "4.\nTHE ABOVE COVERS RELATE TO CONCRETE CAST AGAINST\nFORMED SURFACES. WHERE CONCRETE IS CAST AGAINST\nNON-AGGRESSIVE SOIL, THE COVER TO REINFORCEMENT SHALL\nBE INCREASED TO 75mm.",
+          "block_no": 77,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1328.8724365234375,
+            1364.580078125,
+            1351.63623046875,
+            1657.176025390625
+          ],
+          "text": "5.\nALL CONCRETE FACES TO BE CAST AGAINST FORMWORK\nUNLESS PRIOR CONSENT IS GRANTED BY THE ENGINEER.",
+          "block_no": 78,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1283.572509765625,
+            1364.6400146484375,
+            1319.5362548828125,
+            1689.384765625
+          ],
+          "text": "6.\nANY FORMWORK OR TEMPORARY PROPPING REQUIRED TO BE\nDESIGNED AND INSTALLED BY THE MAIN CONTRACTOR. DETAILS\nTO BE ISSUED TO CCS FOR COMMENT PRIOR COMMENCEMENT.",
+          "block_no": 79,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1251.4725341796875,
+            1364.52001953125,
+            1274.236328125,
+            1681.45849609375
+          ],
+          "text": "7.\nREFER TO ARCHITECTS DRAWINGS FOR DETAILS OF REBATES,\nCHAMFERS, ETC TO EXPOSED CONCRETE CONSTRUCTION.",
+          "block_no": 80,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1232.632568359375,
+            1364.5799560546875,
+            1242.1363525390625,
+            1610.6468505859375
+          ],
+          "text": "8.\n25x25 FILLETS TO BE INSTALLED TO ALL EDGES.",
+          "block_no": 81,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1200.5325927734375,
+            1364.5799560546875,
+            1223.236328125,
+            1690.6815185546875
+          ],
+          "text": "9.\n100mm TROWELLED VERGE TO ALL EDGES AND BRUSHED FINISH\nTO ALL HORIZONTAL SURFACES.",
+          "block_no": 82,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1128.772705078125,
+            1363.97998046875,
+            1191.1363525390625,
+            1686.1583251953125
+          ],
+          "text": "10.\nTHE EXPOSED FACES OF THE CONCRETE STRUCTURES ARE TO\nBE INSPECTED IN ACCORDANCE WITH THE CCS CONSULTING\nIN-SITU CONCRETE SPECIFICATION. EXPOSED CONCRETE TO\nFOLLOW ARCHITECTURAL REQUIREMENTS WITH RESPECT TO\nFINISH, TEXTURE AND COLOUR.",
+          "block_no": 83,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1070.2728271484375,
+            1363.97998046875,
+            1119.4365234375,
+            1687.265380859375
+          ],
+          "text": "11. NO HOLES, CHASES OR OTHER OPENINGS TO BE CUT OR ANY\nREINFORCEMENT TO BE CUT, BENT OR DISPLACED IN ANY PART\nOF THE STRUCTURE WITHOUT PRIOR APPROVAL OF THE\nENGINEER.",
+          "block_no": 84,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1545.2330322265625,
+            1704.1199951171875,
+            1607.5966796875,
+            2022.139892578125
+          ],
+          "text": "12. PENETRATIONS LESS THAN 300mm SQUARE OR DIAMETER ARE\nNOT SHOWN ON THE STRUCTURAL DRAWINGS - REFER TO\nBUILDERS WORK DRAWINGS FOR DETAILS. BUILDINGS WORK\nDRAWINGS SHALL BE SUBMITTED TO THE ENGINEER FOR\nCOMMENT.",
+          "block_no": 85,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1499.93310546875,
+            1704.1199951171875,
+            1535.8968505859375,
+            2015.1895751953125
+          ],
+          "text": "13.\nWHERE REQUIRED PENETRATIONS OF THIS SIZE SHOULD BE\nFORMED PRIOR TO POURING AND REINFORCEMENT LOCALLY\nDISPLACED TO SUIT.",
+          "block_no": 86,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1415.0333251953125,
+            1704.1199951171875,
+            1490.596923828125,
+            2009.4522705078125
+          ],
+          "text": "14.\nCONSTRUCTION JOINT POSITIONS OTHER THAN THOSE\nDETAILED ON THE DRAWINGS ARE TO BE AGREED WITH THE\nENGINEER IN ADVANCE OF CONSTRUCTION. THE JOINTS\nSHOULD BE CLEANED AND ALL LOOSE CONCRETE / DEBRIS\nREMOVED AND ROUGHENED PRIOR TO CONCRETING THE\nADJACENT POUR.",
+          "block_no": 87,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1382.933349609375,
+            1704.1199951171875,
+            1405.6370849609375,
+            1986.2752685546875
+          ],
+          "text": "15. MAXIMUM LENGTH OF TIME BEFORE POURING AGAINST\nPREVIOUS DAYS WORK IS 4 DAYS.",
+          "block_no": 88,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1350.8333740234375,
+            1704.1199951171875,
+            1373.537109375,
+            2026.4654541015625
+          ],
+          "text": "16.\nALL REINFORCEMENT TO BE GRADE 500 CONFORMING TO BS\n4449:2005 AND SCHEDULED IN ACCORDANCE WITH BS 8666:2005",
+          "block_no": 89,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1279.073486328125,
+            1704.1199951171875,
+            1341.4371337890625,
+            2021.2823486328125
+          ],
+          "text": "17.\nALL REINFORCEMENT SHALL BE SECURELY SUPPORTED IN ITS\nCORRECT POSITION DURING CONCRETING BY APPROVED BAR\nCHAIRS, SPACERS OR SUPPORT BARS. THESE TEMPORARY\nELEMENTS WILL NOT BE SHOWN ON CCS CONSULTING\nREINFORCEMENT DRAWINGS.",
+          "block_no": 90,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1233.7735595703125,
+            1704.1199951171875,
+            1269.7373046875,
+            2012.9075927734375
+          ],
+          "text": "18.\nSURFACE HOLES RESULTING FROM THE USE OF FORMWORK\nTHROUGH TIES SHALL BE PLUGGED WITH A SEMI-DRY 1:3\nCEMENT: SAND MIX WELL RAMMED IN.",
+          "block_no": 91,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1201.673583984375,
+            1704.1199951171875,
+            1224.4373779296875,
+            2028.7601318359375
+          ],
+          "text": "19.\nSIZE OF CONCRETE ELEMENTS DO NOT INCLUDE THICKNESS OF\nAPPLIED FINISHES.",
+          "block_no": 92,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1143.1737060546875,
+            1704.89990234375,
+            1192.33740234375,
+            2026.400634765625
+          ],
+          "text": "20. NO HOLES, CHASES OR EMBEDMENT OF PIPES OTHER THAN\nTHOSE SHOWN ON THE STRUCTURAL DRAWINGS SHALL BE\nMADE IN CONCRETE MEMBERS WITHOUT THE PRIOR APPROVAL\nOF THE ENGINEER.",
+          "block_no": 93,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            1071.473876953125,
+            1704.9000244140625,
+            1133.8375244140625,
+            2015.8228759765625
+          ],
+          "text": "21. THE CONTRACTOR SHALL PROVIDE INFORMATION OF THEIR\nMETHODS OF CONTROLLING THE CURING OF CONCRETE AND\nSHALL DETAIL THESE IN A METHOD STATEMENT FOR\nSUBMISSION TO THE ENGINEER/ARCHITECT IN ACCORDANCE\nWITH THE SPECIFICATION.",
+          "block_no": 94,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            600.68359375,
+            2053.199951171875,
+            610.6434326171875,
+            2341.76318359375
+          ],
+          "text": "T1\nTender Issue\nJF\n10.02.22\nWFF",
+          "block_no": 95,
+          "block_type": 0
+        },
+        {
+          "bbox": [
+            45.31999588012695,
+            1998.0582275390625,
+            544.899169921875,
+            2023.031005859375
+          ],
+          "text": "Tender Issue - For Costing Purposes Only",
+          "block_no": 96,
+          "block_type": 0
+        }
+      ],
+      "images": [
+        {
+          "xref": 31,
+          "hash": "0d53d4340a28e1595cdab0b6cabcae09",
+          "width": 509,
+          "height": 1661,
+          "bpc": 8,
+          "colorspace": "DeviceRGB"
+        },
+        {
+          "xref": 32,
+          "hash": "577531b0360cec521a318db261d2bf1f",
+          "width": 339,
+          "height": 1661,
+          "bpc": 8,
+          "colorspace": "DeviceRGB"
+        }
+      ],
+      "annotations": [
+        {
+          "type": "Square",
+          "contents": "39.30",
+          "rect": [
+            387.0,
+            396.0,
+            408.0,
+            455.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "39.38",
+          "rect": [
+            461.0,
+            1002.0,
+            481.0,
+            1062.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "39.52",
+          "rect": [
+            425.0,
+            1612.0,
+            446.0,
+            1672.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "CL 39.61",
+          "rect": [
+            261.0,
+            1531.0,
+            282.0,
+            1628.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "CL 39.49",
+          "rect": [
+            815.0,
+            795.0,
+            836.0,
+            896.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "39.29",
+          "rect": [
+            605.0,
+            553.0,
+            625.0,
+            614.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "39.43",
+          "rect": [
+            924.0,
+            125.0,
+            947.0,
+            186.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "39.24",
+          "rect": [
+            251.0,
+            358.0,
+            306.0,
+            403.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "39.43",
+          "rect": [
+            909.0,
+            568.0,
+            932.0,
+            629.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "39.36",
+          "rect": [
+            898.0,
+            667.0,
+            921.0,
+            727.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "39.20",
+          "rect": [
+            875.0,
+            820.0,
+            902.0,
+            879.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "39.24",
+          "rect": [
+            836.0,
+            1102.0,
+            862.0,
+            1162.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "39.46",
+          "rect": [
+            794.0,
+            1336.0,
+            826.0,
+            1396.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "39.67",
+          "rect": [
+            703.0,
+            1719.0,
+            726.0,
+            1740.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "39.24",
+          "rect": [
+            654.0,
+            173.0,
+            679.0,
+            234.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "39.22",
+          "rect": [
+            663.0,
+            92.0,
+            701.0,
+            151.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "39.20",
+          "rect": [
+            848.0,
+            774.0,
+            905.0,
+            812.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "39.31",
+          "rect": [
+            777.0,
+            731.0,
+            828.0,
+            776.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "39.30",
+          "rect": [
+            645.0,
+            578.0,
+            689.0,
+            632.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "39.26",
+          "rect": [
+            777.0,
+            1229.0,
+            838.0,
+            1254.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "39.38",
+          "rect": [
+            682.0,
+            1253.0,
+            736.0,
+            1300.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "39.49",
+          "rect": [
+            639.0,
+            1457.0,
+            662.0,
+            1517.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "39.46",
+          "rect": [
+            640.0,
+            1327.0,
+            671.0,
+            1386.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "39.54",
+          "rect": [
+            653.0,
+            1675.0,
+            675.0,
+            1735.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "39.56",
+          "rect": [
+            280.0,
+            1359.0,
+            328.0,
+            1413.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "39.51",
+          "rect": [
+            320.0,
+            1231.0,
+            349.0,
+            1288.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "39.45",
+          "rect": [
+            289.0,
+            1097.0,
+            320.0,
+            1158.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "39.39",
+          "rect": [
+            251.0,
+            1017.0,
+            295.0,
+            1069.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "39.40",
+          "rect": [
+            665.0,
+            547.0,
+            724.0,
+            571.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "39.40",
+          "rect": [
+            695.0,
+            148.0,
+            754.0,
+            171.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "39.74",
+          "rect": [
+            958.0,
+            200.0,
+            981.0,
+            260.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "39.40",
+          "rect": [
+            912.0,
+            728.0,
+            943.0,
+            787.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "IL 37.56",
+          "rect": [
+            251.0,
+            1539.0,
+            261.0,
+            1633.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "IL 34.69",
+          "rect": [
+            794.0,
+            806.0,
+            814.0,
+            902.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "0003",
+          "rect": [
+            269.0,
+            1204.0,
+            293.0,
+            1267.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "39.62",
+          "rect": [
+            251.0,
+            1204.0,
+            271.0,
+            1283.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "EL 42.18",
+          "rect": [
+            687.0,
+            361.0,
+            708.0,
+            458.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "IC",
+          "rect": [
+            284.0,
+            1531.0,
+            304.0,
+            1555.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "B",
+          "rect": [
+            775.0,
+            1287.0,
+            795.0,
+            1302.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "I/R",
+          "rect": [
+            791.0,
+            1493.0,
+            818.0,
+            1532.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "IC",
+          "rect": [
+            838.0,
+            795.0,
+            858.0,
+            819.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "G",
+          "rect": [
+            630.0,
+            552.0,
+            650.0,
+            567.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "Thr 39.41",
+          "rect": [
+            797.0,
+            435.0,
+            818.0,
+            546.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "Thr 39.40",
+          "rect": [
+            809.0,
+            199.0,
+            830.0,
+            312.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "RL 43.24",
+          "rect": [
+            835.0,
+            200.0,
+            856.0,
+            301.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "EL 42.21",
+          "rect": [
+            923.0,
+            203.0,
+            950.0,
+            300.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "Tarmac",
+          "rect": [
+            329.0,
+            825.0,
+            349.0,
+            909.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "Total Depth 4.80d",
+          "rect": [
+            768.0,
+            773.0,
+            794.0,
+            988.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "2.25d Drop Shaft",
+          "rect": [
+            741.0,
+            775.0,
+            766.0,
+            985.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "I/R",
+          "rect": [
+            910.0,
+            798.0,
+            934.0,
+            837.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "Kerb",
+          "rect": [
+            636.0,
+            320.0,
+            663.0,
+            376.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "Kerb",
+          "rect": [
+            646.0,
+            1557.0,
+            668.0,
+            1613.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "Kerb",
+          "rect": [
+            323.0,
+            1301.0,
+            351.0,
+            1358.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "Water",
+          "rect": [
+            716.0,
+            1513.0,
+            784.0,
+            1551.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "0.70d",
+          "rect": [
+            782.0,
+            113.0,
+            804.0,
+            170.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "150%%C",
+          "rect": [
+            251.0,
+            1658.0,
+            274.0,
+            1692.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "2.20d",
+          "rect": [
+            550.0,
+            1648.0,
+            591.0,
+            1705.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "0.70d",
+          "rect": [
+            251.0,
+            465.0,
+            303.0,
+            487.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "0.55d",
+          "rect": [
+            415.0,
+            555.0,
+            470.0,
+            600.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "0.43d",
+          "rect": [
+            578.0,
+            511.0,
+            633.0,
+            557.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "0.50d",
+          "rect": [
+            595.0,
+            418.0,
+            650.0,
+            460.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "0.80d",
+          "rect": [
+            399.0,
+            208.0,
+            452.0,
+            252.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "1.10d",
+          "rect": [
+            848.0,
+            599.0,
+            876.0,
+            650.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "Poor Signal",
+          "rect": [
+            827.0,
+            572.0,
+            871.0,
+            708.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "1.65d",
+          "rect": [
+            591.0,
+            304.0,
+            623.0,
+            361.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "2.05d  225%%C",
+          "rect": [
+            304.0,
+            1644.0,
+            437.0,
+            1710.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "150%%C",
+          "rect": [
+            393.0,
+            1322.0,
+            429.0,
+            1370.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "POSSIBLE - BT",
+          "rect": [
+            251.0,
+            87.0,
+            271.0,
+            111.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "Plastic",
+          "rect": [
+            693.0,
+            1549.0,
+            773.0,
+            1592.0
+          ]
+        },
+        {
+          "type": "Square",
+          "contents": "EOT",
+          "rect": [
+            704.0,
+            1532.0,
+            748.0,
+            1562.0
+          ]
+        }
+      ],
+      "vector_drawings": [
+        {
+          "items": [
+            [
+              "l",
+              

@@ -1,0 +1,162 @@
+[
+  {
+    "object_id": 146,
+    "source_page": 1,
+    "summary": {
+      "subtype": "/Square",
+      "rect": [
+        851.589,
+        1717.357,
+        1084.175,
+        2292.7
+      ],
+      "content": "Wiring change",
+      "page": 1
+    },
+    "all_fields": [
+      "/Type",
+      "/Subtype",
+      "/Rect",
+      "/BS",
+      "/C",
+      "/M",
+      "/T",
+      "/Contents",
+      "/NM",
+      "/Zotero:Key",
+      "/Zotero:AuthorName",
+      "/F",
+      "/AP",
+      "/Zotero:Tags"
+    ]
+  },
+  {
+    "object_id": 151,
+    "source_page": 1,
+    "summary": {
+      "subtype": "/FreeText",
+      "rect": [
+        1390.535,
+        1409.206,
+        1548.535,
+        1591.206
+      ],
+      "content": "thi",
+      "page": 1
+    },
+    "all_fields": [
+      "/Type",
+      "/Rect",
+      "/Subtype",
+      "/M",
+      "/T",
+      "/Contents",
+      "/NM",
+      "/Zotero:Key",
+      "/Zotero:AuthorName",
+      "/Zotero:Rect",
+      "/Zotero:Rotation",
+      "/Zotero:FontSize",
+      "/Zotero:Color",
+      "/DA",
+      "/F",
+      "/CA",
+      "/Border",
+      "/Zotero:Tags",
+      "/AP"
+    ]
+  },
+  {
+    "object_id": 158,
+    "source_page": 1,
+    "summary": {
+      "subtype": "/Square",
+      "rect": [
+        1410.994,
+        1928.348,
+        1560.955,
+        2216.735
+      ],
+      "content": "thc",
+      "page": 1
+    },
+    "all_fields": [
+      "/Type",
+      "/Subtype",
+      "/Rect",
+      "/BS",
+      "/C",
+      "/M",
+      "/T",
+      "/Contents",
+      "/NM",
+      "/Zotero:Key",
+      "/Zotero:AuthorName",
+      "/F",
+      "/AP",
+      "/Zotero:Tags"
+    ]
+  },
+  {
+    "object_id": 163,
+    "source_page": 1,
+    "summary": {
+      "subtype": "/Text",
+      "rect": [
+        1418.813,
+        1955.582,
+        1440.813,
+        1977.582
+      ],
+      "content": "This should be changed",
+      "page": 1
+    },
+    "all_fields": [
+      "/Type",
+      "/Rect",
+      "/Subtype",
+      "/M",
+      "/T",
+      "/Contents",
+      "/NM",
+      "/Zotero:Key",
+      "/Zotero:AuthorName",
+      "/F",
+      "/C",
+      "/CA",
+      "/Border",
+      "/AP"
+    ]
+  },
+  {
+    "object_id": 170,
+    "source_page": 1,
+    "summary": {
+      "subtype": "/Ink",
+      "rect": [
+        1228.865,
+        1756.261,
+        1564.067,
+        1794.183
+      ],
+      "content": "",
+      "page": 1
+    },
+    "all_fields": [
+      "/Type",
+      "/Subtype",
+      "/Rect",
+      "/BS",
+      "/F",
+      "/InkList",
+      "/C",
+      "/CA",
+      "/M",
+      "/T",
+      "/NM",
+      "/Zotero:Key",
+      "/Zotero:AuthorName",
+      "/AP"
+    ]
+  }
+]
