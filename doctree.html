@@ -27,7 +27,7 @@
       color: green;
     }
     .value-number {
-      color: blue;
+      color: green;
     }
   </style>
 </head>
@@ -67,18 +67,18 @@
             name: "Inspections",
             attributes: {doctype: "Item Group", is_group: 1, parent_item_group: "Labor / Services"},
             children: [
-              {name: "18-Point Inspection", attributes: {is_group: 1}},
-              {name: "30-Point Inspection", attributes: {is_group: 1}},
-              {name: "Courtesy Inspection", attributes: {is_group: 1}}
+              {name: "18-Point Inspection", attributes: {doctype: "Product Bundle", parent_item_group: "Labor / Services"}},
+              {name: "30-Point Inspection", attributes: {doctype: "Product Bundle", parent_item_group: "Labor / Services"}},
+              {name: "Courtesy Inspection", attributes: {doctype: "Product Bundle", parent_item_group: "Labor / Services"}}
             ]
           },
           {
             name: "Canned Jobs (Bundles)",
             attributes: {doctype: "Item Group", is_group: 1, parent_item_group: "Labor / Services"},
             children: [
-              {name: "Brake Job Bundle", attributes: {is_group: 1}},
-              {name: "Transmission Service", attributes: {is_group: 1}},
-              {name: "A/C Inspect & Recharge", attributes: {is_group: 1}}
+              {name: "Brake Job Bundle", attributes: {doctype: "Product Bundle", is_group: 1, parent_item_group: "Labor / Services"}},
+              {name: "Transmission Service", attributes: {doctype: "Product Bundle", is_group: 1, parent_item_group: "Labor / Services"}},
+              {name: "A/C Inspect & Recharge", attributes: {doctype: "Product Bundle", is_group: 1, parent_item_group: "Labor / Services"}}
             ]
           }
         ]
