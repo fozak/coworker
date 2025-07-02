@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Yjs Collaborative React Widget</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body { font-family: sans-serif; padding: 2rem; background: #f7fafc; }
+    input { margin: 0.5rem 0; padding: 0.5rem; width: 100%; max-width: 300px; }
+    .field { margin-bottom: 1rem; }
+    label { font-weight: bold; display: block; margin-bottom: 0.25rem; }
+  </style>
+</head>
+<body>
+  <h1>Collaborative Customer Info</h1>
+  <div id="widget-target"></div>
+
+  <!-- CDN Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/yjs@13.6.14/dist/yjs.js"></script>
+  <script src="https://unpkg.com/y-websocket@1.4.5/dist/y-websocket.js"></script>
+
+  <!-- Widget Logic -->
+  <script>
+    (function () {
+      const { useState, useEffect } = React;
+
+      // Create shared Yjs document
+      const ydoc = new Y.Doc();
+
+      // Connect to public y-websocket demo server
+      const provider = new window.yws.WebsocketProvider(
+        "wss://demos.yjs.dev", // Use your own in production
+        "shared-customer-widget-room",
+        ydoc
+      );
+
+      const ymap = ydoc.getMap("widgetData");
+
+      // Initialize data if not already present
+      if (!ymap.has("customerInfo")) {
+        ymap.set("customerInfo", new Y.Map([
+          ["name", "Jim Vorough"],
+          ["email", ""],
+          ["phone", ""]
+        ]));
+      }
+
+      function CustomerSelector() {
+        const [info, setInfo] = useState({ name: "", email: "", phone: "" });
+
+        useEffect(() => {
+          const customerMap = ymap.get("customerInfo");
+
+          const update = () => {
+            setInfo({
+              name: customerMap.get("name"),
+              email: customerMap.get("email"),
+              phone: customerMap.get("phone")
+            });
+          };
+
+          update(); // set initial state
+          customerMap.observe(update);
+          return () => customerMap.unobserve(update);
+        }, []);
+
+        const handleChange = (key) => (e) => {
+          const customerMap = ymap.get("customerInfo");
+          customerMap.set(key, e.target.value);
+        };
+
+        return React.createElement("div", {}, [
+          React.createElement("div", { className: "field", key: "name-field" }, [
+            React.createElement("label", { key: "name-label" }, "Name:"),
+            React.createElement("input", {
+              key: "name",
+              value: info.name,
+              onChange: handleChange("name"),
+              placeholder: "Name"
+            })
+          ]),
+          React.createElement("div", { className: "field", key: "email-field" }, [
+            React.createElement("label", { key: "email-label" }, "Email:"),
+            React.createElement("input", {
+              key: "email",
+              value: info.email,
+              onChange: handleChange("email"),
+              placeholder: "Email"
+            })
+          ]),
+          React.createElement("div", { className: "field", key: "phone-field" }, [
+            React.createElement("label", { key: "phone-label" }, "Phone:"),
+            React.createElement("input", {
+              key: "phone",
+              value: info.phone,
+              onChange: handleChange("phone"),
+              placeholder: "Phone"
+            })
+          ])
+        ]);
+      }
+
+      // Render to target div
+      const root = document.getElementById("widget-target");
+      ReactDOM.render(React.createElement(CustomerSelector), root);
+    })();
+  </script>
+</body>
+</html>
