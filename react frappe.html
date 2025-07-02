@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Frappe Browser App</title>
+    <script type="importmap">
+      {
+        "imports": {
+          "react": "https://esm.sh/react@18",
+          "react-dom": "https://esm.sh/react-dom@18",
+          "frappe-react-sdk": "https://esm.sh/frappe-react-sdk@1.11.0"
+        }
+      }
+    </script>
+    <style>
+      body { font-family: sans-serif; padding: 2rem; }
+      button { margin-right: 0.5rem; }
+    </style>
+  </head>
+  <body>
+    <h1>Frappe Browser App</h1>
+    <div id="root">Loading...</div>
+
+    <script type="module">
+      import React, { useState } from "react";
+      import { createRoot } from "react-dom/client";
+      import {
+        FrappeProvider,
+        useFrappeAuth,
+        useFrappeGetDocList,
+      } from "frappe-react-sdk";
+
+      const Login = () => {
+        const {
+          login,
+          logout,
+          currentUser,
+          isLoading,
+          error,
+          updateCurrentUser,
+        } = useFrappeAuth();
+
+        return React.createElement(
+          "div",
+          null,
+          React.createElement("h2", null, "Login"),
+          isLoading
+            ? "Loading..."
+            : currentUser
+            ? `Logged in as: ${currentUser}`
+            : "Not logged in",
+          React.createElement("br"),
+          React.createElement("button", { onClick: () => login("administrator", "admin") }, "Login"),
+          React.createElement("button", { onClick: logout }, "Logout"),
+          React.createElement("button", { onClick: updateCurrentUser }, "Refresh"),
+          error && React.createElement("pre", null, JSON.stringify(error))
+        );
+      };
+
+      const UserList = () => {
+        const { data, error, isValidating, mutate } = useFrappeGetDocList("User", {
+          fields: ["name", "email"],
+          limit: 5,
+        });
+
+        return React.createElement(
+          "div",
+          null,
+          React.createElement("h2", null, "User List"),
+          isValidating && "Loading...",
+          error && React.createElement("pre", null, JSON.stringify(error)),
+          data &&
+            data.map((user) =>
+              React.createElement(
+                "p",
+                { key: user.name },
+                `${user.name}: ${user.email}`
+              )
+            ),
+          React.createElement("button", { onClick: () => mutate() }, "Reload")
+        );
+      };
+
+      const App = () =>
+        React.createElement(
+          FrappeProvider,
+          { url: "https://apfile.com" }, // 👈 Change to your Frappe backend URL
+          React.createElement(Login),
+          React.createElement(UserList)
+        );
+
+      const root = createRoot(document.getElementById("root"));
+      root.render(React.createElement(App));
+    </script>
+  </body>
+</html>
