@@ -1,0 +1,75 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Item Viewer</title>
+</head>
+<body>
+  <h1>Item Viewer</h1>
+  <div id="content">Loading...</div>
+  
+  <!-- Load PocketBase SDK from CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pocketbase/0.21.3/pocketbase.umd.min.js"></script>
+  
+  <script>
+    // Initialize PocketBase
+    const pb = new PocketBase(window.location.origin);
+    
+    // Parse record ID from query string
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("id");
+    
+    if (!id) {
+      document.getElementById("content").textContent = "Missing ID";
+    } else {
+      // Use PocketBase SDK to fetch the record
+      pb.collection('items').getOne(id)
+        .then(data => {
+          document.getElementById("content").innerHTML = `
+            <h2>${data.title || 'No Title'}</h2>
+            <p>${data.description || ''}</p>
+            <pre>${JSON.stringify(data, null, 2)}</pre>
+          `;
+        })
+        .catch(err => {
+          // Check if it's an authentication error
+          if (err.status === 403 || err.status === 401) {
+            document.getElementById("content").innerHTML = `
+              <p>Authentication required. Please log in first.</p>
+              <button onclick="login()">Login</button>
+            `;
+          } else {
+            document.getElementById("content").textContent = "Error: " + err.message;
+          }
+        });
+    }
+    
+    // Login function
+    async function login() {
+      try {
+        await pb.collection('users').authWithPassword('qz3@example.com', 'qz3kjwqef8wtsr5');
+        console.log('Logged in as:', pb.authStore.model.email);
+        
+        // Retry loading the record after login
+        const id = new URLSearchParams(window.location.search).get("id");
+        if (id) {
+          const data = await pb.collection('items').getOne(id);
+          document.getElementById("content").innerHTML = `
+            <h2>${data.title || 'No Title'}</h2>
+            <p>${data.description || ''}</p>
+            <pre>${JSON.stringify(data, null, 2)}</pre>
+          `;
+        }
+      } catch (error) {
+        document.getElementById("content").textContent = "Login failed: " + error.message;
+      }
+    }
+    
+    // Check if already authenticated on page load
+    if (pb.authStore.isValid) {
+      console.log('Already authenticated as:', pb.authStore.model.email);
+    }
+  </script>
+</body>
+</html>
+

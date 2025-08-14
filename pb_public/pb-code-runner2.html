@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PocketBase Code Runner</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet" />
+   <script src="js/pocketbase.umd.js"></script>
+    <script src="js/pb-document-lib.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
+</head>
+<body class="bg-gray-100 p-4">
+  <div class="max-w-6xl mx-auto bg-white rounded-lg shadow-lg p-6">
+    <div class="border-b pb-4 mb-6">
+      <h1 class="text-2xl font-bold text-gray-800">PocketBase Code Runner</h1>
+      <div id="status" class="mt-2 p-2 rounded text-sm">Connecting to PocketBase...</div>
+    </div>
+
+    <div class="mb-6">
+      <label class="block text-sm font-medium text-gray-700 mb-2">Code Records</label>
+      <select id="codeSelect" class="w-full p-2 border rounded-md">
+        <option value="">Select Code Record...</option>
+      </select>
+    </div>
+
+    <div class="border rounded-lg mb-6">
+      <div class="bg-gray-50 px-4 py-3 border-b flex justify-between items-center">
+        <span class="font-medium text-gray-700">Code Editor</span>
+        <div class="space-x-2">
+          <button id="saveBtn" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50">Save</button>
+          <button id="runBtn" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50">Run</button>
+        </div>
+      </div>
+      <div id="editor" class="h-96"></div>
+    </div>
+
+    <div id="output" class="border rounded-lg p-4 bg-gray-50">
+      <h3 class="font-medium text-gray-700 mb-2">Console Output:</h3>
+      <pre id="outputContent" class="text-sm text-gray-800 whitespace-pre-wrap h-64 overflow-y-auto bg-white p-2 border rounded"></pre>
+    </div>
+  </div>
+
+  <script>
+    let pb = null;
+    let currentRecord = null;
+    let editor = null;
+
+    window.onload = function () {
+      connectToPocketBase();
+    };
+
+    async function connectToPocketBase() {
+      const statusDiv = document.getElementById('status');
+      try {
+        pb = new PocketBase('http://127.0.0.1:8090');
+        await pb.collection('item').getList(1, 1); // test connection
+        statusDiv.textContent = 'Connected to PocketBase';
+        statusDiv.className = 'mt-2 p-2 rounded text-sm bg-green-100 text-green-800';
+
+        await initializeEditor();
+        await loadCodeRecords();
+      } catch (err) {
+        statusDiv.textContent = 'Failed to connect: ' + err.message;
+        statusDiv.className = 'mt-2 p-2 rounded text-sm bg-red-100 text-red-800';
+      }
+    }
+
+    async function initializeEditor() {
+      return new Promise((resolve) => {
+        require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } });
+        require(['vs/editor/editor.main'], function () {
+          editor = monaco.editor.create(document.getElementById('editor'), {
+            value: '// Select a code record...',
+            language: 'javascript',
+            theme: 'vs-dark',
+            automaticLayout: true,
+            minimap: { enabled: false }
+          });
+          resolve();
+        });
+      });
+    }
+
+    async function loadCodeRecords() {
+      try {
+        const codeSelect = document.getElementById('codeSelect');
+        const records = await pb.collection('item').getList(1, 100, {
+          filter: 'doctype = "Code"'
+        });
+
+        codeSelect.innerHTML = '<option value="">Select Code Record...</option>';
+        records.items.forEach(record => {
+          const option = document.createElement('option');
+          option.value = record.id;
+          option.textContent = record.name || record.id;
+          codeSelect.appendChild(option);
+        });
+
+        codeSelect.addEventListener('change', async (event) => {
+          const recordId = event.target.value;
+          if (!recordId) return;
+
+          currentRecord = await pb.collection('item').getOne(recordId);
+          const code = currentRecord.data?.code || '';
+          editor.setValue(code);
+
+          document.getElementById('saveBtn').disabled = false;
+          document.getElementById('runBtn').disabled = false;
+        });
+      } catch (err) {
+        appendOutput('Error loading Code records: ' + err.message);
+      }
+    }
+
+    async function saveCode() {
+      if (!currentRecord) return;
+      const code = editor.getValue();
+      try {
+        const updated = {
+          ...currentRecord,
+          data: { ...currentRecord.data, code: code }
+        };
+        await pb.collection('item').update(currentRecord.id, updated);
+        appendOutput('✅ Code saved.');
+      } catch (err) {
+        appendOutput('❌ Error saving code: ' + err.message);
+      }
+    }
+
+    async function runCode() {
+      if (!currentRecord) return;
+
+      const code = editor.getValue();
+      let logBuffer = '';
+      const originalLog = console.log;
+
+      console.log = (...args) => {
+        logBuffer += args.join(' ') + '\n';
+        originalLog.apply(console, args);
+      };
+
+      try {
+        eval(code); // Executes your pb.function + runner
+        appendOutput('✅ Code executed.\n' + logBuffer.trim());
+      } catch (err) {
+        appendOutput('❌ Execution error:\n' + err.message + '\n' + logBuffer.trim());
+      } finally {
+        console.log = originalLog;
+      }
+    }
+
+    function appendOutput(msg) {
+      const el = document.getElementById('outputContent');
+      el.textContent += '\n' + msg;
+    }
+
+    document.getElementById('saveBtn').addEventListener('click', saveCode);
+    document.getElementById('runBtn').addEventListener('click', runCode);
+    document.getElementById('saveBtn').disabled = true;
+    document.getElementById('runBtn').disabled = true;
+  </script>
+</body>
+</html>

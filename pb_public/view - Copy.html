@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Item Viewer</title>
+</head>
+<body>
+  <h1>Item Viewer</h1>
+  <div id="content">Loading...</div>
+
+  <script>
+    // Parse record ID from query string
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("id");
+
+    if (!id) {
+      document.getElementById("content").textContent = "Missing ID";
+    } else {
+      fetch(`/api/collections/items/records/${id}`)
+        .then(res => {
+          if (!res.ok) throw new Error("Not found");
+          return res.json();
+        })
+        .then(data => {
+          document.getElementById("content").innerHTML = `
+            <h2>${data.title || 'No Title'}</h2>
+            <p>${data.description || ''}</p>
+            <pre>${JSON.stringify(data, null, 2)}</pre>
+          `;
+        })
+        .catch(err => {
+          document.getElementById("content").textContent = "Error: " + err.message;
+        });
+    }
+  </script>
+</body>
+</html>

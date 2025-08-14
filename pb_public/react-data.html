@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schema-Driven PocketBase Admin</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <script crossorigin src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pocketbase@0.19.0/dist/pocketbase.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.4/babel.min.js"></script>
+    
+    <style>
+        .field-group { margin-bottom: 1rem; }
+        .section-break { 
+            border-top: 2px solid #e9ecef; 
+            padding-top: 1rem; 
+            margin-top: 1.5rem; 
+        }
+        .column-break { 
+            border-left: 1px solid #e9ecef; 
+            padding-left: 1rem; 
+        }
+        .dynamic-form { max-height: 70vh; overflow-y: auto; }
+        .schema-selector { position: sticky; top: 0; z-index: 100; }
+    </style>
+</head>
+<body class="bg-light">
+    <div id="root"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+        const { createRoot } = ReactDOM;
+
+        const pb = new PocketBase('http://localhost:8090');
+
+        // Dynamic Field Renderer based on Frappe field types
+        const DynamicField = ({ field, value, onChange, isReadOnly = false }) => {
+            const fieldValue = value || field.default || '';
+            
+            const handleChange = (newValue) => {
+                onChange(field.fieldname, newValue);
+            };
+
+            // Skip rendering certain field types
+            if (['Section Break', 'Column Break', 'HTML', 'Heading'].includes(field.fieldtype)) {
+                return null;
+            }
+
+            const baseProps = {
+                className: "form-control",
+                disabled: isReadOnly || field.read_only === 1,
+                required: field.reqd === 1,
+                placeholder: field.placeholder || `Enter ${field.label}...`
+            };
+
+            switch (field.fieldtype) {
+                case 'Data':
+                case 'Small Text':
+                    return (
+                        <input
+                            {...baseProps}
+                            type="text"
+                            value={fieldValue}
+                            onChange={(e) => handleChange(e.target.value)}
+                            maxLength={field.length || undefined}
+                        />
+                    );
+
+                case 'Text':
+                case 'Long Text':
+                case 'Text Editor':
+                    return (
+                        <textarea
+                            {...baseProps}
+                            rows={field.fieldtype === 'Text Editor' ? 8 : 4}
+                            value={fieldValue}
+                            onChange={(e) => handleChange(e.target.value)}
+                        />
+                    );
+
+                case 'Int':
+                    return (
+                        <input
+                            {...baseProps}
+                            type="number"
+                            step="1"
+                            value={fieldValue}
+                            onChange={(e) => handleChange(parseInt(e.target.value) || 0)}
+                        />
+                    );
+
+                case 'Float':
+                case 'Currency':
+                case 'Percent':
+                    return (
+                        <div className="input-group">
+                            <input
+                                {...baseProps}
+                                type="number"
+                                step="0.01"
+                                value={fieldValue}
+                                onChange={(e) => handleChange(parseFloat(e.target.value) || 0)}
+                            />
+                            {field.fieldtype === 'Currency' && (
+                                <span className="input-group-text">$</span>
+                            )}
+                            {field.fieldtype === 'Percent' && (
+                                <span className="input-group-text">%</span>
+                            )}
+                        </div>
+                    );
+
+                case 'Check':
+                    return (
+                        <div className="form-check">
+                            <input
+                                type="checkbox"
+                                className="form-check-input"
+                                checked={fieldValue === 1 || fieldValue === true}
+                                onChange={(e) => handleChange(e.target.checked ? 1 : 0)}
+                                disabled={isReadOnly || field.read_only === 1}
+                            />
+                            <label className="form-check-label">{field.description}</label>
+                        </div>
+                    );
+
+                case 'Date':
+                    return (
+                        <input
+                            {...baseProps}
+                            type="date"
+                            value={fieldValue ? new Date(fieldValue).toISOString().split('T')[0] : ''}
+                            onChange={(e) => handleChange(e.target.value)}
+                        />
+                    );
+
+                case 'Datetime':
+                    return (
+                        <input
+                            {...baseProps}
+                            type="datetime-local"
+                            value={fieldValue ? new Date(fieldValue).toISOString().slice(0, 16) : ''}
+                            onChange={(e) => handleChange(e.target.value)}
+                        />
+                    );
+
+                case 'Time':
+                    return (
+                        <input
+                            {...baseProps}
+                            type="time"
+                            value={fieldValue}
+                            onChange={(e) => handleChange(e.target.value)}
+                        />
+                    );
+
+                case 'Select':
+                    const options = field.options ? field.options.split('\n').filter(opt => opt.trim()) : [];
+                    return (
+                        <select
+                            {...baseProps}
+                            value={fieldValue}
+                            onChange={(e) => handleChange(e.target.value)}
+                        >
+                            <option value="">-- Select {field.label} --</option>
+                            {options.map(option => (
+                                <option key={option} value={option.trim()}>
+                                    {option.trim()}
+                                </option>
+                            ))}
+                        </select>
+                    );
+
+                case 'Link':
+                    return <LinkField field={field} value={fieldValue} onChange={handleChange} isReadOnly={isReadOnly} />;
+
+                case 'Attach':
+                case 'Attach Image':
+                    return (
+                        <input
+                            {...baseProps}
+                            type="file"
+                            accept={field.fieldtype === 'Attach Image' ? 'image/*' : undefined}
+                            onChange={(e) => handleChange(e.target.files[0])}
+                        />
+                    );
+
+                case 'Color':
+                    return (
+                        <input
+                            {...baseProps}
+                            type="color"
+                            value={fieldValue || '#000000'}
+                            onChange={(e) => handleChange(e.target.value)}
+                        />
+                    );
+
+                case 'Rating':
+                    return (
+                        <div className="d-flex align-items-center">
+                            {[1,2,3,4,5].map(star => (
+                                <button
+                                    key={star}
+                                    type="button"
+                                    className={`btn btn-sm ${star <= (fieldValue || 0) ? 'btn-warning' : 'btn-outline-secondary'}`}
+                                    onClick={() => handleChange(star)}
+                                    disabled={isReadOnly || field.read_only === 1}
+                                >
+                                    <i className="bi bi-star-fill"></i>
+                                </button>
+                            ))}
+                            <span className="ms-2 text-muted">({fieldValue || 0}/5)</span>
+                        </div>
+                    );
+
+                default:
+                    return (
+                        <input
+                            {...baseProps}
+                            type="text"
+                            value={fieldValue}
+                            onChange={(e) => handleChange(e.target.value)}
+                        />
+                    );
+            }
+        };
+
+        // Link Field Component (handles references to other doctypes)
+        const LinkField = ({ field, value, onChange, isReadOnly }) => {
+            const [options, setOptions] = useState([]);
+            const [loading, setLoading] = useState(false);
+
+            useEffect(() => {
+                if (field.options) {
+                    loadLinkOptions();
+                }
+            }, [field.options]);
+
+            const loadLinkOptions = async () => {
+                try {
+                    setLoading(true);
+                    const result = await pb.collection('item').getList(1, 100, {
+                        filter: `doctype = "${field.options}"`,
+                        sort: 'name'
+                    });
+                    setOptions(result.items);
+                } catch (error) {
+                    console.error('Error loading link options:', error);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            return (
+                <select
+                    className="form-control"
+                    value={value || ''}
+                    onChange={(e) => onChange(e.target.value)}
+                    disabled={isReadOnly || field.read_only === 1 || loading}
+                >
+                    <option value="">-- Select {field.label} --</option>
+                    {options.map(option => (
+                        <option key={option.id} value={option.name}>
+                            {option.data?.title || option.name}
+                        </option>
+                    ))}
+                </select>
+            );
+        };
+
+        // Dynamic Form Layout Generator
+        const DynamicFormLayout = ({ schema, data, onChange, isReadOnly = false }) => {
+            if (!schema || !schema.fields) return null;
+
+            const renderFields = () => {
+                const elements = [];
+                let currentSection = null;
+                let currentRow = null;
+                let columnCount = 0;
+
+                schema.fields.forEach((field, index) => {
+                    if (field.fieldtype === 'Section Break') {
+                        // Start new section
+                        if (currentSection) {
+                            elements.push(currentSection);
+                        }
+                        currentSection = (
+                            <div key={`section-${index}`} className="section-break">
+                                {field.label && (
+                                    <h5 className="text-primary mb-3">
+                                        <i className="bi bi-folder me-2"></i>
+                                        {field.label}
+                                    </h5>
+                                )}
+                                <div className="section-fields"></div>
+                            </div>
+                        );
+                        currentRow = null;
+                        columnCount = 0;
+                    } else if (field.fieldtype === 'Column Break') {
+                        // Start new column
+                        columnCount++;
+                        currentRow = null;
+                    } else if (!field.hidden) {
+                        // Regular field
+                        if (!currentSection) {
+                            currentSection = (
+                                <div key={`section-default`} className="section-break">
+                                    <div className="section-fields"></div>
+                                </div>
+                            );
+                        }
+
+                        const fieldElement = (
+                            <div key={field.fieldname} className={`field-group ${columnCount > 0 ? 'column-break' : ''}`}>
+                                <label className={`form-label ${field.reqd ? 'required' : ''}`}>
+                                    {field.label}
+                                    {field.reqd === 1 && <span className="text-danger ms-1">*</span>}
+                                </label>
+                                <DynamicField
+                                    field={field}
+                                    value={data[field.fieldname]}
+                                    onChange={onChange}
+                                    isReadOnly={isReadOnly}
+                                />
+                                {field.description && (
+                                    <div className="form-text">{field.description}</div>
+                                )}
+                            </div>
+                        );
+
+                        // Add to current section
+                        if (currentSection.props.children[1].props.children) {
+                            currentSection.props.children[1].props.children.push(fieldElement);
+                        } else {
+                            currentSection.props.children[1].props.children = [fieldElement];
+                        }
+                    }
+                });
+
+                if (currentSection) {
+                    elements.push(currentSection);
+                }
+
+                return elements;
+            };
+
+            return <div className="dynamic-form">{renderFields()}</div>;
+        };
+
+        // Main App Component
+        const App = () => {
+            const [items, setItems] = useState([]);
+            const [schemas, setSchemas] = useState([]);
+            const [selectedSchema, setSelectedSchema] = useState(null);
+            const [filteredItems, setFilteredItems] = useState([]);
+            const [editingItem, setEditingItem] = useState(null);
+            const [formData, setFormData] = useState({});
+            const [loading, setLoading] = useState(true);
+
+            // Load schemas and items
+            useEffect(() => {
+                loadData();
+            }, []);
+
+            const loadData = async () => {
+                try {
+                    setLoading(true);
+                    
+                    // Load all schemas
+                    const schemasResult = await pb.collection('item').getList(1, 500, {
+                        filter: 'doctype = "Schema"',
+                        sort: 'name'
+                    });
+                    setSchemas(schemasResult.items);
+
+                    // Load all items
+                    const itemsResult = await pb.collection('item').getList(1, 500, {
+                        filter: 'doctype != "Schema"',
+                        sort: '-created'
+                    });
+                    setItems(itemsResult.items);
+                    setFilteredItems(itemsResult.items);
+                    
+                } catch (error) {
+                    console.error('Error loading data:', error);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            // Filter items by selected schema
+            useEffect(() => {
+                if (selectedSchema) {
+                    const schemaName = selectedSchema.data?.name;
+                    const filtered = items.filter(item => item.doctype === schemaName);
+                    setFilteredItems(filtered);
+                } else {
+                    setFilteredItems(items);
+                }
+            }, [selectedSchema, items]);
+
+            // Handle form field changes
+            const handleFieldChange = (fieldName, value) => {
+                setFormData(prev => ({
+                    ...prev,
+                    [fieldName]: value
+                }));
+            };
+
+            // Create new item
+            const createItem = async () => {
+                if (!selectedSchema) return;
+                
+                try {
+                    await pb.collection('item').create({
+                        name: formData.name || `New ${selectedSchema.data.name}`,
+                        doctype: selectedSchema.data.name,
+                        data: formData
+                    });
+                    
+                    await loadData();
+                    setFormData({});
+                } catch (error) {
+                    alert('Error creating item: ' + error.message);
+                }
+            };
+
+            // Update item
+            const updateItem = async () => {
+                if (!editingItem) return;
+                
+                try {
+                    await pb.collection('item').update(editingItem.id, {
+                        data: formData
+                    });
+                    
+                    await loadData();
+                    setEditingItem(null);
+                    setFormData({});
+                } catch (error) {
+                    alert('Error updating item: ' + error.message);
+                }
+            };
+
+            if (loading) {
+                return (
+                    <div className="container mt-5 text-center">
+                        <div className="spinner-border text-primary" style={{width: '3rem', height: '3rem'}}></div>
+                        <p className="mt-3">Loading schemas and data...</p>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="container-fluid">
+                    {/* Header */}
+                    <nav className="navbar navbar-dark bg-dark mb-4 schema-selector">
+                        <div className="container-fluid">
+                            <span className="navbar-brand">
+                                <i className="bi bi-diagram-3 me-2"></i>
+                                Schema-Driven Admin
+                            </span>
+                            <div className="d-flex align-items-center">
+                                <select 
+                                    className="form-select me-3"
+                                    value={selectedSchema?.id || ''}
+                                    onChange={(e) => {
+                                        const schema = schemas.find(s => s.id === e.target.value);
+                                        setSelectedSchema(schema);
+                                        setFormData({});
+                                    }}
+                                    style={{ width: '300px' }}
+                                >
+                                    <option value="">All DocTypes</option>
+                                    {schemas.map(schema => (
+                                        <option key={schema.id} value={schema.id}>
+                                            {schema.data?.name || schema.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                {selectedSchema && (
+                                    <button 
+                                        className="btn btn-primary"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#itemModal"
+                                        onClick={() => {
+                                            setEditingItem(null);
+                                            setFormData({});
+                                        }}
+                                    >
+                                        <i className="bi bi-plus-lg me-1"></i>
+                                        New {selectedSchema.data?.name}
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </nav>
+
+                    <div className="row">
+                        {/* Schema Info */}
+                        {selectedSchema && (
+                            <div className="col-md-3">
+                                <div className="card">
+                                    <div className="card-header">
+                                        <h6 className="mb-0">Schema: {selectedSchema.data?.name}</h6>
+                                    </div>
+                                    <div className="card-body">
+                                        <p className="text-muted small">
+                                            {selectedSchema.data?.description || 'No description'}
+                                        </p>
+                                        <div className="mt-3">
+                                            <div className="d-flex justify-content-between">
+                                                <span>Fields:</span>
+                                                <span className="badge bg-primary">
+                                                    {selectedSchema.data?.fields?.length || 0}
+                                                </span>
+                                            </div>
+                                            <div className="d-flex justify-content-between mt-2">
+                                                <span>Records:</span>
+                                                <span className="badge bg-success">
+                                                    {filteredItems.length}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Items List */}
+                        <div className={selectedSchema ? "col-md-9" : "col-12"}>
+                            <div className="card">
+                                <div className="card-header">
+                                    <h6 className="mb-0">
+                                        Items {selectedSchema ? `(${selectedSchema.data?.name})` : ''}
+                                    </h6>
+                                </div>
+                                <div className="card-body p-0">
+                                    <div className="table-responsive">
+                                        <table className="table table-hover mb-0">
+                                            <thead className="table-dark">
+                                                <tr>
+                                                    <th>Name</th>
+                                                    <th>DocType</th>
+                                                    <th>Data Preview</th>
+                                                    <th>Updated</th>
+                                                    <th width="120">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {filteredItems.map(item => (
+                                                    <tr key={item.id}>
+                                                        <td>
+                                                            <div className="fw-semibold">{item.name}</div>
+                                                            <small className="text-muted">{item.id}</small>
+                                                        </td>
+                                                        <td>
+                                                            <span className="badge bg-primary">{item.doctype}</span>
+                                                        </td>
+                                                        <td>
+                                                            <code style={{fontSize: '0.8em', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block'}}>
+                                                                {JSON.stringify(item.data || {})}
+                                                            </code>
+                                                        </td>
+                                                        <td className="text-muted small">
+                                                            {new Date(item.updated).toLocaleString()}
+                                                        </td>
+                                                        <td>
+                                                            <button 
+                                                                className="btn btn-outline-primary btn-sm me-1"
+                                                                data-bs-toggle="modal"
+                                                                data-bs-target="#itemModal"
+                                                                onClick={() => {
+                                                                    setEditingItem(item);
+                                                                    setFormData(item.data || {});
+                                                                    setSelectedSchema(schemas.find(s => s.data?.name === item.doctype));
+                                                                }}
+                                                            >
+                                                                <i className="bi bi-pencil"></i>
+                                                            </button>
+                                                            <button 
+                                                                className="btn btn-outline-danger btn-sm"
+                                                                onClick={async () => {
+                                                                    if (confirm('Delete this item?')) {
+                                                                        await pb.collection('item').delete(item.id);
+                                                                        loadData();
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <i className="bi bi-trash"></i>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Dynamic Form Modal */}
+                    <div className="modal fade" id="itemModal" tabIndex="-1">
+                        <div className="modal-dialog modal-lg">
+                            <div className="modal-content">
+                                <div className="modal-header">
+                                    <h5 className="modal-title">
+                                        {editingItem ? 'Edit' : 'Create'} {selectedSchema?.data?.name || 'Item'}
+                                    </h5>
+                                    <button type="button" className="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div className="modal-body">
+                                    {selectedSchema && (
+                                        <DynamicFormLayout
+                                            schema={selectedSchema.data}
+                                            data={formData}
+                                            onChange={handleFieldChange}
+                                            isReadOnly={false}
+                                        />
+                                    )}
+                                </div>
+                                <div className="modal-footer">
+                                    <button type="button" className="btn btn-secondary" data-bs-dismiss="modal">
+                                        Cancel
+                                    </button>
+                                    <button 
+                                        type="button" 
+                                        className="btn btn-primary"
+                                        onClick={editingItem ? updateItem : createItem}
+                                        data-bs-dismiss="modal"
+                                    >
+                                        {editingItem ? 'Update' : 'Create'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
