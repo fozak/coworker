@@ -810,3 +810,23 @@
   }
   initPocketBaseFrappeLib();
 })();
+
+/**
+ * @func createViewuserView
+ * @description dummy function, this runs in SQL in @collection.view.userView
+ */
+function createViewuserView() {
+  const sql = `SELECT
+    (ROW_NUMBER() OVER()) AS id,
+    u.name AS name,
+    json_extract(u.data, '$.email') AS email,
+    json_group_array(json_extract(r.data, '$.role')) AS roles
+    FROM item u
+    LEFT JOIN item r
+    ON json_extract(r.data, '$.parent') = u.name
+   AND r.doctype = 'Has Role'
+  WHERE u.doctype = 'User'
+  GROUP BY u.name, json_extract(u.data, '$.email');`;
+
+  return { query: sql, executed: false };
+}
