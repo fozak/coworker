@@ -1,11 +1,34 @@
 # Security
 
+## Last Reference model
+v2
+```js
+/* TODO:check docstatus?  Task with docstatus = 0 should see only owner
+/* TODO:check if general permissions enough or we need from roles like ?
+*/
+
+
+meta.ispublic = 1 ||       /*  for tables in frappe - very importan    */
+data.owner ?= @request.auth.email || /*second place as oweners very ofter use own docs*/
+(@request.auth.doctype ?~ data.doctype)|| /*3rd place as users has allowed doctypes like Task*/
+ (meta.users ~ @request.auth.email) || /* Directly shared with email kept in meta  */
+@request.auth.admin = true || /*admin on last place as it is rare)
+ ```
+
+## Scoping
+
+I see 2 distrinct groups Frappe Doctypes and Erpnext doctypes
+  ### Frappe doc case:
+
+
 ## @todo
 - [x] FIXED: decided on security model for records (@decisions.security.1-3)
 - [] TODO: Test @snippet.request.auth.id with real records
 - [] TODO: Understand how to manage childrecords security https://claude.ai/chat/ad082e08-4c1f-41ac-af71-f0b6b22e522a
 
 ## @decisions.security:
+
+
 1) Keep the hybrid security for records. Add record.user and list names=emails directly for like _assign or _share case
 2) use data.owner field to allow owner to access
 3) use Frappe roles in @collection.users.doctype 
@@ -52,6 +75,7 @@
                       GROUP BY u.name;
                       ```
 4) 
+
 
 new_document_created
 │
