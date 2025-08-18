@@ -854,8 +854,9 @@ Exactly, you nailed a common tricky point:
 # Frond End 
 
 ## Fronted v4
- TODO: refactor - 
+ TODO: refactor - (https://claude.ai/chat/b18c5ec8-8c4a-49be-beaf-b7a3e813db92)
  TODO: consider conditional workflow https://claude.ai/chat/b18c5ec8-8c4a-49be-beaf-b7a3e813db92 
+ 
 
 prompt: I am changing the approach a little bit from Frappe workflow documents which in my case are stored in Pcketbase. I need reacvt UI load completely based on correspondent workflow I have most of functions implemented. Do not give code just comment on implementation. stead of updating workflow_state in 1 doctype in Frappe we update current_state and history in User Flow document
 ChatGPT said:
