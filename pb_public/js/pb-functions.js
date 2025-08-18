@@ -655,10 +655,10 @@
       // This will execute the code inside the current scope
       eval(record.data.code);
     };
-    /**
-     * @func getWorkflow
-     * @description Retrieve the workflow configuration for a given doctype, including states and transitions
-     */
+/**
+* @func getWorkflow
+* @description Retrieve the workflow configuration for a given doctype, including states and transitions
+*/
     pb.getWorkflow = async function (doctype) {
       const workflowResult = await this.collection(window.MAIN_COLLECTION).getList(1, 1, {
         filter: `doctype = "Workflow" && data.document_type = "${doctype}"`
@@ -798,7 +798,7 @@
       await this.updateDoc(docName, updatedData);
       return validTransition.next_state;
     };
-    // Initialize context
+    // end of workflow functions
     if (!pb.context) {
       pb.context = {};
     }
