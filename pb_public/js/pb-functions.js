@@ -162,6 +162,27 @@
       return schemaResult.items.length > 0 ? schemaResult.items[0].data : null;
     };
 
+// Add this after your existing helper functions in pb-functions.js
+/**
+ * @func getDisplayName
+ * @description Get display name for a record based on schema autoname configuration
+ */
+pb.getDisplayName = function(record, schema) {
+  if (!schema?.autoname || !record?.data) return record.name;
+  
+  // Handle "field:fieldname" pattern
+  if (schema.autoname.startsWith('field:')) {
+    const fieldName = schema.autoname.substring(6); // Remove "field:" prefix
+    const displayValue = record.data[fieldName];
+    return displayValue || record.name; // Fallback to record.name if field is empty
+  }
+  
+  // Add other autoname patterns here if needed (like "format:..." etc.)
+  
+  return record.name; // Default fallback
+};
+
+
     // ==============================================
     // 🔗 Link Field Database Operations
     // ==============================================

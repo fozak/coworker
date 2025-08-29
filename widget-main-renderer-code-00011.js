@@ -104,9 +104,11 @@
                 React.createElement('td', { key: 'check' },
                   React.createElement('input', { type: 'checkbox', checked: selectedRows.has(row.id), onChange: e => setSelectedRows(prev => { const next = new Set(prev); if (e.target.checked) next.add(row.id); else next.delete(row.id); return next; }) })
                 ),
-                React.createElement('td', { key: 'name' },
-                  React.createElement('a', { href: '#', className: 'text-primary', onClick: e => { e.preventDefault(); window.selectExistingRecord && window.selectExistingRecord(row.id); } }, row.name)
-                ),
+React.createElement('td', { key: 'name' },
+  React.createElement('a', { href: '#', className: 'text-primary', 
+    onClick: e => { e.preventDefault(); window.selectExistingRecord && window.selectExistingRecord(row.id); } 
+  }, pb.getDisplayName(row, schema))  // ← Uses pb.getDisplayName
+),
                 React.createElement('td', { key: 'doctype' }, row.doctype),
                 ...visibleFields.map(f => React.createElement('td', { key: f.fieldname },
                   f.fieldtype === 'Check' ? (row.data?.[f.fieldname] ? '✓' : '✗') : 
@@ -277,9 +279,11 @@
                 React.createElement('td', { key: 'check' },
                   React.createElement('input', { type: 'checkbox', checked: selectedRows.has(row.id), onChange: e => setSelectedRows(prev => { const next = new Set(prev); if (e.target.checked) next.add(row.id); else next.delete(row.id); return next; }) })
                 ),
-                React.createElement('td', { key: 'name' },
-                  React.createElement('a', { href: '#', className: 'text-primary', onClick: e => { e.preventDefault(); window.selectExistingRecord && window.selectExistingRecord(row.id); } }, row.name)
-                ),
+React.createElement('td', { key: 'name' },
+  React.createElement('a', { href: '#', className: 'text-primary', 
+    onClick: e => { e.preventDefault(); window.selectExistingRecord && window.selectExistingRecord(row.id); } 
+  }, pb.getDisplayName(row, childSchema))  // ← Uses pb.getDisplayName
+),
                 ...visibleFields.map(f => React.createElement('td', { key: f.fieldname }, renderEditableCell(row, f)))
               ]))
             )
