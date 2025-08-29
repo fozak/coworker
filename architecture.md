@@ -4228,3 +4228,464 @@ doctype = "task" && accessible_by ?~ @request.auth.id
 Where `accessible_by` is an array populated with all users who should have access to this task (project owner, customer owner, etc.).
 
 Is this the kind of access control structure you're dealing with?
+
+# Other
+## naming 
+
+### entities withfield-based 
+
+91 results - 87 files
+
+accounts\doctype\accounting_dimension\accounting_dimension.json:
+  2   "actions": [],
+  3:  "autoname": "field:label",
+  4   "creation": "2019-05-04 18:13:37.002352",
+
+accounts\doctype\accounting_period\accounting_period.json:
+  2   "actions": [],
+  3:  "autoname": "field:period_name",
+  4   "creation": "2018-04-13 18:50:14.672323",
+
+accounts\doctype\bank\bank.json:
+  4   "allow_rename": 1,
+  5:  "autoname": "field:bank_name",
+  6   "creation": "2018-04-07 16:59:59.496668",
+
+accounts\doctype\bank_account_subtype\bank_account_subtype.json:
+  4   "allow_rename": 1,
+  5:  "autoname": "field:account_subtype",
+  6   "creation": "2018-10-25 15:46:08.054586",
+
+accounts\doctype\bank_account_type\bank_account_type.json:
+  4   "allow_rename": 1,
+  5:  "autoname": "field:account_type",
+  6   "creation": "2018-10-25 15:45:45.789963",
+
+accounts\doctype\cheque_print_template\cheque_print_template.json:
+  2   "actions": [],
+  3:  "autoname": "field:bank_name",
+  4   "creation": "2016-05-04 14:35:00.402544",
+
+accounts\doctype\coupon_code\coupon_code.json:
+  3   "allow_import": 1,
+  4:  "autoname": "field:coupon_name",
+  5   "creation": "2018-01-22 14:34:39.701832",
+
+accounts\doctype\finance_book\finance_book.json:
+  3   "allow_import": 1,
+  4:  "autoname": "field:finance_book_name",
+  5   "creation": "2018-04-13 17:42:43.252224",
+
+accounts\doctype\fiscal_year\fiscal_year.json:
+  3   "allow_import": 1,
+  4:  "autoname": "field:year",
+  5   "creation": "2013-01-22 16:50:25",
+
+accounts\doctype\journal_entry_template\journal_entry_template.json:
+  2   "actions": [],
+  3:  "autoname": "field:template_title",
+  4   "creation": "2020-04-09 01:32:51.332301",
+
+accounts\doctype\loyalty_program\loyalty_program.json:
+  2   "actions": [],
+  3:  "autoname": "field:loyalty_program_name",
+  4   "creation": "2018-01-23 06:23:05.731431",
+
+accounts\doctype\mode_of_payment\mode_of_payment.json:
+  4   "allow_rename": 1,
+  5:  "autoname": "field:mode_of_payment",
+  6   "creation": "2012-12-04 17:49:20",
+
+accounts\doctype\monthly_distribution\monthly_distribution.json:
+  2   "actions": [],
+  3:  "autoname": "field:distribution_id",
+  4   "creation": "2013-01-10 16:34:05",
+
+accounts\doctype\payment_term\payment_term.json:
+  4   "allow_rename": 1,
+  5:  "autoname": "field:payment_term_name",
+  6   "creation": "2017-08-10 15:24:54.876365",
+
+accounts\doctype\payment_terms_template\payment_terms_template.json:
+  4   "allow_rename": 1,
+  5:  "autoname": "field:template_name",
+  6   "creation": "2017-08-10 15:34:28.058054",
+
+accounts\doctype\share_type\share_type.json:
+  2   "actions": [],
+  3:  "autoname": "field:title",
+  4   "creation": "2017-12-28 14:55:20.950877",
+
+accounts\doctype\shipping_rule\shipping_rule.json:
+  3   "allow_import": 1,
+  4:  "autoname": "field:label",
+  5   "creation": "2013-06-25 11:48:03",
+
+accounts\doctype\subscription_plan\subscription_plan.json:
+  3   "allow_rename": 1,
+  4:  "autoname": "field:plan_name",
+  5   "creation": "2018-02-24 11:31:23.066506",
+
+accounts\doctype\tax_category\tax_category.json:
+  3   "allow_rename": 1,
+  4:  "autoname": "field:title",
+  5   "creation": "2022-01-19 01:09:28.920486",
+
+assets\doctype\asset_category\asset_category.json:
+  4   "allow_rename": 1,
+  5:  "autoname": "field:asset_category_name",
+  6   "creation": "2016-03-01 17:41:39.778765",
+
+assets\doctype\asset_maintenance\asset_maintenance.json:
+  2   "actions": [],
+  3:  "autoname": "field:asset_name",
+  4   "creation": "2017-10-19 16:50:22.879545",
+
+assets\doctype\asset_maintenance_team\asset_maintenance_team.json:
+  2   "actions": [],
+  3:  "autoname": "field:maintenance_team_name",
+  4   "creation": "2017-10-20 11:43:47.712616",
+
+assets\doctype\asset_shift_factor\asset_shift_factor.json:
+  3   "allow_rename": 1,
+  4:  "autoname": "field:shift_name",
+  5   "creation": "2023-11-27 18:16:03.980086",
+
+assets\doctype\location\location.json:
+  4   "allow_rename": 1,
+  5:  "autoname": "field:location_name",
+  6   "creation": "2018-05-07 12:49:22.595974",
+
+assets\doctype\maintenance_team_member\maintenance_team_member.json:
+  2   "actions": [],
+  3:  "autoname": "field:team_member",
+  4   "creation": "2016-10-26 10:56:04.534717",
+
+buying\doctype\supplier_scorecard\supplier_scorecard.json:
+  2   "actions": [],
+  3:  "autoname": "field:supplier",
+  4   "creation": "2017-05-29 01:40:54.786555",
+
+buying\doctype\supplier_scorecard_criteria\supplier_scorecard_criteria.json:
+  3   "allow_rename": 1,
+  4:  "autoname": "field:criteria_name",
+  5   "creation": "2017-05-29 01:32:43.064891",
+
+buying\doctype\supplier_scorecard_standing\supplier_scorecard_standing.json:
+  2   "actions": [],
+  3:  "autoname": "field:standing_name",
+  4   "creation": "2017-05-29 01:36:47.893639",
+
+buying\doctype\supplier_scorecard_variable\supplier_scorecard_variable.json:
+  2   "actions": [],
+  3:  "autoname": "field:variable_label",
+  4   "creation": "2017-05-29 01:30:34.688389",
+
+crm\doctype\competitor\competitor.json:
+  3   "allow_rename": 1,
+  4:  "autoname": "field:competitor_name",
+  5   "creation": "2021-10-21 10:28:52.071316",
+
+crm\doctype\contract_template\contract_template.json:
+  3   "allow_rename": 1,
+  4:  "autoname": "field:title",
+  5   "creation": "2018-04-16 06:44:48.791312",
+
+crm\doctype\market_segment\market_segment.json:
+  2   "actions": [],
+  3:  "autoname": "field:market_segment",
+  4   "creation": "2018-10-01 09:59:14.479509",
+
+crm\doctype\opportunity_lost_reason\opportunity_lost_reason.json:
+  3   "allow_rename": 1,
+  4:  "autoname": "field:lost_reason",
+  5   "creation": "2018-12-28 14:48:51.044975",
+
+crm\doctype\prospect\prospect.json:
+  4   "allow_rename": 1,
+  5:  "autoname": "field:company_name",
+  6   "creation": "2021-08-19 00:21:06.995448",
+
+crm\doctype\sales_stage\sales_stage.json:
+  3   "allow_rename": 1,
+  4:  "autoname": "field:stage_name",
+  5   "creation": "2018-10-01 09:28:16.399518",
+
+manufacturing\doctype\plant_floor\plant_floor.json:
+  3   "allow_rename": 1,
+  4:  "autoname": "field:floor_name",
+  5   "creation": "2023-10-06 15:06:07.976066",
+
+manufacturing\doctype\routing\routing.json:
+  2   "actions": [],
+  3:  "autoname": "field:routing_name",
+  4   "creation": "2018-07-15 11:03:24.191613",
+
+manufacturing\doctype\workstation\workstation.json:
+  4   "allow_rename": 1,
+  5:  "autoname": "field:workstation_name",
+  6   "creation": "2013-01-10 16:34:17",
+
+manufacturing\doctype\workstation_type\workstation_type.json:
+  4   "allow_rename": 1,
+  5:  "autoname": "field:workstation_type",
+  6   "creation": "2022-11-04 17:03:23.334818",
+
+projects\doctype\activity_type\activity_type.json:
+  4   "allow_rename": 1,
+  5:  "autoname": "field:activity_type",
+  6   "creation": "2013-03-05 10:14:59",
+
+projects\doctype\project_type\project_type.json:
+  3   "allow_rename": 1,
+  4:  "autoname": "field:project_type",
+  5   "creation": "2017-07-18 13:32:46.031115",
+
+quality_management\doctype\quality_feedback_template\quality_feedback_template.json:
+  2   "actions": [],
+  3:  "autoname": "field:template",
+  4   "creation": "2019-05-26 21:17:24.283061",
+
+quality_management\doctype\quality_goal\quality_goal.json:
+  2   "actions": [],
+  3:  "autoname": "field:goal",
+  4   "creation": "2018-10-02 12:17:41.727541",
+
+quality_management\doctype\quality_procedure\quality_procedure.json:
+  3   "allow_rename": 1,
+  4:  "autoname": "field:quality_procedure_name",
+  5   "creation": "2018-10-06 00:06:29.756804",
+
+regional\doctype\lower_deduction_certificate\lower_deduction_certificate.json:
+  2   "actions": [],
+  3:  "autoname": "field:certificate_no",
+  4   "creation": "2020-03-10 23:12:10.072631",
+
+regional\doctype\south_africa_vat_settings\south_africa_vat_settings.json:
+  2   "actions": [],
+  3:  "autoname": "field:company",
+  4   "creation": "2021-07-08 22:34:33.668015",
+
+regional\doctype\uae_vat_settings\uae_vat_settings.json:
+  2   "actions": [],
+  3:  "autoname": "field:company",
+  4   "creation": "2020-09-25 12:48:51.463265",
+
+selling\doctype\industry_type\industry_type.json:
+  4   "allow_rename": 1,
+  5:  "autoname": "field:industry",
+  6   "creation": "2012-03-27 14:36:09",
+
+selling\doctype\sales_partner_type\sales_partner_type.json:
+  2   "actions": [],
+  3:  "autoname": "field:sales_partner_type",
+  4   "creation": "2018-06-11 13:15:57.404716",
+
+setup\doctype\branch\branch.json:
+  4   "allow_rename": 1,
+  5:  "autoname": "field:branch",
+  6   "creation": "2013-01-10 16:34:13",
+
+setup\doctype\brand\brand.json:
+  4   "allow_rename": 1,
+  5:  "autoname": "field:brand",
+  6   "creation": "2013-02-22 01:27:54",
+
+setup\doctype\company\company.json:
+  4   "allow_rename": 1,
+  5:  "autoname": "field:company_name",
+  6   "creation": "2022-01-25 10:29:55.938239",
+
+setup\doctype\customer_group\customer_group.json:
+  4   "allow_rename": 1,
+  5:  "autoname": "field:customer_group_name",
+  6   "creation": "2013-01-10 16:34:23",
+
+setup\doctype\designation\designation.json:
+  4   "allow_rename": 1,
+  5:  "autoname": "field:designation_name",
+  6   "creation": "2013-01-10 16:34:13",
+
+setup\doctype\employee_group\employee_group.json:
+  2   "actions": [],
+  3:  "autoname": "field:employee_group_name",
+  4   "creation": "2018-11-19 12:33:31.351364",
+
+setup\doctype\holiday_list\holiday_list.json:
+  4   "allow_rename": 1,
+  5:  "autoname": "field:holiday_list_name",
+  6   "creation": "2013-01-10 16:34:14",
+
+setup\doctype\incoterm\incoterm.json:
+  3   "allow_rename": 1,
+  4:  "autoname": "field:code",
+  5   "creation": "2022-11-17 15:17:34.717467",
+
+setup\doctype\item_group\item_group.json:
+  4   "allow_rename": 1,
+  5:  "autoname": "field:item_group_name",
+  6   "creation": "2013-03-28 10:35:29",
+
+setup\doctype\party_type\party_type.json:
+  2   "actions": [],
+  3:  "autoname": "field:party_type",
+  4   "creation": "2016-12-26 11:26:51.508286",
+
+setup\doctype\print_heading\print_heading.json:
+  4   "allow_rename": 1,
+  5:  "autoname": "field:print_heading",
+  6   "creation": "2013-01-10 16:34:24",
+
+setup\doctype\quotation_lost_reason\quotation_lost_reason.json:
+  3   "allow_import": 1,
+  4:  "autoname": "field:order_lost_reason",
+  5   "creation": "2013-01-10 16:34:24",
+
+setup\doctype\sales_partner\sales_partner.json:
+  4   "allow_rename": 1,
+  5:  "autoname": "field:partner_name",
+  6   "creation": "2013-04-12 15:34:06",
+
+setup\doctype\sales_person\sales_person.json:
+  4   "allow_rename": 1,
+  5:  "autoname": "field:sales_person_name",
+  6   "creation": "2013-01-10 16:34:24",
+
+setup\doctype\supplier_group\supplier_group.json:
+  4   "allow_rename": 1,
+  5:  "autoname": "field:supplier_group_name",
+  6   "creation": "2013-01-10 16:34:24",
+
+setup\doctype\terms_and_conditions\terms_and_conditions.json:
+  4   "allow_rename": 1,
+  5:  "autoname": "field:title",
+  6   "creation": "2013-01-10 16:34:24",
+
+setup\doctype\territory\territory.json:
+  4   "allow_rename": 1,
+  5:  "autoname": "field:territory_name",
+  6   "creation": "2013-01-10 16:34:24",
+
+setup\doctype\uom\uom.json:
+  4   "allow_rename": 1,
+  5:  "autoname": "field:uom_name",
+  6   "creation": "2013-01-10 16:34:24",
+
+setup\doctype\vehicle\vehicle.json:
+  3   "allow_rename": 1,
+  4:  "autoname": "field:license_plate",
+  5   "creation": "2016-09-03 03:33:27.680331",
+
+stock\doctype\batch\batch.json:
+  3   "allow_import": 1,
+  4:  "autoname": "field:batch_id",
+  5   "creation": "2013-03-05 14:50:38",
+
+stock\doctype\customs_tariff_number\customs_tariff_number.json:
+  3   "allow_rename": 1,
+  4:  "autoname": "field:tariff_number",
+  5   "creation": "2017-03-24 15:30:36.314639",
+
+stock\doctype\inventory_dimension\inventory_dimension.json:
+  2   "actions": [],
+  3:  "autoname": "field:dimension_name",
+  4   "creation": "2022-06-17 13:04:16.554051",
+
+stock\doctype\inventory_dimension\test_inventory_dimension.py:
+  529  				"naming_rule": "By fieldname",
+  530: 				"autoname": "field:store_name",
+  531  				"fields": [{"label": "Store Name", "fieldname": "store_name", "fieldtype": "Data"}],
+
+  558  				"naming_rule": "By fieldname",
+  559: 				"autoname": "field:shelf_name",
+  560  				"fields": [{"label": "Shelf Name", "fieldname": "shelf_name", "fieldtype": "Data"}],
+
+  587  				"naming_rule": "By fieldname",
+  588: 				"autoname": "field:rack_name",
+  589  				"fields": [{"label": "Rack Name", "fieldname": "rack_name", "fieldtype": "Data"}],
+
+  616  				"naming_rule": "By fieldname",
+  617: 				"autoname": "field:pallet_name",
+  618  				"fields": [{"label": "Pallet Name", "fieldname": "pallet_name", "fieldtype": "Data"}],
+
+  639  				"naming_rule": "By fieldname",
+  640: 				"autoname": "field:site_name",
+  641  				"fields": [{"label": "Site Name", "fieldname": "site_name", "fieldtype": "Data"}],
+
+stock\doctype\item\item.json:
+  4   "allow_rename": 1,
+  5:  "autoname": "field:item_code",
+  6   "creation": "2013-05-03 10:45:46",
+
+stock\doctype\item_attribute\item_attribute.json:
+  4   "allow_rename": 1,
+  5:  "autoname": "field:attribute_name",
+  6   "creation": "2014-09-26 03:49:54.899170",
+
+stock\doctype\manufacturer\manufacturer.json:
+  4   "allow_rename": 1,
+  5:  "autoname": "field:short_name",
+  6   "creation": "2016-01-17 11:04:52.761731",
+
+stock\doctype\price_list\price_list.json:
+  4   "allow_rename": 1,
+  5:  "autoname": "field:price_list_name",
+  6   "creation": "2013-01-25 11:35:09",
+
+stock\doctype\quality_inspection_parameter\quality_inspection_parameter.json:
+  2   "actions": [],
+  3:  "autoname": "field:parameter",
+  4   "creation": "2020-12-28 17:06:00.254129",
+
+stock\doctype\quality_inspection_parameter_group\quality_inspection_parameter_group.json:
+  2   "actions": [],
+  3:  "autoname": "field:group_name",
+  4   "creation": "2021-02-04 18:44:12.223295",
+
+stock\doctype\quality_inspection_template\quality_inspection_template.json:
+  4   "allow_rename": 1,
+  5:  "autoname": "field:quality_inspection_template_name",
+  6   "creation": "2018-01-24 16:23:41.691127",
+
+stock\doctype\serial_no\serial_no.json:
+  3   "allow_import": 1,
+  4:  "autoname": "field:serial_no",
+  5   "creation": "2013-05-16 10:59:15",
+
+stock\doctype\shipment_parcel_template\shipment_parcel_template.json:
+  2   "actions": [],
+  3:  "autoname": "field:parcel_template_name",
+  4   "creation": "2020-07-09 11:43:43.470339",
+
+stock\doctype\uom_category\uom_category.json:
+  3   "allow_rename": 1,
+  4:  "autoname": "field:category_name",
+  5   "creation": "2018-04-30 17:27:14.742005",
+
+telephony\doctype\call_log\call_log.json:
+  2   "actions": [],
+  3:  "autoname": "field:id",
+  4   "creation": "2022-02-21 11:54:58.414784",
+
+telephony\doctype\telephony_call_type\telephony_call_type.json:
+  3   "allow_rename": 1,
+  4:  "autoname": "field:call_type",
+  5   "creation": "2022-02-25 16:13:37.321312",
+
+telephony\doctype\voice_call_settings\voice_call_settings.json:
+  2   "actions": [],
+  3:  "autoname": "field:user",
+  4   "creation": "2020-12-08 16:52:40.590146",
+
+tests\test_webform.py:
+  74  			"custom": 1,
+  75: 			"autoname": "field:po",
+  76  			"fields": [
+
+utilities\doctype\video\video.json:
+  4   "allow_rename": 1,
+  5:  "autoname": "field:title",
+  6   "creation": "2018-10-17 05:47:13.087395",
+
+## FIX form etc SELECT
+https://claude.ai/chat/1647f6ae-746b-422d-8a51-7e8f3319de41
