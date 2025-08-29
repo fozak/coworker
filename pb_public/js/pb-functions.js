@@ -830,3 +830,33 @@ function createViewuserView() {
 
   return { query: sql, executed: false };
 }
+
+/* user doccontext - NO roles*/
+
+pb.getCurrentUserDocAndSchemaNoRoles = async function () {
+  if (!pb.authStore.isValid || !pb.authStore.model) {
+    return null;
+  }
+
+  const name = pb.authStore.model.email;
+  const doc = await pb.getDoc(name);
+  const docSchema = await pb.getSchema(doc.doctype);
+
+  return { doc, docSchema };
+}
+
+
+pb.getCurrentUserDocAndSchema = async function () {   
+  if (!pb.authStore.isValid || !pb.authStore.model) {     
+    return null;   
+  }    
+  
+  const name = pb.authStore.model.email;   
+  const doc = await pb.getDoc(name);   
+  const docSchema = await pb.getSchema(doc.doctype);
+  const roleChildren = await pb.listChildren('Has Role', name);
+  const docRoles = roleChildren.map(roleDoc => roleDoc.data.role).filter(Boolean);
+  
+  return 
+  user: { doc, docSchema, docRoles }; 
+};

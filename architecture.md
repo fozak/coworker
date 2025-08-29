@@ -8,7 +8,7 @@ v2
 */
 
 
-meta.ispublic = 1 ||       /*  for tables in frappe - very importan    */
+meta.is_public = 1 ||       /*  for tables in frappe - very importan    */
 data.owner ?= @request.auth.email || /*second place as oweners very ofter use own docs*/
 (@request.auth.doctype ?~ data.doctype)|| /*3rd place as users has allowed doctypes like Task*/
  (meta.users ~ @request.auth.email) || /* Directly shared with email kept in meta  */
@@ -853,10 +853,778 @@ Exactly, you nailed a common tricky point:
 
 # Frond End 
 
+
+## Frontend v6 
+Archetypes 
+https://claude.ai/chat/8c7d17fd-e7f0-4c0a-9ab2-027698049c8d
+https://claude.ai/chat/8c7d17fd-e7f0-4c0a-9ab2-027698049c8d
+
+no think i was wrong. most of Frappe fields are archetypical, so I will reference the archetype in PARENT, next to the field, or even better, flag non_archetypical = "Special Email style" for styles that are NOT mainstream
+
+Brilliant insight! You're absolutely right - most fields are archetypal, so we should only override when needed. This is much more efficient.
+
+The Archetypal Approach
+Core Principle
+Default: Use field archetype styling (Email = email archetype, Password = password archetype)
+Override: Only when you need custom styling via non_archetypal flag
+DocType Structure
+LoginForm DocType
+json
+{
+  "doctype": "LoginForm",
+  "fields": [
+    {
+      "fieldname": "email",
+      "fieldtype": "Data", 
+      "label": "Email",
+      // Uses default "email" archetype automatically
+    },
+    {
+      "fieldname": "password",
+      "fieldtype": "Password",
+      "label": "Password", 
+      // Uses default "password" archetype automatically
+    },
+    {
+      "fieldname": "company_email", 
+      "fieldtype": "Data",
+      "label": "Company Email",
+      "non_archetypal": "Corporate Email Style"  // 👈 Override only when needed
+    }
+  ]
+}
+Archetype System
+Built-in Archetypes
+javascript
+const FIELD_ARCHETYPES = {
+  // Data field archetypes
+  'email': {
+    css_class: 'form-group email-field',
+    input_css_class: 'form-control email-input rounded border-blue-200',
+    placeholder: 'Enter email address',
+    icon: 'mail',
+    attributes: { autoComplete: 'username', type: 'email' }
+  },
+  
+  'phone': {
+    css_class: 'form-group phone-field', 
+    input_css_class: 'form-control phone-input rounded border-green-200',
+    placeholder: 'Enter phone number',
+    icon: 'phone',
+    attributes: { autoComplete: 'tel', type: 'tel' }
+  },
+  
+  'name': {
+    css_class: 'form-group name-field',
+    input_css_class: 'form-control name-input rounded border-gray-200', 
+    placeholder: 'Enter full name',
+    icon: 'user',
+    attributes: { autoComplete: 'name' }
+  },
+
+  // Password archetypes
+  'password': {
+    css_class: 'form-group password-field',
+    input_css_class: 'form-control password-input rounded border-red-200',
+    placeholder: '••••••••',
+    icon: 'lock', 
+    attributes: { autoComplete: 'current-password' }
+  },
+  
+  'new-password': {
+    css_class: 'form-group new-password-field',
+    input_css_class: 'form-control new-password-input rounded border-orange-200',
+    placeholder: 'Create strong password',
+    icon: 'key',
+    attributes: { autoComplete: 'new-password' }
+  },
+
+  // Select archetypes  
+  'country': {
+    css_class: 'form-group country-field',
+    input_css_class: 'form-control country-select rounded border-purple-200',
+    icon: 'globe'
+  }
+};
+Smart Style Resolution
+javascript
+const useFieldStyle = (field) => {
+  // 1. If non_archetypal is set, load that custom style
+  if (field.non_archetypal) {
+    return useCustomStyle(field.non_archetypal);
+  }
+  
+  // 2. Try to detect archetype from fieldname
+  const archetype = detectArchetype(field.fieldname, field.fieldtype);
+  if (archetype && FIELD_ARCHETYPES[archetype]) {
+    return { style: FIELD_ARCHETYPES[archetype], loading: false };
+  }
+  
+  // 3. Fallback to fieldtype default
+  const fieldtypeDefault = FIELD_ARCHETYPES[field.fieldtype.toLowerCase()];
+  return { style: fieldtypeDefault || getDefaultStyle(), loading: false };
+};
+
+const detectArchetype = (fieldname, fieldtype) => {
+  // Smart detection based on field name patterns
+  const patterns = {
+    'email': /email|e_mail|mail_id/i,
+    'phone': /phone|mobile|contact|tel/i, 
+    'name': /name|full_name|user_name/i,
+    'password': /password|pwd|pass/i,
+    'new-password': /new_password|confirm_password|repeat_password/i,
+    'country': /country|nation/i
+  };
+  
+  for (const [archetype, pattern] of Object.entries(patterns)) {
+    if (pattern.test(fieldname)) {
+      return archetype;
+    }
+  }
+  
+  return null;
+};
+Benefits
+✅ 90% Zero Config
+Most fields get perfect styling automatically
+No need to specify styles for common patterns
+✅ Smart Detection
+email field → email archetype
+mobile_phone field → phone archetype
+user_password field → password archetype
+✅ Minimal Override
+Only specify non_archetypal when you need something special
+Keep 90% of forms clean and simple
+✅ Consistent UX
+All email fields look the same across app
+All phone fields have consistent behavior
+Familiar patterns for users
+Example Usage
+javascript
+// 90% of fields - zero configuration
+{
+  fieldname: "email",        // → auto-detects email archetype  
+  fieldtype: "Data",
+  label: "Email"
+}
+
+// 10% of fields - custom styling when needed
+{
+  fieldname: "admin_email",
+  fieldtype: "Data", 
+  label: "Admin Email",
+  non_archetypal: "Admin Email Special"  // → loads custom style
+}
+This approach is much more scalable - you get beautiful, consistent forms with minimal configuration, but full customization power when needed! 🎯
+
+
+
+
+
+
+
+
+
+
+## Frontend v5
+ TODO: add styles and action functions, generate context https://claude.ai/chat/f0e82e8d-01ca-486b-851a-c099f64fee70 
+
+ ```js and context.js they are NOT integrated
+ import React, { useState } from 'react';
+import { ChevronDown, MoreVertical } from 'lucide-react';
+
+// Style variants - could come from theme/config
+const STYLE_VARIANTS = {
+  primary: 'bg-blue-600 hover:bg-blue-700 text-white',
+  success: 'bg-green-600 hover:bg-green-700 text-white',
+  danger: 'bg-red-600 hover:bg-red-700 text-white',
+  warning: 'bg-yellow-600 hover:bg-yellow-700 text-white',
+  secondary: 'bg-gray-200 hover:bg-gray-300 text-gray-900',
+  
+  // Badge variants
+  draft: 'bg-gray-100 text-gray-700',
+  pending: 'bg-yellow-100 text-yellow-700',
+  approved: 'bg-green-100 text-green-700',
+  rejected: 'bg-red-100 text-red-700'
+};
+
+const WorkflowToolbar = ({ context, onAction }) => {
+  const [showActionsMenu, setShowActionsMenu] = useState(false);
+  const { user, document, schema, workflow, userFlow } = context;
+
+  // Get workflow actions based on current state and user roles
+  const getWorkflowActions = () => {
+    if (!userFlow?.current_state || !workflow?.transitions) return [];
+    
+    return workflow.transitions
+      .filter(t => t.from_state === userFlow.current_state)
+      .filter(t => t.allowed_roles.some(role => user.roles.includes(role)))
+      .filter(t => !t.condition || evaluateCondition(t.condition, { document, user }))
+      .sort((a, b) => (a.idx || 0) - (b.idx || 0))
+      .map(transition => {
+        const actionConfig = workflow.actions.find(a => a.name === transition.action);
+        return actionConfig ? { transition, actionConfig } : null;
+      })
+      .filter(Boolean);
+  };
+
+  // Get document actions based on schema permissions
+  const getDocumentActions = () => {
+    if (!schema?.permissions) return [];
+    
+    const userPermissions = schema.permissions.filter(p => 
+      user.roles.includes(p.role) && 
+      (!p.conditions || evaluateCondition(p.conditions, { document, user }))
+    );
+    
+    const actions = [];
+    const canWrite = userPermissions.some(p => p.write);
+    const canCancel = userPermissions.some(p => p.cancel);
+    
+    // Standard document actions - could be configurable
+    if (canWrite && !document.via_workflow) {
+      actions.push({ name: 'edit', label: 'Edit', icon: 'edit', variant: 'secondary' });
+    }
+    if (canCancel && !['cancelled', 'rejected'].includes(document.workflow_state)) {
+      actions.push({ name: 'cancel', label: 'Cancel', icon: 'x-circle', variant: 'danger' });
+    }
+    
+    // Always available actions
+    actions.push(
+      { name: 'duplicate', label: 'Duplicate', icon: 'copy', variant: 'secondary' },
+      { name: 'print', label: 'Print', icon: 'printer', variant: 'secondary' },
+      { name: 'email', label: 'Email', icon: 'mail', variant: 'secondary' }
+    );
+    
+    return actions;
+  };
+
+  const evaluateCondition = (condition, context) => {
+    if (!condition) return true;
+    try {
+      return new Function('document', 'user', `return ${condition}`)(context.document, context.user);
+    } catch (e) {
+      console.warn('Condition evaluation failed:', condition, e);
+      return false;
+    }
+  };
+
+  const getCurrentState = () => {
+    return workflow?.states?.find(s => s.name === userFlow?.current_state);
+  };
+
+  const handleAction = async (actionData) => {
+    const { actionConfig } = actionData;
+    
+    // Handle confirmation
+    if (actionConfig?.confirmation_message) {
+      if (!window.confirm(actionConfig.confirmation_message)) return;
+    }
+    
+    // Handle comment requirement
+    let comment = null;
+    if (actionConfig?.requires_comment) {
+      comment = window.prompt('Please add a comment:');
+      if (!comment?.trim()) return;
+    }
+    
+    // Call parent handler
+    await onAction({
+      type: 'workflow',
+      ...actionData,
+      comment
+    });
+  };
+
+  const handleDocumentAction = async (action) => {
+    await onAction({
+      type: 'document',
+      action,
+      document,
+      user
+    });
+  };
+
+  const workflowActions = getWorkflowActions();
+  const documentActions = getDocumentActions();
+  const primaryAction = workflowActions[0];
+  const secondaryActions = [...workflowActions.slice(1), ...documentActions];
+  const currentState = getCurrentState();
+
+  return (
+    <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
+      {/* Document Info */}
+      <div className="flex items-center space-x-4">
+        <div>
+          <h1 className="text-xl font-semibold text-gray-900">
+            {document.name}
+          </h1>
+          <div className="flex items-center space-x-2 mt-1">
+            {/* Status Badge */}
+            {currentState && (
+              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                STYLE_VARIANTS[currentState.style?.variant] || STYLE_VARIANTS.draft
+              }`}>
+                {currentState.style?.icon && (
+                  <span className="mr-1">{currentState.style.icon}</span>
+                )}
+                {currentState.label}
+              </span>
+            )}
+            <span className="text-sm text-gray-500">
+              Modified {new Date(document.modified).toLocaleDateString()}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex items-center space-x-2">
+        {/* Primary Workflow Action */}
+        {primaryAction && (
+          <button
+            onClick={() => handleAction(primaryAction)}
+            className={`px-4 py-2 rounded-md font-medium transition-colors ${
+              STYLE_VARIANTS[primaryAction.actionConfig.style?.variant] || STYLE_VARIANTS.primary
+            }`}
+          >
+            {primaryAction.actionConfig.style?.icon && (
+              <span className="mr-2">{primaryAction.actionConfig.style.icon}</span>
+            )}
+            {primaryAction.actionConfig.label}
+          </button>
+        )}
+
+        {/* Actions Dropdown */}
+        {secondaryActions.length > 0 && (
+          <div className="relative">
+            <button
+              onClick={() => setShowActionsMenu(!showActionsMenu)}
+              className="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+            >
+              <MoreVertical className="w-4 h-4" />
+            </button>
+            
+            {showActionsMenu && (
+              <>
+                {/* Backdrop */}
+                <div 
+                  className="fixed inset-0 z-10" 
+                  onClick={() => setShowActionsMenu(false)}
+                />
+                
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-20">
+                  <div className="py-1">
+                    {/* Secondary Workflow Actions */}
+                    {workflowActions.slice(1).map((actionData, index) => (
+                      <button
+                        key={`workflow-${actionData.actionConfig.name}-${index}`}
+                        onClick={() => {
+                          handleAction(actionData);
+                          setShowActionsMenu(false);
+                        }}
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                      >
+                        {actionData.actionConfig.style?.icon && (
+                          <span className="mr-2">{actionData.actionConfig.style.icon}</span>
+                        )}
+                        {actionData.actionConfig.label}
+                      </button>
+                    ))}
+                    
+                    {/* Divider */}
+                    {workflowActions.length > 1 && documentActions.length > 0 && (
+                      <div className="border-t border-gray-200 my-1" />
+                    )}
+                    
+                    {/* Document Actions */}
+                    {documentActions.map((action, index) => (
+                      <button
+                        key={`doc-${action.name}-${index}`}
+                        onClick={() => {
+                          handleDocumentAction(action);
+                          setShowActionsMenu(false);
+                        }}
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                      >
+                        {action.icon && <span className="mr-2">{action.icon}</span>}
+                        {action.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Universal Document Page Component
+const DocumentPage = ({ contextLoader, actionHandler, children }) => {
+  const [context, setContext] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    const loadContext = async () => {
+      try {
+        const ctx = await contextLoader();
+        setContext(ctx);
+      } catch (error) {
+        console.error('Failed to load context:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadContext();
+  }, [contextLoader]);
+
+  const handleAction = async (actionData) => {
+    try {
+      await actionHandler(actionData);
+      // Refresh context after action
+      const updatedContext = await contextLoader();
+      setContext(updatedContext);
+    } catch (error) {
+      console.error('Action failed:', error);
+      alert(`Action failed: ${error.message}`);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-600">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!context) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-red-600">Failed to load document context</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <WorkflowToolbar 
+        context={context} 
+        onAction={handleAction} 
+      />
+      <div className="p-4">
+        {children(context, handleAction)}
+      </div>
+    </div>
+  );
+};
+
+// Usage Example - Zero Hardcoding
+const SalesInvoiceView = ({ documentName }) => {
+  const contextLoader = async () => {
+    // This would be your API calls to load all context
+    const [user, document, schema, workflow, userFlow] = await Promise.all([
+      fetch(`/api/user/current`).then(r => r.json()),
+      fetch(`/api/documents/${documentName}`).then(r => r.json()),
+      fetch(`/api/schemas/SalesInvoice`).then(r => r.json()),
+      fetch(`/api/workflows/SalesInvoiceWorkflow`).then(r => r.json()),
+      fetch(`/api/user-flows/current?document=${documentName}`).then(r => r.json())
+    ]);
+    
+    return { user, document, schema, workflow, userFlow };
+  };
+
+  const actionHandler = async (actionData) => {
+    if (actionData.type === 'workflow') {
+      return await fetch('/api/workflow/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(actionData)
+      });
+    } else {
+      return await fetch('/api/document/action', {
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(actionData)
+      });
+    }
+  };
+
+  return (
+    <DocumentPage 
+      contextLoader={contextLoader}
+      actionHandler={actionHandler}
+    >
+      {(context, handleAction) => (
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-medium mb-4">Invoice Details</h2>
+          <p>Customer: {context.document.customer}</p>
+          <p>Amount: ${context.document.total_amount}</p>
+          <p>Status: {context.userFlow?.current_state}</p>
+        </div>
+      )}
+    </DocumentPage>
+  );
+};
+
+export default SalesInvoiceView;
+
+```
+
+
+ https://chatgpt.com/c/68a48123-ca60-8327-9e4c-19239d789506
 ## Fronted v4
  TODO: refactor - (https://claude.ai/chat/b18c5ec8-8c4a-49be-beaf-b7a3e813db92)
  TODO: consider conditional workflow https://claude.ai/chat/b18c5ec8-8c4a-49be-beaf-b7a3e813db92 
+
+ {
+  "workflow_name": "UserOnboarding",
+  "states": [
+    {
+      "name": "ProfileSetup",
+      "component_type": "form",
+      "doctype": "Schema",
+      "for_doctype": "Profile",
+      "is_active": true
+    },
+    {
+      "name": "Dashboard",
+      "component_type": "info",
+      "doctype": null,
+      "message": "Welcome to your Dashboard",
+      "is_active": true
+    }
+  ],
+  "actions": [
+    {
+      "name": "submit_profile",
+      "label": "Submit Profile",
+      "type": "submit",
+      "button_class": "btn btn-primary",
+      "requires_comment": false,
+      "api": {
+        "cmd": "frappe.core.doctype.profile.profile.update_profile",
+        "params": ["profile_data"]
+      },
+      "is_active": true
+    }
+  ],
+  "transitions": [
+    {
+      "name": "ProfileSetup_to_Dashboard",
+      "state": "ProfileSetup",
+      "action": "submit_profile",
+      "next_state": "Dashboard",
+      "allowed": ["Employee", "Admin"],
+      "condition": null,
+      "idx": 1
+    }
+  ]
+}
+
  
+```mermaid
+erDiagram
+    %% Core Workflow Documents
+    WORKFLOW {
+        string id PK
+        string workflow_name
+        string description
+        string document_type FK "DocType lookup - no longer updated"
+        boolean is_active
+        datetime created
+        datetime modified
+    }
+    
+     {
+        string id PK
+        string user_id FK "User lookup"
+        string workflow FK "Workflow lookup"
+        string current_state FK "Workflow State lookup"
+        string document "Current active document ID"
+        json generated_documents "Map of state->document_id"
+        json history "Array of transitions"
+        json accumulated_data "Cross-state data"
+        datetime created
+        datetime modified
+    }
+    
+    %% Table Child Documents
+    WORKFLOW_DOCUMENT_STATE {
+        string id PK
+        string parent FK "Workflow"
+        string state FK "Workflow State lookup"
+        string allow_edit FK "Role lookup"
+        string next_action_email_template FK "Email Template lookup"
+        int idx "Sort order"
+    }
+    
+    WORKFLOW_TRANSITION {
+        string id PK
+        string parent FK "Workflow"
+        string state FK "Workflow State lookup - from state"
+        string action FK "Workflow Action Master lookup"
+        string next_state FK "Workflow State lookup - to state"
+        string allowed FK "Role lookup"
+        string condition "Evaluation condition"
+        int idx "Sort order"
+    }
+    
+    %% Master Data / Lookup Documents
+    WORKFLOW_STATE {
+        string id PK
+        string state_name
+        string component_type "form|info"
+        string doctype "Schema or actual doctype"
+        string for_doctype "If doctype=Schema, target doctype"
+        string message "For info states"
+        json style_config "UI styling"
+        boolean is_active
+    }
+    
+    WORKFLOW_ACTION_MASTER {
+        string id PK
+        string action_name
+        string action_label
+        string action_type "submit|approve|reject|custom"
+        string button_class "CSS classes"
+        boolean requires_comment
+        boolean is_active
+    }
+    
+    ROLE {
+        string id PK
+        string role_name
+        string description
+        json permissions
+        boolean is_active
+    }
+    
+    EMAIL_TEMPLATE {
+        string id PK
+        string template_name
+        string subject
+        text body
+        string template_type
+        json variables
+        boolean is_active
+    }
+    
+    DOCTYPE {
+        string id PK
+        string name
+        string module
+        boolean is_submittable
+        boolean is_single
+        json fields_config
+        boolean is_active
+    }
+    
+    SCHEMA {
+        string id PK
+        string name
+        string doctype "Always 'Schema'"
+        json meta "Contains for_doctype"
+        json fields "Field definitions"
+        boolean is_active
+        datetime created
+        datetime modified
+    }
+    
+    USER {
+        string id PK
+        string username
+        string email
+        json roles "Array of role IDs"
+        boolean is_active
+    }
+    
+    %% Generated Business Documents (Examples)
+    LOGIN_DOCUMENT {
+        string id PK
+        string user FK "User who created"
+        string email
+        string login_method
+        datetime login_time
+        string workflow_state
+        boolean via_workflow
+    }
+    
+    PROFILE_SETUP {
+        string id PK
+        string user FK
+        string full_name
+        string department
+        string phone
+        json preferences
+        string workflow_state
+        boolean via_workflow
+    }
+    
+    SALES_INVOICE {
+        string id PK
+        string customer
+        decimal total_amount
+        string status
+        datetime invoice_date
+        string workflow_state
+        string approved_by FK "User"
+    }
+    
+    %% Relationships
+    WORKFLOW ||--o{ WORKFLOW_DOCUMENT_STATE : "has states"
+    WORKFLOW ||--o{ WORKFLOW_TRANSITION : "has transitions"
+    WORKFLOW ||--o{  : "used in"
+    
+     }o--|| WORKFLOW : "follows"
+     }o--|| USER : "belongs to"
+     }o--|| WORKFLOW_STATE : "current state"
+    
+    WORKFLOW_DOCUMENT_STATE }o--|| WORKFLOW_STATE : "references state"
+    WORKFLOW_DOCUMENT_STATE }o--|| ROLE : "allow edit role"
+    WORKFLOW_DOCUMENT_STATE }o--|| EMAIL_TEMPLATE : "email template"
+    
+    WORKFLOW_TRANSITION }o--|| WORKFLOW_STATE : "from state"
+    WORKFLOW_TRANSITION }o--|| WORKFLOW_STATE : "to next_state"
+    WORKFLOW_TRANSITION }o--|| WORKFLOW_ACTION_MASTER : "action"
+    WORKFLOW_TRANSITION }o--|| ROLE : "allowed role"
+    
+    %% Schema as Document Relationship
+    WORKFLOW_STATE }o--|| SCHEMA : "uses (if state.doctype='Schema')"
+    SCHEMA }o--|| DOCTYPE : "defines creation for (meta.for_doctype)"
+    
+    USER }o--o{ ROLE : "has roles"
+    
+    %% Generated Documents linked to User Flow
+     ||--o{ LOGIN_DOCUMENT : "generates (via workflow)"
+     ||--o{ PROFILE_SETUP : "generates (via workflow)"
+     ||--o{ SALES_INVOICE : "works with (existing)"
+    
+    %% Document Creation Flow
+    LOGIN_DOCUMENT }o--|| USER : "created by"
+    PROFILE_SETUP }o--|| USER : "created by"
+    SALES_INVOICE }o--|| USER : "approved by"
+    
+    %% Styling for different document types
+    classDef coreWorkflow fill:#e1f5fe,stroke:#0277bd,stroke-width:2px
+    classDef userTracking fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef tableChild fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
+    classDef masterData fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px
+    classDef businessDoc fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+    classDef systemDoc fill:#f1f8e9,stroke:#558b2f,stroke-width:2px
+    
+    class WORKFLOW coreWorkflow
+    class  userTracking
+    class WORKFLOW_DOCUMENT_STATE,WORKFLOW_TRANSITION tableChild
+    class WORKFLOW_STATE,WORKFLOW_ACTION_MASTER,ROLE,EMAIL_TEMPLATE,DOCTYPE masterData
+    class LOGIN_DOCUMENT,PROFILE_SETUP,SALES_INVOICE businessDoc
+    class SCHEMA,USER systemDoc
+```
+
 
 prompt: I am changing the approach a little bit from Frappe workflow documents which in my case are stored in Pcketbase. I need reacvt UI load completely based on correspondent workflow I have most of functions implemented. Do not give code just comment on implementation. stead of updating workflow_state in 1 doctype in Frappe we update current_state and history in User Flow document
 ChatGPT said:
@@ -898,9 +1666,9 @@ Analysis:
 Works fine for single-doctype workflows.
 In a multi-doctype / per-user model:
 targetDoctype may no longer represent the initial state’s doctype.
-pb.getWorkflowState(targetName) must return the user-specific current state (from user_flow) instead of just document workflow_state.
+pb.getWorkflowState(targetName) must return the user-specific current state (from ) instead of just document workflow_state.
 Refactor suggestion:
-Make loadWorkflow accept a user ID and fetch the current state from the user_flow document.
+Make loadWorkflow accept a user ID and fetch the current state from the  document.
 Still minimal; the hook itself can stay.
 2. useEffect loading schema for current state
 useEffect(() => {
@@ -946,7 +1714,7 @@ Must handle multi-user approval checks before allowing a transition.
 Refactor suggestion:
 Replace local setCurrentStateName(nextStateName) with a call to a backend API that:
 Validates action against master workflow.
-Updates user_flow document.
+Updates  document.
 Updates document_workflow (for multi-user steps).
 The rest of the local state (workflowData) can stay as temporary UI state.
 4. Rendering section
@@ -969,8 +1737,8 @@ Can stay as-is; backend persists the actual data.
 Might consider clearing state on transition for memory if needed.
 ✅ Summary: Functions that need refactoring
 Function / Section	Reason for refactor	Minimal change suggestion
-loadWorkflow (useEffect)	Must fetch user-specific current state from user_flow	Add user_id parameter and fetch current_state from user_flow document
-handleAction	Currently only updates local state, doesn’t persist	Call backend API to update user_flow + document workflow, validate transitions
+loadWorkflow (useEffect)	Must fetch user-specific current state from 	Add user_id parameter and fetch current_state from  document
+handleAction	Currently only updates local state, doesn’t persist	Call backend API to update  + document workflow, validate transitions
 
 
 Approach: 
@@ -996,7 +1764,7 @@ This is where your architecture change has the biggest impact. Currently it's pu
 
 Backend validation: Check if user can perform this action from their current state
 Multi-user coordination: For approval steps, check if enough users have completed the action
-Persistent updates: Update both user_flow and potentially document_workflow
+Persistent updates: Update both  and potentially document_workflow
 Error handling: What if the action fails due to business rules?
 
 Additional Considerations
@@ -1007,6 +1775,9 @@ Your widget code structure is actually quite solid for this transition - the ren
 
 ## Scoping v3
 ### TODO: refactor workflow_state by document into user-flow.current_state
+
+
+
 ```json user-flow doctype
 {
   "user_id": "user_123",
