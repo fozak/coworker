@@ -34,6 +34,8 @@ I see 2 distrinct groups Frappe Doctypes and Erpnext doctypes
 3) use Frappe roles in @collection.users.doctype 
 
                       ## My access rule become: 
+                      #TODO - no CUSTOMER role in persmissions for documents - otherwise Customer gets access to all. He should be Owner
+                      #TODO - to implement Docshare https://chatgpt.com/c/68b45ad8-9e28-8330-a4cd-799bafcbe2b4
 
                       ```js @snippet.request.auth.id
                       @request.auth.id != "" && (
@@ -42,6 +44,7 @@ I see 2 distrinct groups Frappe Doctypes and Erpnext doctypes
                           @request.auth.doctype ?~ data.doctype
                       )
                       ```
+                      
                       - the SQL to form the list (in view collection in Pocketbase ): 
 
                       ```js
@@ -852,7 +855,8 @@ Exactly, you nailed a common tricky point:
 ---
 
 # Frond End 
-
+## Frontend v7
+https://claude.ai/chat/1647f6ae-746b-422d-8a51-7e8f3319de41 
 
 ## Frontend v6 
 Archetypes 
