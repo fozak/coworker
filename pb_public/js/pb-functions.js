@@ -60,12 +60,24 @@
      * @func updateDoc
      * @description Update a document's data by name
      */
-    pb.updateDoc = async function (name, data) {
+
+    pb.updateDoc = async function (name, newData) {
+  const doc = await this.getDoc(name);
+  if (!doc) throw new Error(`Document not found: ${name}`);
+
+  // merge with existing data
+  const mergedData = { ...doc.data, ...newData };
+
+  return await this.collection(window.MAIN_COLLECTION).update(doc.id, {
+    data: mergedData
+  });
+};
+    /*pb.updateDoc = async function (name, data) {
       const doc = await this.getDoc(name);
       if (!doc) throw new Error(`Document not found: ${name}`);
 
       return await this.collection(window.MAIN_COLLECTION).update(doc.id, { data });
-    };
+    };*/
 
     /**
      * @func deleteDoc

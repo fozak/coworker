@@ -1,4 +1,36 @@
-# Security
+# Security and User management
+
+## v3
+
+https://aistudio.google.com/prompts/12B8mmdu3pt_181qw7q8wRqHOn1d2CZto
+The Recommended Best Practice
+Here is the optimal architecture that combines the strengths of both systems:
+Keep email as the unique key in @users. This is non-negotiable for PocketBase auth.
+Add a profileId field to @users. This should be a Relation type field pointing to the item collection. Set it to be "Required" and "Non-empty". This is your primary, database-enforced link.
+Optionally, but recommended, copy item.name into the users.name field. Treat this as a convenience for administration and debugging, not as the structural link.
+Updated @users Collection Schema:
+email: (Email, Required, Unique) - For login.
+password: (Password) - For login.
+profileId: (Relation to item, Required, Non-empty) - The unbreakable link to the user's profile.
+name: (Text) - A copy of item.name for easy reference.
+roles: (JSON) - The synchronized list of roles for fast API rule checks.
+Updated Hook Logic Snippet:
+code
+```JavaScript
+// Inside your onRecordAfterCreate hook for 'item' doctype 'User'
+
+const newUserProfile = e.record;
+
+const newUserAuthRecord = new Record(usersCollection, {
+    // ... other fields
+    "email": newUserProfile.get('data')?.email,
+    "profileId": newUserProfile.getId(), // The REAL link
+    "name": newUserProfile.get('name'),    // The CONVENIENCE copy
+    "roles": []
+});
+// ... save record
+```
+This design gives you the best of everything: rock-solid PocketBase authentication, a flexible Frappe-style data model, an unbreakable link between them (profileId), and a convenient reference (name) for making your life easier as a developer and administrator.
 
 ## Last Reference model
 v2
@@ -39,9 +71,10 @@ I see 2 distrinct groups Frappe Doctypes and Erpnext doctypes
 
                       ```js @snippet.request.auth.id
                       @request.auth.id != "" && (
-                          data.owner ?= @request.auth.email ||
-                          users ~ @request.auth.email ||
-                          @request.auth.doctype ?~ data.doctype
+                          data.owner ?= @request.auth.email //TODO: OWNER role instead this is no longer good. Workflow defines ||
+                          users ~ @request.auth.email // TODO: how to implement ||
+                          @request.auth.doctype ?~ data.doctype // TODO: to DELETE No need coming back 
+                          @request.auth.roles ~ data.allowed_roles //
                       )
                       ```
                       
@@ -855,6 +888,34 @@ Exactly, you nailed a common tricky point:
 ---
 
 # Frond End 
+
+## Frontend v8
+
+ const context = {
+      currentUser: null,
+      selectedTarget: testTarget,
+      selectedTargetSchema: null,
+      field.options1(childTable): childSchema,
+      field.options1(childTable): childSchema
+      ...
+      selectedTargetSchema: null, //this is for Target document, but how about the childDocs
+      selectedTargetWorkflow: null
+    };
+
+it is make sense to load all schemas for scope (which ones?) 
+
+const context = {
+  currentUser: null,
+
+  selectedTarget: { ...doc },               // e.g. a Sales Invoice
+  selectedTargetSchema: schemas["Sales Invoice"],
+
+  schemas,                                  // all schemas in one place
+
+  selectedTargetWorkflow: { ...workflow }
+};
+
+
 ## Frontend v7
 https://claude.ai/chat/1647f6ae-746b-422d-8a51-7e8f3319de41 
 
