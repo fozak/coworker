@@ -2,6 +2,16 @@
 
 ## v3
 
+https://chatgpt.com/c/68b88d87-c3bc-8333-a9b1-fdf0ce623e6c
+
+-- WORKING
+
+(@request.auth.name = data.owner && meta.allowed_role = "Owner")
+||
+(meta.allowed_role != "Owner" && meta.allowed_role != "" && @request.auth.roles ~ meta.allowed_role)
+
+
+
 https://aistudio.google.com/prompts/12B8mmdu3pt_181qw7q8wRqHOn1d2CZto
 The Recommended Best Practice
 Here is the optimal architecture that combines the strengths of both systems:
