@@ -214,7 +214,7 @@ React.createElement('td', { key: 'name' },
             style: { minWidth: '120px' }
           }, [
             React.createElement('option', { key: 'empty', value: '' }, '-- Select --'),
-            ...options.map(opt => React.createElement('option', { key: opt.value, value: opt.value }, opt.text))
+            ...options.map(opt => React.createElement('option', { key: opt.value, value: opt.value }, opt.displayName || opt.text))
           ]);
         }
         
@@ -375,10 +375,10 @@ React.createElement('td', { key: 'name' },
             }, [
               React.createElement('option', { key: 'empty', value: '' }, '-- Select --'),
               !canShowOptions && field.fieldtype === 'Dynamic Link' && React.createElement('option', { key: 'disabled', disabled: true }, `Select ${field.options} first`),
-              ...options.map(opt => React.createElement('option', { 
-                key: opt.value, 
-                value: opt.value 
-              }, opt.text))
+...options.map(opt => React.createElement('option', { 
+  key: opt.value, 
+  value: opt.value 
+}, opt.displayName || opt.text))
             ])
           : fieldType === 'textarea'
           ? React.createElement('textarea', {

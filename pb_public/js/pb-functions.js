@@ -203,16 +203,20 @@ pb.getDisplayName = function(record, schema) {
      * @func getLinkOptions
      * @description Get options for a Link field of a doctype
      */
-    pb.getLinkOptions = async function (doctype, titleField = 'subject') {
-      const records = await this.collection(window.MAIN_COLLECTION).getFullList({
-        filter: `doctype = "${doctype}"`
-      });
+pb.getLinkOptions = async function (doctype, titleField = 'subject') {
+  const records = await this.collection(window.MAIN_COLLECTION).getFullList({
+    filter: `doctype = "${doctype}"`
+  });
 
-      return records.map(record => ({
-        value: record.name,
-        text: record.data[titleField] || record.name
-      }));
-    };
+  // Get the schema for the target doctype to use with getDisplayName
+  const targetSchema = await this.getSchema(doctype);
+
+  return records.map(record => ({
+    value: record.name,
+    text: record.data[titleField] || record.name,
+    displayName: this.getDisplayName(record, targetSchema)  // Add displayName using schema
+  }));
+};
 
     /**
      * @func getDynamicLinkOptions
@@ -507,24 +511,25 @@ pb.getDisplayName = function(record, schema) {
       }
     };
 
-    /**
-     * @func parseSelectOptions
-     * @description Parse ERPNext Select field options string into array of objects
-     */
-    pb.parseSelectOptions = function (optionsString) {
-      if (!optionsString || typeof optionsString !== 'string') {
-        return [];
-      }
+/**
+ * @func parseSelectOptions
+ * @description Parse ERPNext Select field options string into array of objects
+ */
+pb.parseSelectOptions = function (optionsString) {
+  if (!optionsString || typeof optionsString !== 'string') {
+    return [];
+  }
 
-      return optionsString
-        .split('\n')
-        .map(option => option.trim())
-        .filter(option => option.length > 0)
-        .map(option => ({
-          value: option,
-          text: option
-        }));
-    };
+  return optionsString
+    .split('\n')
+    .map(option => option.trim())
+    .filter(option => option.length > 0)
+    .map(option => ({
+      value: option,
+      text: option,
+      displayName: option  // Add displayName property
+    }));
+};
 
     /**
      * @func getSelectFieldOptions
