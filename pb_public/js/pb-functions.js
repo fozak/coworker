@@ -894,7 +894,6 @@ pb.getCurrentUserDocAndSchema = async function () {
   const docSchema = await pb.getSchema(doc.doctype);
   const roleChildren = await pb.listChildren('Has Role', name);
   const docRoles = roleChildren.map(roleDoc => roleDoc.data.role).filter(Boolean);
-  
-  return 
-  user: { doc, docSchema, docRoles }; 
+
+  return { user: { doc, docSchema, docRoles } };
 };
