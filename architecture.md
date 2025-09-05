@@ -1,16 +1,54 @@
 # Security and User management
-
+## v4
+https://chatgpt.com/c/68b9ebd9-15dc-8326-b61b-2a2f7c5334c2
+going into FieldFSM, FormFSM, and 
 ## v3
 
 https://chatgpt.com/c/68b88d87-c3bc-8333-a9b1-fdf0ce623e6c
+https://aistudio.google.com/prompts/12B8mmdu3pt_181qw7q8wRqHOn1d2CZto
 
--- WORKING
+
+-- WORKING------------------------------------------------------
+TODO: get roles from targetDocument.workflow.currentState.currentRole. so it still like currentState=Draft->currentRole=Owner, after Tansition Role =role(currentState), and the currentState is defined in workflow_state field
+TODO: assign   data.allowed_role = "Owner" && (@request.auth.name = data.owner || @request.auth.name ~ data._assign)
+
+TODO: share - so we basiccaly accumulate the user names - potentaiikly the challenge is share where we need to go deeper
+
+TODO: move everything into data? from meta. 
+
+v3 NOT checked -yet 
+
+(@request.auth.name = data.owner && "Owner" ~ data._allowed_roles)
+||
+(data._allowed_roles != [] && !("Owner" ~ data._allowed_roles) && @request.auth.roles ~ data._allowed_roles)
+
+
+testing v3.1
+
+
 
 (@request.auth.name = data.owner && meta.allowed_role = "Owner")
 ||
 (meta.allowed_role != "Owner" && meta.allowed_role != "" && @request.auth.roles ~ meta.allowed_role)
 
+(the SAME (@request.auth.name = data.owner && meta.allowed_role = "Owner")
+||
+(meta.allowed_role != "Owner" && meta.allowed_role != "" && @request.auth.roles ~ meta.allowed_role))
 
+Vision: 
+_assign: ["User-rutbfbf45445","User-rutbfbf454dfv"] = write access
+_share  ["User-rutbfbf45445":write,"User-rutbfbf454dfv":read]  - trickier for rules 
+await pb.updateDoc("TASK-2025-00010", {"_allowed_roles": ["Manager","Accountant"]});
+decision in _allowed_roles
+
+so basically we just collect usernames unless it is workflow_state = "Draft", defined by allowed_roles = ["Owner"], 
+once its submitted, workflow_state = "Submitted", then individual usernames access in not relevant, and everythign is defined by roles = 
+workflow.currentState.role
+
+- the logic of removing and assigning Owner to allowed_roles: while changing 
+- REMOVing Owner should be LAST operation of currentUser, as by removing it, he is locking record. 
+ await pb.updateDoc("TASK-2025-00011", { allowed_roles: workflow.currentState.role }); - this will lock the record for the USER with Owner
+-------
 
 https://aistudio.google.com/prompts/12B8mmdu3pt_181qw7q8wRqHOn1d2CZto
 The Recommended Best Practice
