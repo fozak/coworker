@@ -20,6 +20,20 @@
     // Global config
     window.MAIN_COLLECTION = window.MAIN_COLLECTION || 'item';
 
+
+    //id generation
+
+    // Attach generateId to pb instance
+pb.generateId = async function() {
+    const chars = '0123456789abcdefghijklmnopqrstuvwxyz';
+    let id = '';
+    for (let i = 0; i < 15; i++) {  // 15 characters
+        id += chars[Math.floor(Math.random() * chars.length)];
+    }
+    return id;
+};
+
+
     // ==============================================
     // 📋 Document Database Operations
     // ==============================================
