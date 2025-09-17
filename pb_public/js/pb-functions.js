@@ -979,27 +979,39 @@
      * @func createFormFieldConfig
      * @description Create standardized field configuration object with Dynamic Link support
      */
-    pb.createFormFieldConfig = function (field, value, formData, selectOptions, linkOptions, permissions = {}) {
-      const inputType = this.getFieldInputType(field.fieldtype);
-      const options = this.getFieldOptions(field, selectOptions, linkOptions, formData);
-      const isReadOnly = !!field.fetch_from || !permissions.write || field.read_only;
-      const isDynamicLinkReady = this.isDynamicLinkReady(field, formData);
+pb.createFormFieldConfig = function (
+  field,
+  value,
+  formData,
+  selectOptions,
+  linkOptions,
+  permissions = { write: true } // ✅ default
+) {
+  const inputType = this.getFieldInputType(field.fieldtype);
+  const options = this.getFieldOptions(field, selectOptions, linkOptions, formData);
 
-      return {
-        field,
-        inputType,
-        value: value || '',
-        options,
-        isReadOnly,
-        isDynamicLinkReady,
-        dependentField: field.fieldtype === 'Dynamic Link' ? field.options : null,
-        dependentValue: field.fieldtype === 'Dynamic Link' ? this.getDynamicLinkDependentValue(field, formData) : null,
-        placeholder: this.getDynamicLinkPlaceholder(field, formData),
-        hasAutoFill: !!field.fetch_from,
-        cssClass: `form-control ${isReadOnly ? 'bg-light' : ''}`,
-        showDependencyHint: field.fieldtype === 'Dynamic Link' && !isDynamicLinkReady
-      };
-    };
+  const isReadOnly = !!field.fetch_from || field.read_only || permissions.write === false;
+
+  const isDynamicLinkReady = this.isDynamicLinkReady(field, formData);
+
+  return {
+    field,
+    inputType,
+    value: value || '',
+    options,
+    isReadOnly,
+    isDynamicLinkReady,
+    dependentField: field.fieldtype === 'Dynamic Link' ? field.options : null,
+    dependentValue: field.fieldtype === 'Dynamic Link'
+      ? this.getDynamicLinkDependentValue(field, formData)
+      : null,
+    placeholder: this.getDynamicLinkPlaceholder(field, formData),
+    hasAutoFill: !!field.fetch_from,
+    cssClass: `form-control ${isReadOnly ? 'bg-light' : ''}`,
+    showDependencyHint: field.fieldtype === 'Dynamic Link' && !isDynamicLinkReady
+  };
+};
+
 
     /**
      * @func loadDynamicLinkOptions
