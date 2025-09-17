@@ -24,14 +24,14 @@
     //id generation
 
     // Attach generateId to pb instance
-pb.generateId = async function() {
-    const chars = '0123456789abcdefghijklmnopqrstuvwxyz';
-    let id = '';
-    for (let i = 0; i < 15; i++) {  // 15 characters
+    pb.generateId = async function () {
+      const chars = '0123456789abcdefghijklmnopqrstuvwxyz';
+      let id = '';
+      for (let i = 0; i < 15; i++) {  // 15 characters
         id += chars[Math.floor(Math.random() * chars.length)];
-    }
-    return id;
-};
+      }
+      return id;
+    };
 
 
     // ==============================================
@@ -76,16 +76,16 @@ pb.generateId = async function() {
      */
 
     pb.updateDoc = async function (name, newData) {
-  const doc = await this.getDoc(name);
-  if (!doc) throw new Error(`Document not found: ${name}`);
+      const doc = await this.getDoc(name);
+      if (!doc) throw new Error(`Document not found: ${name}`);
 
-  // merge with existing data
-  const mergedData = { ...doc.data, ...newData };
+      // merge with existing data
+      const mergedData = { ...doc.data, ...newData };
 
-  return await this.collection(window.MAIN_COLLECTION).update(doc.id, {
-    data: mergedData
-  });
-};
+      return await this.collection(window.MAIN_COLLECTION).update(doc.id, {
+        data: mergedData
+      });
+    };
     /*pb.updateDoc = async function (name, data) {
       const doc = await this.getDoc(name);
       if (!doc) throw new Error(`Document not found: ${name}`);
@@ -188,25 +188,25 @@ pb.generateId = async function() {
       return schemaResult.items.length > 0 ? schemaResult.items[0].data : null;
     };
 
-// Add this after your existing helper functions in pb-functions.js
-/**
- * @func getDisplayName
- * @description Get display name for a record based on schema autoname configuration
- */
-pb.getDisplayName = function(record, schema) {
-  if (!schema?.autoname || !record?.data) return record.name;
-  
-  // Handle "field:fieldname" pattern
-  if (schema.autoname.startsWith('field:')) {
-    const fieldName = schema.autoname.substring(6); // Remove "field:" prefix
-    const displayValue = record.data[fieldName];
-    return displayValue || record.name; // Fallback to record.name if field is empty
-  }
-  
-  // Add other autoname patterns here if needed (like "format:..." etc.)
-  
-  return record.name; // Default fallback
-};
+    // Add this after your existing helper functions in pb-functions.js
+    /**
+     * @func getDisplayName
+     * @description Get display name for a record based on schema autoname configuration
+     */
+    pb.getDisplayName = function (record, schema) {
+      if (!schema?.autoname || !record?.data) return record.name;
+
+      // Handle "field:fieldname" pattern
+      if (schema.autoname.startsWith('field:')) {
+        const fieldName = schema.autoname.substring(6); // Remove "field:" prefix
+        const displayValue = record.data[fieldName];
+        return displayValue || record.name; // Fallback to record.name if field is empty
+      }
+
+      // Add other autoname patterns here if needed (like "format:..." etc.)
+
+      return record.name; // Default fallback
+    };
 
 
     // ==============================================
@@ -217,20 +217,20 @@ pb.getDisplayName = function(record, schema) {
      * @func getLinkOptions
      * @description Get options for a Link field of a doctype
      */
-pb.getLinkOptions = async function (doctype, titleField = 'subject') {
-  const records = await this.collection(window.MAIN_COLLECTION).getFullList({
-    filter: `doctype = "${doctype}"`
-  });
+    pb.getLinkOptions = async function (doctype, titleField = 'subject') {
+      const records = await this.collection(window.MAIN_COLLECTION).getFullList({
+        filter: `doctype = "${doctype}"`
+      });
 
-  // Get the schema for the target doctype to use with getDisplayName
-  const targetSchema = await this.getSchema(doctype);
+      // Get the schema for the target doctype to use with getDisplayName
+      const targetSchema = await this.getSchema(doctype);
 
-  return records.map(record => ({
-    value: record.name,
-    text: record.data[titleField] || record.name,
-    displayName: this.getDisplayName(record, targetSchema)  // Add displayName using schema
-  }));
-};
+      return records.map(record => ({
+        value: record.name,
+        text: record.data[titleField] || record.name,
+        displayName: this.getDisplayName(record, targetSchema)  // Add displayName using schema
+      }));
+    };
 
     /**
      * @func getDynamicLinkOptions
@@ -525,25 +525,25 @@ pb.getLinkOptions = async function (doctype, titleField = 'subject') {
       }
     };
 
-/**
- * @func parseSelectOptions
- * @description Parse ERPNext Select field options string into array of objects
- */
-pb.parseSelectOptions = function (optionsString) {
-  if (!optionsString || typeof optionsString !== 'string') {
-    return [];
-  }
+    /**
+     * @func parseSelectOptions
+     * @description Parse ERPNext Select field options string into array of objects
+     */
+    pb.parseSelectOptions = function (optionsString) {
+      if (!optionsString || typeof optionsString !== 'string') {
+        return [];
+      }
 
-  return optionsString
-    .split('\n')
-    .map(option => option.trim())
-    .filter(option => option.length > 0)
-    .map(option => ({
-      value: option,
-      text: option,
-      displayName: option  // Add displayName property
-    }));
-};
+      return optionsString
+        .split('\n')
+        .map(option => option.trim())
+        .filter(option => option.length > 0)
+        .map(option => ({
+          value: option,
+          text: option,
+          displayName: option  // Add displayName property
+        }));
+    };
 
     /**
      * @func getSelectFieldOptions
@@ -707,10 +707,10 @@ pb.parseSelectOptions = function (optionsString) {
       // This will execute the code inside the current scope
       eval(record.data.code);
     };
-/**
-* @func getWorkflow
-* @description Retrieve the workflow configuration for a given doctype, including states and transitions
-*/
+    /**
+    * @func getWorkflow
+    * @description Retrieve the workflow configuration for a given doctype, including states and transitions
+    */
     pb.getWorkflow = async function (doctype) {
       const workflowResult = await this.collection(window.MAIN_COLLECTION).getList(1, 1, {
         filter: `doctype = "Workflow" && data.document_type = "${doctype}"`
@@ -857,57 +857,233 @@ pb.parseSelectOptions = function (optionsString) {
 
 
 
+
+    // refactoring react
+
+    // ==============================================
+    // 🎨 Form Field Rendering Functions
+    // ==============================================
+
+    /**
+     * @func getFieldInputType
+     * @description Get HTML input type for a Frappe field
+     */
+    pb.getFieldInputType = function (fieldtype) {
+      const typeMap = {
+        'Int': 'number',
+        'Float': 'number',
+        'Currency': 'number',
+        'Percent': 'number',
+        'Date': 'date',
+        'Datetime': 'datetime-local',
+        'Time': 'time',
+        'Check': 'checkbox',
+        'Text': 'textarea',
+        'Small Text': 'textarea',
+        'Text Editor': 'textarea',
+        'Code': 'textarea',
+        'Color': 'color',
+        'Password': 'password',
+        'Link': 'select',
+        'Dynamic Link': 'select',
+        'Select': 'select'
+      };
+      return typeMap[fieldtype] || 'text';
+    };
+
+    /**
+     * @func processFieldValue
+     * @description Process form field value based on fieldtype
+     */
+    pb.processFieldValue = function (value, fieldtype) {
+      switch (fieldtype) {
+        case 'Int':
+          return value === '' ? null : parseInt(value);
+        case 'Float':
+        case 'Currency':
+        case 'Percent':
+          return value === '' ? null : parseFloat(value);
+        case 'Check':
+          return value ? 1 : 0;
+        default:
+          return value;
+      }
+    };
+
+    /**
+     * @func getDynamicLinkDependentValue
+     * @description Get the value of the field that a Dynamic Link depends on
+     */
+    pb.getDynamicLinkDependentValue = function (field, formData) {
+      if (field.fieldtype !== 'Dynamic Link' || !field.options) {
+        return null;
+      }
+      return formData[field.options] || null;
+    };
+
+    /**
+     * @func getFieldOptions
+     * @description Get options for Select/Link fields with Dynamic Link support
+     */
+    pb.getFieldOptions = function (field, selectOptions, linkOptions, formData) {
+      if (field.fieldtype === 'Select') {
+        return selectOptions[field.fieldname] || [];
+      }
+
+      if (field.fieldtype === 'Link') {
+        return linkOptions[field.fieldname] || [];
+      }
+
+      if (field.fieldtype === 'Dynamic Link') {
+        const dependentValue = this.getDynamicLinkDependentValue(field, formData);
+        if (!dependentValue) {
+          return []; // No options until dependent field is selected
+        }
+        return linkOptions[field.fieldname] || [];
+      }
+
+      return [];
+    };
+
+    /**
+     * @func isDynamicLinkReady
+     * @description Check if Dynamic Link field is ready to show options
+     */
+    pb.isDynamicLinkReady = function (field, formData) {
+      if (field.fieldtype !== 'Dynamic Link') {
+        return true; // Not a dynamic link, always ready
+      }
+
+      const dependentValue = this.getDynamicLinkDependentValue(field, formData);
+      return !!dependentValue;
+    };
+
+    /**
+     * @func getDynamicLinkPlaceholder
+     * @description Get appropriate placeholder text for Dynamic Link fields
+     */
+    pb.getDynamicLinkPlaceholder = function (field, formData) {
+      if (field.fieldtype !== 'Dynamic Link') {
+        return `-- Select ${field.label} --`;
+      }
+
+      const dependentValue = this.getDynamicLinkDependentValue(field, formData);
+      if (!dependentValue) {
+        return `Select ${field.options} first`;
+      }
+
+      return `-- Select ${field.label} --`;
+    };
+
+    /**
+     * @func createFormFieldConfig
+     * @description Create standardized field configuration object with Dynamic Link support
+     */
+    pb.createFormFieldConfig = function (field, value, formData, selectOptions, linkOptions, permissions = {}) {
+      const inputType = this.getFieldInputType(field.fieldtype);
+      const options = this.getFieldOptions(field, selectOptions, linkOptions, formData);
+      const isReadOnly = !!field.fetch_from || !permissions.write || field.read_only;
+      const isDynamicLinkReady = this.isDynamicLinkReady(field, formData);
+
+      return {
+        field,
+        inputType,
+        value: value || '',
+        options,
+        isReadOnly,
+        isDynamicLinkReady,
+        dependentField: field.fieldtype === 'Dynamic Link' ? field.options : null,
+        dependentValue: field.fieldtype === 'Dynamic Link' ? this.getDynamicLinkDependentValue(field, formData) : null,
+        placeholder: this.getDynamicLinkPlaceholder(field, formData),
+        hasAutoFill: !!field.fetch_from,
+        cssClass: `form-control ${isReadOnly ? 'bg-light' : ''}`,
+        showDependencyHint: field.fieldtype === 'Dynamic Link' && !isDynamicLinkReady
+      };
+    };
+
+    /**
+     * @func loadDynamicLinkOptions
+     * @description Load options for a Dynamic Link field when dependent field changes
+     */
+    pb.loadDynamicLinkOptions = async function (field, dependentValue, schema) {
+      if (field.fieldtype !== 'Dynamic Link' || !dependentValue) {
+        return [];
+      }
+
+      try {
+        const titleField = schema?.title_field || 'name';
+        return await this.getDynamicLinkOptions(dependentValue, titleField);
+      } catch (err) {
+        console.warn(`Failed to load dynamic options for ${field.fieldname}:`, err);
+        return [];
+      }
+    };
+
+    /**
+     * @func processDynamicLinkUpdate
+     * @description Process updates when a Dynamic Link dependent field changes
+     */
+    pb.processDynamicLinkUpdate = async function (changedFieldName, newValue, schema, linkOptions) {
+      if (!schema?.fields) return { linkOptions, clearedFields: [] };
+
+      // Find all Dynamic Link fields that depend on the changed field
+      const dependentDynamicLinks = schema.fields.filter(f =>
+        f.fieldtype === 'Dynamic Link' && f.options === changedFieldName
+      );
+
+      if (dependentDynamicLinks.length === 0) {
+        return { linkOptions, clearedFields: [] };
+      }
+
+      const updatedLinkOptions = { ...linkOptions };
+      const clearedFields = [];
+
+      for (const dynField of dependentDynamicLinks) {
+        if (newValue) {
+          // Load new options for this Dynamic Link
+          const options = await this.loadDynamicLinkOptions(dynField, newValue, schema);
+          updatedLinkOptions[dynField.fieldname] = options;
+        } else {
+          // Clear options if dependent field is empty
+          updatedLinkOptions[dynField.fieldname] = [];
+          clearedFields.push(dynField.fieldname);
+        }
+      }
+
+      return { linkOptions: updatedLinkOptions, clearedFields };
+    };
+
+    /**
+     * @func getSelectBadgeColor
+     * @description Get Bootstrap badge color for select field values
+     */
+    pb.getSelectBadgeColor = function (value) {
+      if (!value) return 'secondary';
+
+      const colorMap = {
+        'Open': 'primary',
+        'Working': 'info',
+        'Pending Review': 'warning',
+        'Overdue': 'danger',
+        'Template': 'secondary',
+        'Completed': 'success',
+        'Cancelled': 'dark',
+        'Active': 'success',
+        'Inactive': 'secondary',
+        'Draft': 'secondary',
+        'Submitted': 'info',
+        'Approved': 'success',
+        'Rejected': 'danger'
+      };
+
+      return colorMap[value] || 'secondary';
+    };
+
     console.log('✅ PocketBase Frappe Database Functions loaded!');
     console.log(`📋 Collection: ${window.MAIN_COLLECTION}`);
   }
   initPocketBaseFrappeLib();
 })();
 
-/**
- * @func createViewuserView
- * @description dummy function, this runs in SQL in @collection.view.userView
- */
-function createViewuserView() {
-  const sql = `SELECT
-    (ROW_NUMBER() OVER()) AS id,
-    u.name AS name,
-    json_extract(u.data, '$.email') AS email,
-    json_group_array(json_extract(r.data, '$.role')) AS roles
-    FROM item u
-    LEFT JOIN item r
-    ON json_extract(r.data, '$.parent') = u.name
-   AND r.doctype = 'Has Role'
-  WHERE u.doctype = 'User'
-  GROUP BY u.name, json_extract(u.data, '$.email');`;
-
-  return { query: sql, executed: false };
-}
-
-/* user doccontext - NO roles*/
-
-pb.getCurrentUserDocAndSchemaNoRoles = async function () {
-  if (!pb.authStore.isValid || !pb.authStore.model) {
-    return null;
-  }
-
-  const name = pb.authStore.model.email;
-  const doc = await pb.getDoc(name);
-  const docSchema = await pb.getSchema(doc.doctype);
-
-  return { doc, docSchema };
-}
 
 
-pb.getCurrentUserDocAndSchema = async function () {   
-  if (!pb.authStore.isValid || !pb.authStore.model) {     
-    return null;   
-  }    
-  
-  const name = pb.authStore.model.email;   
-  const doc = await pb.getDoc(name);   
-  const docSchema = await pb.getSchema(doc.doctype);
-  const roleChildren = await pb.listChildren('Has Role', name);
-  const docRoles = roleChildren.map(roleDoc => roleDoc.data.role).filter(Boolean);
-
-  return { user: { doc, docSchema, docRoles } };
-};
