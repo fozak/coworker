@@ -1,15 +1,12 @@
-//refactored Dynamic field
 (function() {
-  // Ensure pb object and selectedTarget are available from the environment
   if (!pb || !selectedTarget) {
-    console.error('PocketBase (pb) or selectedTarget not found. Make sure pb-functions.js is loaded and selectedTarget is set.');
+    console.error('PocketBase or selectedTarget not found');
     return;
   }
 
-  // It's good practice to disable auto-cancellation for long-running UI operations
   pb.autoCancellation(false);
 
-  // Load CSS for Bootstrap styling
+  // Load CSS
   const cssLinks = ['https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/css/bootstrap.min.css'];
   cssLinks.forEach(href => {
     if (!document.querySelector(`link[href="${href}"]`)) {
@@ -20,7 +17,7 @@
     }
   });
 
-  // Temporarily disable AMD for compatibility with some UMD builds
+  // Disable AMD
   const prevDefine = window.define;
   window.define = undefined;
 
@@ -49,7 +46,6 @@
       
       return { React: window.React, ReactDOM: window.ReactDOM };
     } finally {
-      // Restore AMD define function if it existed
       if (prevDefine) window.define = prevDefine;
     }
   }
@@ -109,15 +105,13 @@
                   React.createElement('input', { type: 'checkbox', checked: selectedRows.has(row.id), onChange: e => setSelectedRows(prev => { const next = new Set(prev); if (e.target.checked) next.add(row.id); else next.delete(row.id); return next; }) })
                 ),
                 React.createElement('td', { key: 'name' },
-                  React.createElement('a', { href: '#', className: 'text-primary', 
-                    onClick: e => { e.preventDefault(); window.selectExistingRecord && window.selectExistingRecord(row.id); } 
-                  }, pb.getDisplayName(row, schema))
+                  React.createElement('a', { href: '#', className: 'text-primary', onClick: e => { e.preventDefault(); window.selectExistingRecord && window.selectExistingRecord(row.id); } }, row.name)
                 ),
                 React.createElement('td', { key: 'doctype' }, row.doctype),
                 ...visibleFields.map(f => React.createElement('td', { key: f.fieldname },
                   f.fieldtype === 'Check' ? (row.data?.[f.fieldname] ? '✓' : '✗') : 
                   f.fieldtype === 'Select' ? React.createElement('span', { 
-                    className: `badge badge-${pb.getSelectBadgeColor(row.data?.[f.fieldname])}` 
+                    className: `badge badge-${getSelectBadgeColor(row.data?.[f.fieldname])}` 
                   }, row.data?.[f.fieldname] || '') : 
                   (row.data?.[f.fieldname] || '')
                 ))
@@ -126,6 +120,27 @@
           ])
         )
       ]);
+    }
+
+    // Helper function to get badge color for select values
+    function getSelectBadgeColor(value) {
+      if (!value) return 'secondary';
+      const colorMap = {
+        'Open': 'primary',
+        'Working': 'info',
+        'Pending Review': 'warning',
+        'Overdue': 'danger',
+        'Template': 'secondary',
+        'Completed': 'success',
+        'Cancelled': 'dark',
+        'Active': 'success',
+        'Inactive': 'secondary',
+        'Draft': 'secondary',
+        'Submitted': 'info',
+        'Approved': 'success',
+        'Rejected': 'danger'
+      };
+      return colorMap[value] || 'secondary';
     }
 
     // Child Table Component
@@ -144,6 +159,7 @@
           setChildSchema(schema);
           setChildRows(records);
           
+          // Load select options for child table fields
           if (schema) {
             const selectOpts = pb.getSelectFieldOptions(schema);
             setChildSelectOptions(selectOpts);
@@ -169,6 +185,7 @@
         const row = childRows.find(r => r.id === rowId);
         await pb.updateChild(row.name, fieldName, value);
         
+        // Handle fetch_from for child fields
         if (childSchema) {
           const updates = await pb.handleFetchFromUpdates(fieldName, value, childSchema, { ...row.data, [fieldName]: value });
           
@@ -195,7 +212,7 @@
             style: { minWidth: '120px' }
           }, [
             React.createElement('option', { key: 'empty', value: '' }, '-- Select --'),
-            ...options.map(opt => React.createElement('option', { key: opt.value, value: opt.value }, opt.displayName || opt.text))
+            ...options.map(opt => React.createElement('option', { key: opt.value, value: opt.value }, opt.text))
           ]);
         }
         
@@ -261,9 +278,7 @@
                   React.createElement('input', { type: 'checkbox', checked: selectedRows.has(row.id), onChange: e => setSelectedRows(prev => { const next = new Set(prev); if (e.target.checked) next.add(row.id); else next.delete(row.id); return next; }) })
                 ),
                 React.createElement('td', { key: 'name' },
-                  React.createElement('a', { href: '#', className: 'text-primary', 
-                    onClick: e => { e.preventDefault(); window.selectExistingRecord && window.selectExistingRecord(row.id); } 
-                  }, pb.getDisplayName(row, childSchema))
+                  React.createElement('a', { href: '#', className: 'text-primary', onClick: e => { e.preventDefault(); window.selectExistingRecord && window.selectExistingRecord(row.id); } }, row.name)
                 ),
                 ...visibleFields.map(f => React.createElement('td', { key: f.fieldname }, renderEditableCell(row, f)))
               ]))
@@ -273,138 +288,131 @@
       ]);
     }
 
-    // Form Field Component with Dynamic Link Support
-    function FormField({ field, value, onChange, formData, linkOptions, selectOptions, schema, permissions = {} }) {
+    // Form Field Component with Enhanced Select Support
+    function FormField({ field, value, onChange, formData, linkOptions, selectOptions, schema }) {
       if (field.fieldtype === 'Table') {
         return React.createElement(ChildTable, { field, formData, selectOptions });
       }
 
-      const [dynamicLinkOptions, setDynamicLinkOptions] = useState(linkOptions);
-      
-      // THIS IS THE KEY: Calling the function from your pb-functions.js library
-      const config = pb.createFormFieldConfig(field, value, formData, selectOptions, dynamicLinkOptions, permissions);
-
-    // Sync prop updates into state so Dynamic Link options reload correctly
-useEffect(() => {
-  setDynamicLinkOptions(linkOptions);
-}, [linkOptions]);
+      const fieldType = useMemo(() => {
+        switch (field.fieldtype) {
+          case 'Int': case 'Float': case 'Currency': case 'Percent': return 'number';
+          case 'Date': return 'date';
+          case 'Datetime': return 'datetime-local';
+          case 'Time': return 'time';
+          case 'Check': return 'checkbox';
+          case 'Text': case 'Small Text': case 'Text Editor': case 'Code': return 'textarea';
+          case 'Color': return 'color';
+          case 'Password': return 'password';
+          case 'Link': case 'Dynamic Link': case 'Select': return 'select';
+          default: return 'text';
+        }
+      }, [field.fieldtype]);
 
       const handleChange = useCallback(async (e) => {
-        const rawValue = config.inputType === 'checkbox' ? e.target.checked : e.target.value;
-        const processedValue = pb.processFieldValue(rawValue, field.fieldtype);
+        let val = e.target.value;
+        if (field.fieldtype === 'Int') val = val === '' ? null : parseInt(val);
+        else if (['Float', 'Currency', 'Percent'].includes(field.fieldtype)) val = val === '' ? null : parseFloat(val);
+        else if (field.fieldtype === 'Check') val = e.target.checked ? 1 : 0;
 
-        onChange(field.fieldname, processedValue);
+        onChange(field.fieldname, val);
 
-        if (schema) {
-          const { linkOptions: updatedLinkOptions, clearedFields } = await pb.processDynamicLinkUpdate(
-            field.fieldname, 
-            processedValue, 
-            schema, 
-            dynamicLinkOptions
-          );
-          
-          if (Object.keys(updatedLinkOptions).length !== Object.keys(dynamicLinkOptions).length ||
-              JSON.stringify(updatedLinkOptions) !== JSON.stringify(dynamicLinkOptions)) {
-            setDynamicLinkOptions(updatedLinkOptions);
-            
-            clearedFields.forEach(fieldName => {
-              onChange(fieldName, null);
+        // Handle fetch_from updates
+        if (schema && (field.fieldtype === 'Link' || field.fieldtype === 'Dynamic Link')) {
+          setTimeout(async () => {
+            const updates = await pb.handleFetchFromUpdates(field.fieldname, val, schema, { ...formData, [field.fieldname]: val });
+            Object.entries(updates).forEach(([fieldname, value]) => {
+              onChange(fieldname, value);
             });
-          }
-
-          if (field.fieldtype === 'Link' || field.fieldtype === 'Dynamic Link') {
-            setTimeout(async () => {
-              const updates = await pb.handleFetchFromUpdates(field.fieldname, processedValue, schema, { ...formData, [field.fieldname]: processedValue });
-              Object.entries(updates).forEach(([fieldname, value]) => {
-                onChange(fieldname, value);
-              });
-            }, 10);
-          }
+          }, 10);
         }
-      }, [field, onChange, formData, schema, config, dynamicLinkOptions]);
+      }, [field, onChange, formData, schema]);
+
+      // Get appropriate options based on field type
+      const getFieldOptions = useCallback(() => {
+        if (field.fieldtype === 'Select') {
+          return selectOptions[field.fieldname] || [];
+        } else if (field.fieldtype === 'Link' || field.fieldtype === 'Dynamic Link') {
+          return linkOptions[field.fieldname] || [];
+        }
+        return [];
+      }, [field.fieldtype, field.fieldname, selectOptions, linkOptions]);
+
+      const options = getFieldOptions();
+      const isDynamic = field.fieldtype === 'Dynamic Link';
+      const canShowOptions = !isDynamic || formData[field.options];
+      const isReadOnly = !!field.fetch_from;
 
       return React.createElement('div', { className: 'form-group mb-3' }, [
         React.createElement('label', {
           key: 'label',
           className: 'form-label',
-          title: config.hasAutoFill ? `Auto-fetched from: ${field.fetch_from}` : 
-                 config.dependentField ? `Depends on: ${config.dependentField}` : ''
+          title: field.fetch_from ? `Auto-fetched from: ${field.fetch_from}` : ''
         }, [
           field.label,
-          config.hasAutoFill && React.createElement('small', {
+          field.fetch_from && React.createElement('small', {
             key: 'fetch-indicator',
             className: 'text-muted ml-2',
             style: { fontSize: '0.8em' }
           }, '(auto-filled)'),
-          config.showDependencyHint && React.createElement('small', {
-            key: 'dependency-hint',
-            className: 'text-warning ml-2',
+          field.fieldtype === 'Select' && React.createElement('small', {
+            key: 'select-indicator',
+            className: 'text-info ml-2',
             style: { fontSize: '0.8em' }
-          }, `(select ${config.dependentField} first)`)
+          }, '(Select)')
         ]),
-
-        config.inputType === 'select'
+        fieldType === 'select'
           ? React.createElement('select', {
               key: 'select',
-              className: config.cssClass,
-              value: config.value,
+              className: `form-control ${isReadOnly ? 'bg-light' : ''}`,
+              value: value || '',
               onChange: handleChange,
-              disabled: config.isReadOnly || !config.isDynamicLinkReady
+              disabled: isReadOnly
             }, [
-              React.createElement('option', { key: 'empty', value: '' }, config.placeholder),
-              ...config.options.map(opt => React.createElement('option', { 
+              React.createElement('option', { key: 'empty', value: '' }, '-- Select --'),
+              !canShowOptions && field.fieldtype === 'Dynamic Link' && React.createElement('option', { key: 'disabled', disabled: true }, `Select ${field.options} first`),
+              ...options.map(opt => React.createElement('option', { 
                 key: opt.value, 
                 value: opt.value 
-              }, opt.displayName || opt.text))
+              }, opt.text))
             ])
-          : config.inputType === 'textarea'
+          : fieldType === 'textarea'
           ? React.createElement('textarea', {
               key: 'textarea',
-              className: config.cssClass,
-              value: config.value,
+              className: `form-control ${isReadOnly ? 'bg-light' : ''}`,
+              value: value || '',
               onChange: handleChange,
               rows: 3,
-              readOnly: config.isReadOnly,
-              placeholder: field.placeholder || `Enter ${field.label}...`
+              readOnly: isReadOnly
             })
-          : config.inputType === 'checkbox'
+          : fieldType === 'checkbox'
           ? React.createElement('div', { key: 'checkbox-wrapper', className: 'form-check' }, [
               React.createElement('input', {
                 key: 'checkbox',
                 type: 'checkbox',
                 className: 'form-check-input',
-                checked: !!config.value,
+                checked: !!value,
                 onChange: handleChange,
-                disabled: config.isReadOnly
+                disabled: isReadOnly
               }),
               React.createElement('label', { key: 'checkbox-label', className: 'form-check-label' }, 
-                config.value ? 'Yes' : 'No'
+                value ? 'Yes' : 'No'
               )
             ])
           : React.createElement('input', {
               key: 'input',
-              type: config.inputType,
-              className: config.cssClass,
-              value: config.value,
+              type: fieldType,
+              className: `form-control ${isReadOnly ? 'bg-light' : ''}`,
+              value: value || '',
               onChange: handleChange,
-              readOnly: config.isReadOnly,
-              placeholder: field.placeholder || `Enter ${field.label}...`
+              readOnly: isReadOnly
             }),
-
-        field.fieldtype === 'Select' && config.value && React.createElement('div', { key: 'value-badge', className: 'mt-1' },
+        // Show current select value as badge if it's a Select field
+        field.fieldtype === 'Select' && value && React.createElement('div', { key: 'value-badge', className: 'mt-1' },
           React.createElement('span', { 
-            className: `badge badge-${pb.getSelectBadgeColor(config.value)}` 
-          }, config.value)
-        ),
-
-        field.fieldtype === 'Dynamic Link' && config.showDependencyHint && React.createElement('div', {
-          key: 'dependency-status',
-          className: 'mt-1'
-        }, [
-          React.createElement('small', {
-            className: 'text-muted'
-          }, `Waiting for ${config.dependentField} selection...`)
-        ])
+            className: `badge badge-${getSelectBadgeColor(value)}` 
+          }, value)
+        )
       ]);
     }
 
@@ -414,57 +422,49 @@ useEffect(() => {
         schema: null,
         formData: {},
         linkOptions: {},
-        selectOptions: {},
+        selectOptions: {}, // New: Select field options
         loading: true,
         error: null,
         saving: false,
         saveStatus: null
       });
 
-// USE THIS NEW saveToDatabase:
-// This version correctly lists `selectedTarget.name` as a dependency.
-const saveToDatabase = useCallback(async (dataToSave) => {
-    try {
-        setFormState(prev => ({ ...prev, saving: true, saveStatus: null }));
-        // Correctly calls the update function from your pb library
-        await pb.updateDoc(selectedTarget.name, dataToSave);
-        setFormState(prev => ({ ...prev, saveStatus: 'saved', saving: false }));
-        setTimeout(() => setFormState(prev => ({ ...prev, saveStatus: null })), 2000);
-    } catch (err) {
-        console.error('Save error:', err);
-        setFormState(prev => ({ ...prev, saveStatus: 'error', saving: false }));
-        setTimeout(() => setFormState(prev => ({ ...prev, saveStatus: null })), 3000);
-    }
-}, [selectedTarget.name]); // <-- THE FIX: Now React knows this function depends on the selected target.
+      const saveToDatabase = useCallback(async (newData) => {
+        try {
+          setFormState(prev => ({ ...prev, saving: true, saveStatus: null }));
+          await pb.updateDoc(selectedTarget.name, newData);
+          setFormState(prev => ({ ...prev, saveStatus: 'saved' }));
+          setTimeout(() => setFormState(prev => ({ ...prev, saveStatus: null })), 2000);
+        } catch (err) {
+          console.error('Save error:', err);
+          setFormState(prev => ({ ...prev, saveStatus: 'error' }));
+          setTimeout(() => setFormState(prev => ({ ...prev, saveStatus: null })), 3000);
+        } finally {
+          setFormState(prev => ({ ...prev, saving: false }));
+        }
+      }, []);
 
-const onChange = useCallback((fieldName, value) => {
-    // Use the "updater function" to guarantee you have the latest state.
-    setFormState(prevState => {
-        // 1. Create the new, updated form data.
-        const newFormData = { ...prevState.formData, [fieldName]: value };
+      const onChange = useCallback((fieldName, value) => {
+        const newData = { ...formState.formData, [fieldName]: value };
+        setFormState(prev => ({ ...prev, formData: newData }));
 
-        // 2. Clear any pending save from a previous keystroke.
+        // Debounced save
         clearTimeout(window.formSaveTimeout);
-
-        // 3. Schedule a new save for the updated data.
         window.formSaveTimeout = setTimeout(() => {
-            saveToDatabase(newFormData);
+          saveToDatabase(newData);
         }, 1000);
-
-        // 4. Return the new state for the UI to update instantly.
-        return { ...prevState, formData: newFormData };
-    });
-}, [saveToDatabase]); 
+      }, [formState.formData, saveToDatabase]);
 
       const loadData = useCallback(async () => {
         try {
+          // Use enhanced function with Select support
           const { schema, record, linkOptions, selectOptions, formData } = await pb.loadFormDataWithSelects(selectedTarget.doctype, selectedTarget.name);
           
           setFormState({
             schema,
             formData: record?.data || formData,
             linkOptions,
-            selectOptions,
+            selectOptions, // New: Include select options
             loading: false,
             error: null,
             saving: false,
@@ -480,65 +480,38 @@ const onChange = useCallback((fieldName, value) => {
         }
       }, []);
 
-// Replace ONLY this useEffect in your React component:
+      // Handle dynamic link updates
+      useEffect(() => {
+        if (!formState.schema?.fields) return;
 
-useEffect(() => {
-    console.log('Dynamic Link effect triggered', formState.formData);
-  if (!formState.schema?.fields || formState.loading) return;
+        const dynamicFields = formState.schema.fields.filter(f => f.fieldtype === 'Dynamic Link');
+        
+        dynamicFields.forEach(async (field) => {
+          const sourceValue = formState.formData[field.options];
+          if (sourceValue && !formState.linkOptions[field.fieldname]) {
+            try {
+              const options = await pb.getDynamicLinkOptions(sourceValue, formState.schema.title_field || 'subject');
+              setFormState(prev => ({
+                ...prev,
+                linkOptions: { ...prev.linkOptions, [field.fieldname]: options }
+              }));
+            } catch (err) {
+              console.warn(`Failed to load dynamic options for ${field.fieldname}:`, err);
+            }
+          }
+        });
+      }, [formState.formData, formState.schema?.fields, formState.linkOptions]);
 
-  const dynamicFields = formState.schema.fields.filter(f => f.fieldtype === 'Dynamic Link');
-  console.log('Dynamic fields detected:', dynamicFields);
-
-  dynamicFields.forEach(field => {
-    const sourceField = field.options; // the Link field this Dynamic Link depends on
-    const sourceValue = formState.formData[sourceField];
-
-    setFormState(prev => {
-      const prevSourceValue = prev.linkOptions[`${field.fieldname}_source`];
-
-      // Only reload if the source value exists and changed
-      if (sourceValue && prevSourceValue !== sourceValue) {
-        // Clear dependent value if it exists
-        console.log(`Reloading options for ${field.fieldname}, sourceValue=${sourceValue}`);
-  // Clear dependent value
-        if (prev.formData[field.fieldname]) {
-          onChange(field.fieldname, null);
-        }
-
-        // Load new dynamic options for this field
-        pb.getDynamicLinkOptions(sourceValue, prev.schema?.title_field || 'subject')
-          .then(options => {
-            console.log(`Loaded options:`, options);
-            setFormState(current => ({
-              ...current,
-              linkOptions: {
-                ...current.linkOptions,
-                [field.fieldname]: options,
-                [`${field.fieldname}_source`]: sourceValue
-              }
-            }));
-          })
-          .catch(err => console.error(`Failed to load dynamic options for ${field.fieldname}:`, err));
-      }
-
-      return prev; // immediate return, async will update later
-    });
-  });
-}, [
-  formState.formData,         // watch all form data
-  formState.schema?.fields,   // watch schema fields
-  onChange                    // dependency for clearing values
-]);
-
-
-// That's it - no other changes needed. This minimal fix:
-
+      // Process initial fetch_from fields
       useEffect(() => {
         if (!formState.schema?.fields || formState.loading) return;
+
         const processFetchFromFields = async () => {
           const fetchFromFields = formState.schema.fields.filter(f => f.fetch_from);
           if (fetchFromFields.length === 0) return;
+
           const updates = await pb.processFetchFromBatch(fetchFromFields, formState.formData);
+          
           if (Object.keys(updates).length > 0) {
             setFormState(prev => ({
               ...prev,
@@ -546,6 +519,7 @@ useEffect(() => {
             }));
           }
         };
+
         processFetchFromFields();
       }, [formState.schema?.fields, formState.loading]);
 
@@ -560,15 +534,18 @@ useEffect(() => {
           )
         );
       }
+
       if (formState.error) {
         return React.createElement('div', { className: 'alert alert-danger' }, formState.error);
       }
+
       if (!formState.schema) return null;
 
       const fieldsMap = Object.fromEntries(formState.schema.fields.map(f => [f.fieldname, f]));
       const fieldOrder = formState.schema.field_order || [];
 
       return React.createElement('div', { className: 'form-layout' }, [
+        // Save status indicator
         formState.saveStatus && React.createElement('div', {
           key: 'status',
           className: `alert ${formState.saveStatus === 'saved' ? 'alert-success' : 'alert-danger'} mb-3`
@@ -576,6 +553,8 @@ useEffect(() => {
           formState.saving && React.createElement('span', { key: 'spinner', className: 'spinner-border spinner-border-sm me-2' }),
           formState.saveStatus === 'saved' ? '✓ Saved' : formState.saveStatus === 'error' ? '✗ Save failed' : 'Saving...'
         ]),
+
+        // Schema info
         React.createElement('div', { key: 'schema-info', className: 'alert alert-info mb-3' }, [
           React.createElement('strong', { key: 'title' }, `${selectedTarget.doctype} Form`),
           React.createElement('br', { key: 'br' }),
@@ -583,7 +562,11 @@ useEffect(() => {
             `Record: ${selectedTarget.name} | Fields: ${formState.schema.fields.length} | Select Fields: ${Object.keys(formState.selectOptions).length}`
           )
         ]),
+
+        // Main data grid
         React.createElement(MainDataGrid, { key: 'main-grid', schema: formState.schema }),
+
+        // Form fields
         React.createElement('div', { key: 'form-fields', className: 'card' }, [
           React.createElement('div', { key: 'card-header', className: 'card-header' }, 
             React.createElement('h6', { className: 'mb-0' }, 'Form Fields')
@@ -598,7 +581,7 @@ useEffect(() => {
                 onChange,
                 formData: formState.formData,
                 linkOptions: formState.linkOptions,
-                selectOptions: formState.selectOptions,
+                selectOptions: formState.selectOptions, // Pass select options
                 schema: formState.schema
               }) : null;
             }).filter(Boolean)
@@ -607,7 +590,7 @@ useEffect(() => {
       ]);
     }
 
-    // Render the main component
+    // Render
     let container = document.getElementById('universal-form-container');
     if (!container) {
       container = document.createElement('div');

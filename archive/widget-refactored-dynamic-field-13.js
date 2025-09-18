@@ -1,4 +1,3 @@
-//refactored Dynamic field
 (function() {
   // Ensure pb object and selectedTarget are available from the environment
   if (!pb || !selectedTarget) {
@@ -284,11 +283,6 @@
       // THIS IS THE KEY: Calling the function from your pb-functions.js library
       const config = pb.createFormFieldConfig(field, value, formData, selectOptions, dynamicLinkOptions, permissions);
 
-    // Sync prop updates into state so Dynamic Link options reload correctly
-useEffect(() => {
-  setDynamicLinkOptions(linkOptions);
-}, [linkOptions]);
-
       const handleChange = useCallback(async (e) => {
         const rawValue = config.inputType === 'checkbox' ? e.target.checked : e.target.value;
         const processedValue = pb.processFieldValue(rawValue, field.fieldtype);
@@ -480,58 +474,24 @@ const onChange = useCallback((fieldName, value) => {
         }
       }, []);
 
-// Replace ONLY this useEffect in your React component:
-
-useEffect(() => {
-    console.log('Dynamic Link effect triggered', formState.formData);
-  if (!formState.schema?.fields || formState.loading) return;
-
-  const dynamicFields = formState.schema.fields.filter(f => f.fieldtype === 'Dynamic Link');
-  console.log('Dynamic fields detected:', dynamicFields);
-
-  dynamicFields.forEach(field => {
-    const sourceField = field.options; // the Link field this Dynamic Link depends on
-    const sourceValue = formState.formData[sourceField];
-
-    setFormState(prev => {
-      const prevSourceValue = prev.linkOptions[`${field.fieldname}_source`];
-
-      // Only reload if the source value exists and changed
-      if (sourceValue && prevSourceValue !== sourceValue) {
-        // Clear dependent value if it exists
-        console.log(`Reloading options for ${field.fieldname}, sourceValue=${sourceValue}`);
-  // Clear dependent value
-        if (prev.formData[field.fieldname]) {
-          onChange(field.fieldname, null);
-        }
-
-        // Load new dynamic options for this field
-        pb.getDynamicLinkOptions(sourceValue, prev.schema?.title_field || 'subject')
-          .then(options => {
-            console.log(`Loaded options:`, options);
-            setFormState(current => ({
-              ...current,
-              linkOptions: {
-                ...current.linkOptions,
-                [field.fieldname]: options,
-                [`${field.fieldname}_source`]: sourceValue
-              }
-            }));
-          })
-          .catch(err => console.error(`Failed to load dynamic options for ${field.fieldname}:`, err));
-      }
-
-      return prev; // immediate return, async will update later
-    });
-  });
-}, [
-  formState.formData,         // watch all form data
-  formState.schema?.fields,   // watch schema fields
-  onChange                    // dependency for clearing values
-]);
-
-
-// That's it - no other changes needed. This minimal fix:
+      useEffect(() => {
+        if (!formState.schema?.fields) return;
+        const dynamicFields = formState.schema.fields.filter(f => f.fieldtype === 'Dynamic Link');
+        dynamicFields.forEach(async (field) => {
+          const sourceValue = formState.formData[field.options];
+          if (sourceValue && !formState.linkOptions[field.fieldname]) {
+            try {
+              const options = await pb.getDynamicLinkOptions(sourceValue, formState.schema.title_field || 'subject');
+              setFormState(prev => ({
+                ...prev,
+                linkOptions: { ...prev.linkOptions, [field.fieldname]: options }
+              }));
+            } catch (err) {
+              console.warn(`Failed to load dynamic options for ${field.fieldname}:`, err);
+            }
+          }
+        });
+      }, [formState.formData, formState.schema?.fields, formState.linkOptions]);
 
       useEffect(() => {
         if (!formState.schema?.fields || formState.loading) return;
