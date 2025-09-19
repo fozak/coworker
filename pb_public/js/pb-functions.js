@@ -1377,3 +1377,232 @@ pb.createNodeAlias = async function (docname) {
 };
 
 
+/**
+ * @func getContext
+ * @description Get complete context for a document - handles both Node and business documents
+ * @param {string} docName - Name of the document (Node or business document)
+ * @param {Object} options - Context retrieval options
+ * @returns {Object} Complete context with document, relationships, and children
+ */
+pb.getContext = async function (docName, options = {}) {
+  const {
+    includeChildren = true,
+    includeParent = true,
+    includeReferencedDocs = true,
+    maxDepth = 2,
+    relationshipTypes = null // null = all types, array = specific types
+  } = options;
+
+  try {
+    // Step 1: Get the main document
+    const mainDoc = await this.getDoc(docName);
+    if (!mainDoc) {
+      throw new Error(`Document not found: ${docName}`);
+    }
+
+    let context = {
+      mainDoc: mainDoc,
+      docType: mainDoc.doctype,
+      isNodeDoc: mainDoc.doctype === 'Node',
+      referencedDoc: null,
+      children: [],
+      parent: null,
+      relationships: [],
+      relatedDocs: new Map() // Map of docname -> document
+    };
+
+    if (context.isNodeDoc) {
+      // Branch 1: Main document IS a Node
+      await this._processNodeDocument(context, options);
+    } else {
+      // Branch 2: Main document is NOT a Node - find its Node references
+      await this._processBusinessDocument(context, options);
+    }
+
+    return context;
+
+  } catch (error) {
+    console.error('getContext error:', error);
+    throw error;
+  }
+};
+
+/**
+ * @private
+ * @description Process when main document is a Node
+ */
+pb._processNodeDocument = async function (context, options) {
+  const { includeChildren, includeParent, includeReferencedDocs, relationshipTypes } = options;
+  const nodeDoc = context.mainDoc;
+
+  // Get the referenced business document
+  if (includeReferencedDocs && nodeDoc.data.node_ref_docname) {
+    try {
+      context.referencedDoc = await this.getDoc(nodeDoc.data.node_ref_docname);
+    } catch (error) {
+      console.warn(`Referenced document not found: ${nodeDoc.data.node_ref_docname}`);
+    }
+  }
+
+  // Get child nodes and their contexts
+  if (includeChildren) {
+    const childNodes = await this.getChildNodes(nodeDoc.name);
+    
+    for (const childNode of childNodes) {
+      const childContext = {
+        node: childNode,
+        referencedDoc: null,
+        relationshipType: childNode.data.relationship_type || 'default'
+      };
+
+      // Filter by relationship type if specified
+      if (relationshipTypes && !relationshipTypes.includes(childContext.relationshipType)) {
+        continue;
+      }
+
+      // Get referenced document for child node
+      if (includeReferencedDocs && childNode.data.node_ref_docname) {
+        try {
+          childContext.referencedDoc = await this.getDoc(childNode.data.node_ref_docname);
+          // Store in related docs map for easy lookup
+          context.relatedDocs.set(childNode.data.node_ref_docname, childContext.referencedDoc);
+        } catch (error) {
+          console.warn(`Child referenced document not found: ${childNode.data.node_ref_docname}`);
+        }
+      }
+
+      context.children.push(childContext);
+      context.relationships.push({
+        type: childContext.relationshipType,
+        parentNode: nodeDoc.name,
+        childNode: childNode.name,
+        metadata: childNode.data
+      });
+    }
+  }
+
+  // Get parent node if exists
+  if (includeParent && nodeDoc.data.parent) {
+    try {
+      context.parent = await this.getNode(nodeDoc.data.parent);
+      
+      // Get parent's referenced document too
+      if (includeReferencedDocs && context.parent.data.node_ref_docname) {
+        const parentReferencedDoc = await this.getDoc(context.parent.data.node_ref_docname);
+        context.relatedDocs.set(context.parent.data.node_ref_docname, parentReferencedDoc);
+      }
+    } catch (error) {
+      console.warn(`Parent node not found: ${nodeDoc.data.parent}`);
+    }
+  }
+};
+
+/**
+ * @private  
+ * @description Process when main document is a business document
+ */
+pb._processBusinessDocument = async function (context, options) {
+  const { includeChildren, includeParent, includeReferencedDocs, relationshipTypes } = options;
+  const businessDoc = context.mainDoc;
+
+  // Find all Node references to this business document
+  const nodeReferences = await this.getNodeByRef(businessDoc.doctype, businessDoc.name);
+  
+  context.nodeReferences = nodeReferences;
+
+  // Process each Node reference
+  for (const nodeRef of nodeReferences) {
+    // Get children for this node reference
+    if (includeChildren) {
+      const childNodes = await this.getChildNodes(nodeRef.name);
+      
+      for (const childNode of childNodes) {
+        const childContext = {
+          node: childNode,
+          referencedDoc: null,
+          relationshipType: childNode.data.relationship_type || 'default',
+          viaNodeReference: nodeRef.name
+        };
+
+        // Filter by relationship type
+        if (relationshipTypes && !relationshipTypes.includes(childContext.relationshipType)) {
+          continue;
+        }
+
+        // Get referenced document for child node
+        if (includeReferencedDocs && childNode.data.node_ref_docname) {
+          try {
+            childContext.referencedDoc = await this.getDoc(childNode.data.node_ref_docname);
+            context.relatedDocs.set(childNode.data.node_ref_docname, childContext.referencedDoc);
+          } catch (error) {
+            console.warn(`Child referenced document not found: ${childNode.data.node_ref_docname}`);
+          }
+        }
+
+        context.children.push(childContext);
+        context.relationships.push({
+          type: childContext.relationshipType,
+          parentNode: nodeRef.name,
+          childNode: childNode.name,
+          metadata: childNode.data,
+          viaNodeReference: nodeRef.name
+        });
+      }
+    }
+
+    // Get parent for this node reference
+    if (includeParent && nodeRef.data.parent) {
+      try {
+        const parentNode = await this.getNode(nodeRef.data.parent);
+        
+        if (!context.parent) { // Only set first parent found
+          context.parent = parentNode;
+          
+          // Get parent's referenced document
+          if (includeReferencedDocs && parentNode.data.node_ref_docname) {
+            const parentReferencedDoc = await this.getDoc(parentNode.data.node_ref_docname);
+            context.relatedDocs.set(parentNode.data.node_ref_docname, parentReferencedDoc);
+          }
+        }
+      } catch (error) {
+        console.warn(`Parent node not found: ${nodeRef.data.parent}`);
+      }
+    }
+  }
+};
+
+/**
+ * @func getContextByType
+ * @description Get context filtered by relationship types
+ */
+pb.getContextByType = async function (docName, relationshipTypes, options = {}) {
+  return await this.getContext(docName, {
+    ...options,
+    relationshipTypes: Array.isArray(relationshipTypes) ? relationshipTypes : [relationshipTypes]
+  });
+};
+
+/**
+ * @func getWorkflowContext
+ * @description Get workflow-specific context for a document
+ */
+pb.getWorkflowContext = async function (docName, workflowName = null) {
+  const relationshipTypes = workflowName 
+    ? [`workflow_step_${workflowName}`, 'workflow_step']
+    : ['workflow_step', 'approval_step', 'workflow_next'];
+    
+  return await this.getContextByType(docName, relationshipTypes);
+};
+
+/**
+ * @func getRelationshipContext  
+ * @description Get business relationship context (assignments, ownership, etc.)
+ */
+pb.getRelationshipContext = async function (docName) {
+  const relationshipTypes = [
+    'assigned_to', 'owned_by', 'belongs_to', 'contains', 
+    'user_assigned_to_task', 'invoice_to_customer'
+  ];
+  
+  return await this.getContextByType(docName, relationshipTypes);
+};
