@@ -12,26 +12,26 @@ window.MAIN_COLLECTION = window.MAIN_COLLECTION || 'item';
 
 // Connect function (keeps your functions intact)
 async function connectToPocketBase() {
-    const statusDiv = document.getElementById('status');
-    try {
-        // Test connection
-        await pb.collection('item').getList(1, 1);
+  const statusDiv = document.getElementById('status');
+  try {
+    // Test connection
+    await pb.collection('item').getList(1, 1);
 
-        statusDiv.textContent = 'Connected';
-        statusDiv.className = 'mt-2 p-2 rounded text-sm bg-green-100 text-green-800';
+    statusDiv.textContent = 'Connected';
+    statusDiv.className = 'mt-2 p-2 rounded text-sm bg-green-100 text-green-800';
 
-        await loadRenderCode();
-        setupSearch();
+    await loadRenderCode();
+    setupSearch();
 
-    } catch (error) {
-        statusDiv.textContent = 'Failed to connect';
-        statusDiv.className = 'mt-2 p-2 rounded text-sm bg-red-100 text-red-800';
-    }
+  } catch (error) {
+    statusDiv.textContent = 'Failed to connect';
+    statusDiv.className = 'mt-2 p-2 rounded text-sm bg-red-100 text-red-800';
+  }
 }
 
 //id generation - commented out
 
- 
+
 pb.generateId = async function () {
   const chars = '0123456789abcdefghijklmnopqrstuvwxyz';
   let id = '';
@@ -71,10 +71,10 @@ pb.getDoc = async function (name) {
 pb.createDoc = async function (doctype, data = {}) {
   // Generate unique ID
   const generatedId = await this.generateId();
-  
+
   // Create final name using doctype and generated ID
   const finalName = `${doctype.replace(/\s+/g, '-')}-${generatedId}`;
-  
+
   // Create document in single request with proper name and data.name
   const doc = await this.collection(window.MAIN_COLLECTION).create({
     doctype,
@@ -85,29 +85,12 @@ pb.createDoc = async function (doctype, data = {}) {
       name: finalName  // Assign generated name to data.name
     }
   });
-  
+
   return doc;
 };
 
 
-/*
-pb.createDoc = async function (doctype, data = {}) {
-  // Step 1: Create with temp name
-  const tempDoc = await this.collection(window.MAIN_COLLECTION).create({
-    doctype,
-    name: `temp-${Date.now()}`,
-    data
-  });
 
-  // Step 2: Update with proper name
-  const finalName = `${doctype.replace(/\s+/g, '-')}-${tempDoc.id}`;
-  await this.collection(window.MAIN_COLLECTION).update(tempDoc.id, {
-    name: finalName
-  });
-
-  return { ...tempDoc, name: finalName };
-};
-*/
 /**
  * @func updateDoc
  * @description Update a document's data by name
@@ -1133,6 +1116,264 @@ console.log('✅ PocketBase Frappe Database Functions loaded!');
 console.log(`📋 Collection: ${window.MAIN_COLLECTION}`);
 
 
+// node functions
+// ============================================== 
+// 🔗 Node Database Operations
+// ==============================================
 
+/**
+ * @func createNode
+ * @description Create a Node alias for a document
+ */
+pb.createNode = async function (refDoctype, refDocname, nodeData = {}) {
+  const nodeData_final = {
+    node_ref_doctype: refDoctype,
+    node_ref_docname: refDocname,
+    ...nodeData
+  };
+
+  return await this.createDoc('Node', nodeData_final);
+};
+
+/**
+ * @func createRelationshipNode
+ * @description Create a Node that represents a relationship between two other nodes
+ */
+pb.createRelationshipNode = async function (parentNodeName, childNodeName, relationshipType = '', relationshipData = {}) {
+  const relationshipNode = {
+    parent: parentNodeName,
+    parenttype: 'Node',
+    parentfield: 'node_parent',
+    relationship_type: relationshipType,
+    ...relationshipData
+  };
+
+  return await this.createChild('Node', parentNodeName, 'Node', 'node_parent', relationshipNode);
+};
+
+/**
+ * @func getNode
+ * @description Get a Node by name
+ */
+pb.getNode = async function (nodeName) {
+  return await this.getDoc(nodeName);
+};
+
+/**
+ * @func getNodeByRef
+ * @description Get Node(s) that reference a specific document
+ */
+pb.getNodeByRef = async function (refDoctype, refDocname) {
+  return await this.listDocs('Node', `data.node_ref_doctype = "${refDoctype}" && data.node_ref_docname = "${refDocname}"`);
+};
+
+/**
+ * @func getReferencedDoc
+ * @description Get the actual document that a Node references
+ */
+pb.getReferencedDoc = async function (nodeName) {
+  const node = await this.getNode(nodeName);
+  if (!node) throw new Error(`Node not found: ${nodeName}`);
+
+  const { node_ref_doctype, node_ref_docname } = node.data;
+  return await this.getDoc(node_ref_docname);
+};
+
+/**
+ * @func getChildNodes
+ * @description Get all child nodes of a parent node
+ */
+pb.getChildNodes = async function (parentNodeName) {
+  return await this.listChildren('Node', parentNodeName);
+};
+
+/**
+ * @func getParentNode
+ * @description Get the parent node of a child node
+ */
+pb.getParentNode = async function (childNodeName) {
+  const childNode = await this.getNode(childNodeName);
+  if (!childNode || !childNode.data.parent) return null;
+
+  return await this.getNode(childNode.data.parent);
+};
+
+/**
+ * @func getRelatedNodes
+ * @description Get all nodes related to a given node (both parent and children)
+ */
+pb.getRelatedNodes = async function (nodeName) {
+  const [children, parent] = await Promise.all([
+    this.getChildNodes(nodeName),
+    this.getParentNode(nodeName)
+  ]);
+
+  return {
+    children: children || [],
+    parent: parent
+  };
+};
+
+/**
+ * @func getNodesByRelationship
+ * @description Get nodes by relationship type
+ */
+pb.getNodesByRelationship = async function (relationshipType) {
+  return await this.listDocs('Node', `data.relationship_type = "${relationshipType}"`);
+};
+
+/**
+ * @func getRelationshipChain
+ * @description Get the complete relationship chain starting from a node
+ */
+pb.getRelationshipChain = async function (startNodeName, maxDepth = 10) {
+  const visited = new Set();
+  const chain = [];
+
+  const traverse = async (nodeName, depth = 0) => {
+    if (depth >= maxDepth || visited.has(nodeName)) return;
+    visited.add(nodeName);
+
+    const node = await this.getNode(nodeName);
+    if (!node) return;
+
+    chain.push({
+      node: node,
+      depth: depth,
+      referenced_doc: await this.getReferencedDoc(nodeName).catch(() => null)
+    });
+
+    const children = await this.getChildNodes(nodeName);
+    for (const child of children) {
+      await traverse(child.name, depth + 1);
+    }
+  };
+
+  await traverse(startNodeName);
+  return chain;
+};
+
+/**
+ * @func createWorkflowStep
+ * @description Create a workflow step node
+ */
+pb.createWorkflowStep = async function (workflowName, parentNodeName, childNodeName, stepData = {}) {
+  const stepNode = {
+    relationship_type: 'workflow_step',
+    workflow_name: workflowName,
+    step_parent_node: parentNodeName,
+    step_child_node: childNodeName,
+    state: 'pending',
+    ...stepData
+  };
+
+  return await this.createRelationshipNode(parentNodeName, childNodeName, 'workflow_step', stepNode);
+};
+
+/**
+ * @func getWorkflowSteps
+ * @description Get all workflow steps for a workflow
+ */
+pb.getWorkflowSteps = async function (workflowName) {
+  return await this.listDocs('Node', `data.relationship_type = "workflow_step" && data.workflow_name = "${workflowName}"`);
+};
+
+/**
+ * @func updateWorkflowStepState
+ * @description Update the state of a workflow step
+ */
+pb.updateWorkflowStepState = async function (stepNodeName, newState, updateData = {}) {
+  const updatePayload = {
+    state: newState,
+    updated_date: new Date().toISOString(),
+    ...updateData
+  };
+
+  return await this.updateDoc(stepNodeName, updatePayload);
+};
+
+/**
+ * @func getNodesByDoctype
+ * @description Get all nodes that reference documents of a specific doctype
+ */
+pb.getNodesByDoctype = async function (refDoctype) {
+  return await this.listDocs('Node', `data.node_ref_doctype = "${refDoctype}"`);
+};
+
+/**
+ * @func deleteNodeAndRelationships
+ * @description Delete a node and all its relationship children
+ */
+pb.deleteNodeAndRelationships = async function (nodeName) {
+  // Get all child relationship nodes
+  const children = await this.getChildNodes(nodeName);
+
+  // Delete all children first
+  if (children.length > 0) {
+    const childNames = children.map(child => child.name);
+    await this.deleteChildren(childNames);
+  }
+
+  // Delete the node itself
+  return await this.deleteDoc(nodeName);
+};
+
+/**
+ * @func findNodePath
+ * @description Find path between two nodes through relationships
+ */
+pb.findNodePath = async function (startNodeName, targetNodeName, maxDepth = 5) {
+  const visited = new Set();
+  const queue = [{ node: startNodeName, path: [startNodeName] }];
+
+  while (queue.length > 0) {
+    const { node: currentNode, path } = queue.shift();
+
+    if (currentNode === targetNodeName) {
+      return path;
+    }
+
+    if (path.length >= maxDepth || visited.has(currentNode)) {
+      continue;
+    }
+
+    visited.add(currentNode);
+
+    // Get related nodes (both children and parent)
+    const related = await this.getRelatedNodes(currentNode);
+
+    // Add children to queue
+    for (const child of related.children) {
+      if (!visited.has(child.name)) {
+        queue.push({
+          node: child.name,
+          path: [...path, child.name]
+        });
+      }
+    }
+
+    // Add parent to queue
+    if (related.parent && !visited.has(related.parent.name)) {
+      queue.push({
+        node: related.parent.name,
+        path: [...path, related.parent.name]
+      });
+    }
+  }
+
+  return null; // No path found
+};
+
+/**
+ * @func createNodeAlias
+ * @description Create a Node alias for an existing document (convenience wrapper)
+ */
+pb.createNodeAlias = async function (docname) {
+  // Get the document to find its doctype
+  const doc = await this.getDoc(docname);
+  if (!doc) throw new Error(`Document not found: ${docname}`);
+
+  return await this.createNode(doc.doctype, docname);
+};
 
 
