@@ -29,7 +29,7 @@ async function connectToPocketBase() {
     }
 }
 
-/*id generation - commented out
+//id generation - commented out
 
  
 pb.generateId = async function () {
@@ -40,7 +40,6 @@ pb.generateId = async function () {
   }
   return id;
 };
-*/
 
 
 // ==============================================
@@ -51,6 +50,8 @@ pb.generateId = async function () {
  * @func getDoc
  * @description Get a document by its name
  */
+
+
 pb.getDoc = async function (name) {
   const records = await this.collection(window.MAIN_COLLECTION).getFullList({
     filter: `name = "${name}"`
@@ -62,6 +63,34 @@ pb.getDoc = async function (name) {
  * @func createDoc
  * @description Create a document with given doctype and data
  */
+
+/**
+ * @func createDoc
+ * @description Create a document with given doctype and data
+ */
+pb.createDoc = async function (doctype, data = {}) {
+  // Generate unique ID
+  const generatedId = await this.generateId();
+  
+  // Create final name using doctype and generated ID
+  const finalName = `${doctype.replace(/\s+/g, '-')}-${generatedId}`;
+  
+  // Create document in single request with proper name and data.name
+  const doc = await this.collection(window.MAIN_COLLECTION).create({
+    doctype,
+    id: generatedId,  // Use generated ID as PocketBase ID
+    name: finalName,
+    data: {
+      ...data,
+      name: finalName  // Assign generated name to data.name
+    }
+  });
+  
+  return doc;
+};
+
+
+/*
 pb.createDoc = async function (doctype, data = {}) {
   // Step 1: Create with temp name
   const tempDoc = await this.collection(window.MAIN_COLLECTION).create({
@@ -78,7 +107,7 @@ pb.createDoc = async function (doctype, data = {}) {
 
   return { ...tempDoc, name: finalName };
 };
-
+*/
 /**
  * @func updateDoc
  * @description Update a document's data by name
