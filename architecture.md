@@ -1,3 +1,32 @@
+# Architecture
+## Bottom-top
+ Separate typed relationships from non-typed.
+- intoduce Relationship universal doctype 
+- keep bottom-top relationships
+- filter out the existing Linked doctypes
+- Add manually Relationship table to each schema (temp solution)
+
+
+{
+      "fieldname": "relationship_parent",
+      "fieldtype": "Table",
+      "in_list_view": 0,
+      "label": "relationship Children",
+      "options": "Relationship",
+      "reqd": 1,
+      "search_index": 1
+    },
+
+  Tested with Task schema - it works
+
+// ANY doctype automatically gets assignment capability
+// Via the universal relationship_parent table
+{
+  relationship_ref_doctype: "User",
+  relationship_ref_docname: "john.doe@company.com",
+  relationship_type: "assigned_to"  // Optional: categorize relationship
+}
+
 # Security and User management
 ## v4
 https://chatgpt.com/c/68b9ebd9-15dc-8326-b61b-2a2f7c5334c2
@@ -6,6 +35,7 @@ going into FieldFSM, FormFSM, and
 
 https://chatgpt.com/c/68b88d87-c3bc-8333-a9b1-fdf0ce623e6c
 https://aistudio.google.com/prompts/12B8mmdu3pt_181qw7q8wRqHOn1d2CZto
+https://chatgpt.com/c/68b8cd16-5e60-8333-929b-86b066637aaf
 
 
 -- WORKING------------------------------------------------------
@@ -24,10 +54,15 @@ v3 NOT checked -yet
 
 
 testing v3.1
+--- Continue testing https://chatgpt.com/c/68b8cd16-5e60-8333-929b-86b066637aaf
+---Part is tested (@request.auth.name = data.owner && "Owner" ~ data._allowed_roles) for Task-ib4zxxvuqdlyjsp 
 
 
 
-(@request.auth.name = data.owner && meta.allowed_role = "Owner")
+
+
+
+(@request.auth.name = data.owner && meta.allowed_role = "Owner") //* THIS IS TESTED
 ||
 (meta.allowed_role != "Owner" && meta.allowed_role != "" && @request.auth.roles ~ meta.allowed_role)
 
@@ -35,7 +70,8 @@ testing v3.1
 ||
 (meta.allowed_role != "Owner" && meta.allowed_role != "" && @request.auth.roles ~ meta.allowed_role))
 
-Vision: 
+Vision: // discussion https://chatgpt.com/c/68b8cd16-5e60-8333-929b-86b066637aaf 
+        // https://claude.ai/chat/279daf8a-2c66-4dc9-92bb-37cb674a8130
 _assign: ["User-rutbfbf45445","User-rutbfbf454dfv"] = write access
 _share  ["User-rutbfbf45445":write,"User-rutbfbf454dfv":read]  - trickier for rules 
 await pb.updateDoc("TASK-2025-00010", {"_allowed_roles": ["Manager","Accountant"]});
