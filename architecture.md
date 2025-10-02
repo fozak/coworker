@@ -1,5 +1,144 @@
 # Architecture
 ## Bottom-top
+
+### v5 Bare-bone Parent-Relationship-Child 
+
+I am storing Frappe like doctypes and data in json in Pocketbase
+like
+ParentTemplate
+      |
+      v
+Relationship (universal table)
+      |
+      v
+ChildTemplate
+
+
+await pb.getSchema("Parent Template")
+{
+    "actions": [],
+    "allow_import": 1,
+    "autoname": "",
+    "creation": "",
+    "description": "",
+    "doctype": "Parent Template",
+    "document_type": "System",
+    "engine": "",
+    "field_order": [
+        "name",
+        "json_data",
+        "relationship_children",
+        "read",
+        "write",
+        "share",
+        "submit",
+        "everyone",
+        "notify_by_email"
+    ],
+    "fields": [
+        {
+            "fieldname": "name",
+            "fieldtype": "Data",
+            "in_list_view": 1,
+            "label": "Name",
+            "search_index": 1
+        },
+        {
+            "fieldname": "json_data",
+            "fieldtype": "JSON",
+            "in_list_view": 0,
+            "label": "Json Data",
+            "reqd": 0,
+            "search_index": 1
+        },
+        {
+            "fieldname": "relationship_children",
+            "fieldtype": "Table",
+            "options": "Relationship",
+            "label": "Relationship Children",
+            "reqd": 1,
+            "search_index": 1
+        },
+        {
+            "default": "0",
+            "fieldname": "read",
+            "fieldtype": "Check",
+            "label": "Read"
+        },
+        {
+            "default": "0",
+            "fieldname": "write",
+            "fieldtype": "Check",
+            "label": "Write"
+        },
+        {
+            "default": "0",
+            "fieldname": "share",
+            "fieldtype": "Check",
+            "label": "Share"
+        },
+        {
+            "default": "0",
+            "fieldname": "everyone",
+            "fieldtype": "Check",
+            "label": "Everyone",
+            "search_index": 1
+        },
+        {
+            "default": "1",
+            "fieldname": "notify_by_email",
+            "fieldtype": "Check",
+            "label": "Notify by email",
+            "print_hide": 1
+        },
+        {
+            "default": "0",
+            "fieldname": "submit",
+            "fieldtype": "Check",
+            "label": "Submit"
+        }
+    ],
+    "in_create": 1,
+    "links": [],
+    "modified": "",
+    "modified_by": "Administrator",
+    "module": "Core",
+    "name": "",
+    "naming_rule": "",
+    "owner": "Administrator",
+    "permissions": [
+        {
+            "create": 1,
+            "delete": 1,
+            "export": 1,
+            "import": 1,
+            "read": 1,
+            "report": 1,
+            "role": "System Manager",
+            "share": 1,
+            "write": 1
+        }
+    ],
+    "read_only": 1,
+    "sort_field": "creation",
+    "sort_order": "DESC",
+    "states": [],
+    "track_changes": 1
+}
+
+Sample relationship
+{
+  "name": "Relationship-xf4eyxkdc6kqsjn",
+  "parent": "Parent-Template-h5qxt3pqh4ny61s",
+  "parentfield": "relationship_children",
+  "parenttype": "Parent Template",
+  "relationship_ref_docname": "Child-Template-309ohnr7k883amy",
+  "relationship_ref_doctype": "Child Template"
+}
+
+
+
+
  Separate typed relationships from non-typed.
 - intoduce Relationship universal doctype 
 - keep bottom-top relationships
@@ -28,6 +167,106 @@
 }
 
 # Security and User management
+
+## v5 
+https://chatgpt.com/c/68b8cd16-5e60-8333-929b-86b066637aaf
+
+2 collections in Pocketbase: @users (system) and @item
+- collection @users is extended with @user.name field name is generated and used as universal ID like User-ckbhibwpthfnt8k
+
+then the flow on CREATING new user
+1) Create user using standard PB (@user.name is empty) if success
+2) generate @user.name form pb-function.js, assign to @user.name like  //id generation - it is loaded already
+
+pb.generateId = async function () {
+  const chars = '0123456789abcdefghijklmnopqrstuvwxyz';
+  let id = '';
+  for (let i = 0; i < 15; i++) {  // 15 characters
+    id += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return id;
+};
+
+3) Generate user doctype in @item collection (for future User-related data, write=Admin). DO NOT use standard createDoc() as we need to use earlier created @user.name
+
+- API rules on @user collection:
+List/Search rule:   (@request.auth.name = data._owner && "Owner" ~ data._allowed_roles) || (data._allowed_roles != [] && !("Owner" ~ data._allowed_roles) && @request.auth.roles ~ data._allowed_roles)
+View rule:          same
+Update rule:        same
+Delete rule:        same
+Create rule:        id = @request.auth.id ( → anyone registed can create)
+
+- API rules on @item
+List/Search rule:   id = @request.auth.id
+View rule:          id = @request.auth.id
+Update rule:        id = @request.auth.id
+Delete rule:        - to define- nobody is deleting, just changing docstatus
+Create rule:        (empty → anyone can create)
+
+So at the end of user provisioning we have 
+- created record in collections @users with not empty @users.name @user.roles
+- created record in collection @item with doctype = User and record.name = @users.name (access TDB) 
+
+After that user who is the owner should be able to access own records. 
+- TODO 5.1 create pb.createUser function based on the above flow and existing id generation (assume its loaded). Outcome of this: 
+```js version 1 
+pb.createUser = async function(email, password, roles = ["Owner"]) {
+  try {
+    // Step 1: Generate universal ID and name for the user
+    const generatedId = await pb.generateId();
+    const universalName = `User-${generatedId}`;
+    
+    // Step 2: Create the user in users collection with universal name
+    const user = await pb.collection("users").create({
+      email: email,
+      password: password,
+      passwordConfirm: password,
+      name: universalName,
+      roles: roles
+    });
+    
+    // Step 3: Create corresponding item record using the SAME id and name
+    const item = await pb.collection("item").create({
+      doctype: "User",
+      id: generatedId,
+      name: universalName,
+      data: {
+        _owner: user.id,
+        _allowed_roles: roles,        // Use the same roles passed in
+        name: universalName,
+        email: email
+      }
+    });
+    
+    // Step 4: Return both results
+    return { user, item };
+    
+  } catch (err) {
+    // Enhanced error handling
+    console.error("Error creating user:", err);
+    
+    if (err.data) {
+      if (err.data.email) {
+        console.error("Email validation error:", err.data.email);
+        throw new Error("Email already exists or is invalid");
+      }
+      if (err.data.password) {
+        console.error("Password validation error:", err.data.password);
+        throw new Error("Password does not meet requirements");
+      }
+    }
+    
+    throw err;
+  }
+};
+
+
+```
+
+testing v3.1
+--- Continue testing https://chatgpt.com/c/68b8cd16-5e60-8333-929b-86b066637aaf
+---Part is tested (@request.auth.name = data._owner && "Owner" ~ data._allowed_roles) for Task-ib4zxxvuqdlyjsp 
+
 ## v4
 https://chatgpt.com/c/68b9ebd9-15dc-8326-b61b-2a2f7c5334c2
 going into FieldFSM, FormFSM, and 
@@ -55,7 +294,7 @@ v3 NOT checked -yet
 
 testing v3.1
 --- Continue testing https://chatgpt.com/c/68b8cd16-5e60-8333-929b-86b066637aaf
----Part is tested (@request.auth.name = data.owner && "Owner" ~ data._allowed_roles) for Task-ib4zxxvuqdlyjsp 
+---Part is tested (@request.auth.name = data._owner && "Owner" ~ data._allowed_roles) for Task-ib4zxxvuqdlyjsp 
 
 
 
