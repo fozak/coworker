@@ -209,7 +209,8 @@ So at the end of user provisioning we have
 
 After that user who is the owner should be able to access own records. 
 - TODO 5.1 create pb.createUser function based on the above flow and existing id generation (assume its loaded). Outcome of this: 
-```js version 1 
+```js version 2 
+// version 2
 pb.createUser = async function(email, password, roles = ["Owner"]) {
   try {
     // Step 1: Generate universal ID and name for the user
@@ -225,14 +226,14 @@ pb.createUser = async function(email, password, roles = ["Owner"]) {
       roles: roles
     });
     
-    // Step 3: Create corresponding item record using the SAME id and name
-    const item = await pb.collection("item").create({
+    // Step 3: Create corresponding record in main collection using the SAME id and name
+    const item = await pb.collection(window.MAIN_COLLECTION).create({
       doctype: "User",
       id: generatedId,
       name: universalName,
       data: {
-        _owner: user.id,
-        _allowed_roles: roles,        // Use the same roles passed in
+        _owner: user.id,  //change later to Admin or else
+        _allowed_roles: roles,  //change later to Admin or else
         name: universalName,
         email: email
       }
