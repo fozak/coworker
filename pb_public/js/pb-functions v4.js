@@ -1,4 +1,4 @@
-// v5 - init and create
+// pb-functions.js v1.03 removed IIFE wrapper movded init
 
 window.pb = window.pb || new PocketBase("http://127.0.0.1:8090/");
 
