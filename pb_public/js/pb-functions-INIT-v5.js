@@ -1,3 +1,55 @@
+// pb-functions-INIT-v5.js https://claude.ai/chat/bd4efbeb-5aec-47c9-b2c3-5617a28bb335
+/* works with the rule
+Rule:
+@request.auth.name = data._owner || @request.auth.roles ?~ data._allowed_roles
+Key Change in Your Code:
+DON'T set "Owner" as default in _allowed_roles:
+jspb.createDoc = async function (doctype, data = {}) {
+  const generatedId = await this.generateId();
+  const finalName = `${doctype.replace(/\s+/g, '-')}-${generatedId}`;
+  
+  const currentUser = window.currentUser;
+  
+  const docData = {
+    ...data,
+    name: finalName
+  };
+  
+  if (currentUser) {
+    docData._owner = currentUser.name;
+    // Don't set default _allowed_roles - leave it empty or only set if explicitly passed
+    if (data._allowed_roles) {
+      docData._allowed_roles = data._allowed_roles;
+    }
+  }
+  
+  const doc = await this.collection(window.MAIN_COLLECTION).create({
+    doctype,
+    id: generatedId,
+    name: finalName,
+    data: docData
+  });
+  
+  return doc;
+};
+How It Works:
+Default document (private):
+js{
+  _owner: "User-A",
+  _allowed_roles: null  // or undefined, or empty array
+}
+
+Only owner has access ✓
+
+Explicitly shared:
+js{
+  _owner: "User-A",
+  _allowed_roles: ["Manager", "Editor"]
+}
+
+Owner has access ✓
+Users with Manager OR Editor role have access ✓ */
+
 // ============================================================================
 // POCKETBASE CLIENT INITIALIZATION
 // ============================================================================
@@ -82,18 +134,19 @@ pb.createDoc = async function (doctype, data = {}) {
   
   const currentUser = window.currentUser;
   
-  // Build data object based on auth state
   const docData = {
     ...data,
     name: finalName
   };
   
-  // Only add ownership fields if user is authenticated
   if (currentUser) {
     docData._owner = currentUser.name;
-    docData._allowed_roles = data._allowed_roles || currentUser.roles || ["Owner"];
+    // Only set _allowed_roles if explicitly passed in data
+    if (data._allowed_roles) {
+      docData._allowed_roles = data._allowed_roles;
+    }
+    // Otherwise _allowed_roles remains undefined (private by default)
   }
-  // For anonymous users, don't set _owner or rely on PocketBase rules
   
   const doc = await this.collection(window.MAIN_COLLECTION).create({
     doctype,
