@@ -1,0 +1,230 @@
+{
+  "actions": [],
+  "creation": "2025-10-03 00:00:00.000000",
+  "doctype": "DocType",
+  "document_type": "System",
+  "engine": "InnoDB",
+  "field_order": [
+    "schema_identification",
+    "_schema_doctype",
+    "ownership_section",
+    "_owner",
+    "permissions_section",
+    "_allowed_roles",
+    "_allowed_roles_read",
+    "column_break_perm",
+    "_allowed_users",
+    "_allowed_users_read",
+    "collaboration_section",
+    "_user_tags",
+    "_assign",
+    "column_break_collab",
+    "_liked_by",
+    "_seen",
+    "comments_section",
+    "_comments",
+    "audit_section",
+    "creation",
+    "modified",
+    "column_break_audit",
+    "modified_by",
+    "document_status_section",
+    "docstatus",
+    "idx"
+  ],
+  "fields": [
+    {
+      "fieldname": "schema_identification",
+      "fieldtype": "Section Break",
+      "label": "Schema Identification"
+    },
+    {
+      "fieldname": "_schema_doctype",
+      "fieldtype": "Data",
+      "label": "Schema DocType",
+      "description": "Identifies which schema/doctype this document belongs to",
+      "reqd": 1,
+      "in_list_view": 1,
+      "in_standard_filter": 1,
+      "read_only": 1
+    },
+    {
+      "fieldname": "ownership_section",
+      "fieldtype": "Section Break",
+      "label": "Ownership"
+    },
+    {
+      "fieldname": "_owner",
+      "fieldtype": "Link",
+      "label": "Owner",
+      "options": "User",
+      "reqd": 1,
+      "read_only": 1,
+      "in_standard_filter": 1
+    },
+    {
+      "fieldname": "permissions_section",
+      "fieldtype": "Section Break",
+      "label": "Permissions",
+      "collapsible": 1
+    },
+    {
+      "fieldname": "_allowed_roles",
+      "fieldtype": "Data",
+      "label": "Allowed Roles (Read + Write)",
+      "description": "Roles with read and write access"
+    },
+    {
+      "fieldname": "_allowed_roles_read",
+      "fieldtype": "Data",
+      "label": "Allowed Roles (Read Only)",
+      "description": "Roles with read-only access"
+    },
+    {
+      "fieldname": "column_break_perm",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "_allowed_users",
+      "fieldtype": "Data",
+      "label": "Allowed Users (Read + Write)",
+      "description": "Users with read and write access"
+    },
+    {
+      "fieldname": "_allowed_users_read",
+      "fieldtype": "Data",
+      "label": "Allowed Users (Read Only)",
+      "description": "Users with read-only access"
+    },
+    {
+      "fieldname": "collaboration_section",
+      "fieldtype": "Section Break",
+      "label": "Collaboration",
+      "collapsible": 1
+    },
+    {
+      "fieldname": "_user_tags",
+      "fieldtype": "Data",
+      "label": "Tags"
+    },
+    {
+      "fieldname": "_assign",
+      "fieldtype": "Data",
+      "label": "Assigned To"
+    },
+    {
+      "fieldname": "column_break_collab",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "_liked_by",
+      "fieldtype": "Data",
+      "label": "Liked By"
+    },
+    {
+      "fieldname": "_seen",
+      "fieldtype": "Data",
+      "label": "Seen By"
+    },
+    {
+      "fieldname": "comments_section",
+      "fieldtype": "Section Break",
+      "label": "Comments",
+      "collapsible": 1
+    },
+    {
+      "fieldname": "_comments",
+      "fieldtype": "Text",
+      "label": "Comments"
+    },
+    {
+      "fieldname": "audit_section",
+      "fieldtype": "Section Break",
+      "label": "Audit Trail",
+      "collapsible": 1
+    },
+    {
+      "fieldname": "creation",
+      "fieldtype": "Datetime",
+      "label": "Created On",
+      "read_only": 1,
+      "in_list_view": 1,
+      "in_standard_filter": 1
+    },
+    {
+      "fieldname": "modified",
+      "fieldtype": "Datetime",
+      "label": "Last Modified",
+      "read_only": 1,
+      "in_list_view": 1,
+      "in_standard_filter": 1
+    },
+    {
+      "fieldname": "column_break_audit",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "modified_by",
+      "fieldtype": "Link",
+      "label": "Modified By",
+      "options": "User",
+      "read_only": 1,
+      "in_standard_filter": 1
+    },
+    {
+      "fieldname": "document_status_section",
+      "fieldtype": "Section Break",
+      "label": "Document Status"
+    },
+    {
+      "fieldname": "docstatus",
+      "fieldtype": "Int",
+      "label": "Document Status",
+      "description": "0 = Draft, 1 = Submitted, 2 = Cancelled",
+      "default": "0",
+      "in_list_view": 1,
+      "in_standard_filter": 1
+    },
+    {
+      "fieldname": "idx",
+      "fieldtype": "Int",
+      "label": "Index",
+      "default": "0"
+    }
+  ],
+  "modified": "2025-10-03 00:00:00.000000",
+  "modified_by": "Administrator",
+  "module": "Core",
+  "name": "_BaseSchema",
+  "naming_rule": "Set by user",
+  "owner": "Administrator",
+  "permissions": [
+    {
+      "create": 1,
+      "delete": 1,
+      "email": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "System Manager",
+      "write": 1
+    },
+    {
+      "create": 1,
+      "delete": 1,
+      "email": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "Administrator",
+      "share": 1,
+      "write": 1
+    }
+  ],
+  "is_virtual": 1,
+  "is_system": 1,
+  "sort_field": "creation",
+  "sort_order": "DESC",
+  "states": [],
+  "track_changes": 1
+}

@@ -1,14 +1,12 @@
-// v5 - init and create
+// ============================================================================
+// POCKETBASE CLIENT INITIALIZATION
+// ============================================================================
 
 window.pb = window.pb || new PocketBase("http://127.0.0.1:8090/");
 
-// Prevent double initialization -TODO
-
-
 // Global config
 window.MAIN_COLLECTION = window.MAIN_COLLECTION || 'item';
-
-//
+window.currentUser = null;  // Initialize global user state
 
 // Connect function (keeps your functions intact)
 async function connectToPocketBase() {
@@ -28,10 +26,11 @@ async function connectToPocketBase() {
     statusDiv.className = 'mt-2 p-2 rounded text-sm bg-red-100 text-red-800';
   }
 }
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
 
-//id generation - commented out
-
-
+// Generate unique ID (15 characters, alphanumeric)
 pb.generateId = async function () {
   const chars = '0123456789abcdefghijklmnopqrstuvwxyz';
   let id = '';
@@ -42,16 +41,174 @@ pb.generateId = async function () {
 };
 
 
+// ============================================================================
+// AUTHENTICATION & SESSION MANAGEMENT
+// ============================================================================
+
+// Initialize auth state on page load
+async function initializeAuth() {
+  try {
+    // Check if there's a valid auth token from previous session
+    if (pb.authStore.isValid) {
+      // Refresh the auth state to ensure token is still valid
+      await pb.collection('users').authRefresh();
+      window.currentUser = pb.authStore.model;
+      console.log('Restored session for:', window.currentUser.name);
+      return { authenticated: true, user: window.currentUser };
+    } else {
+      console.log('No valid session found - operating as anonymous user');
+      return { authenticated: false, user: null };
+    }
+  } catch (error) {
+    console.log('Session expired or invalid - operating as anonymous user');
+    pb.authStore.clear();
+    window.currentUser = null;
+    return { authenticated: false, user: null };
+  }
+}
+
+// Helper: Login function (for when user wants to authenticate)
+pb.login = async function(email, password) {
+  try {
+    const authData = await pb.collection('users').authWithPassword(email, password);
+    window.currentUser = authData.record;
+    console.log('Logged in as:', window.currentUser.name);
+    return authData;
+  } catch (error) {
+    console.error('Login failed:', error);
+    throw error;
+  }
+};
+
+// Helper: Logout function
+pb.logout = function() {
+  pb.authStore.clear();
+  window.currentUser = null;
+  console.log('Logged out - now operating as anonymous user');
+};
+
+
+
 // ==============================================
 // 📋 Document Database Operations
 // ==============================================
 
-/**
- * @func getDoc
- * @description Get a document by its name
- */
 
 
+// Extract allowed roles from schema permissions
+pb.setAllowedRoles = function(schema) {
+  if (!schema || !schema.permissions) {
+    return { writeRoles: [], readRoles: [] };
+  }
+  
+  const writeRoles = [];
+  const readRoles = [];
+  
+  schema.permissions.forEach(perm => {
+    if (perm.role) {
+      if (perm.write === 1 || perm.create === 1) {
+        writeRoles.push(perm.role);
+      } else if (perm.read === 1 || perm.select === 1) {
+        readRoles.push(perm.role);
+      }
+    }
+  });
+  
+  return { writeRoles, readRoles };
+};
+
+// ============================================================================
+// CRUD OPERATIONS - CREATE
+// ============================================================================
+
+// Create document
+pb.createDoc = async function (doctype, data = {}) {
+  const generatedId = data.id || await this.generateId();
+  const finalName = data.name || `${doctype.replace(/\s+/g, '-')}-${generatedId}`;
+  
+  const currentUser = window.currentUser;
+  
+  const docData = {
+    ...data,
+    name: finalName
+  };
+  
+  if (currentUser) {
+    docData._owner = currentUser.name;
+    
+    // Only derive permissions if not explicitly provided
+    if (!data._allowed_roles && !data._allowed_roles_read && !data._allowed_users && !data._allowed_users_read) {
+      const schema = await this.getSchema(doctype);
+      const { writeRoles, readRoles } = this.setAllowedRoles(schema);
+      
+      if (writeRoles.length > 0) {
+        docData._allowed_roles = writeRoles;
+      }
+      if (readRoles.length > 0) {
+        docData._allowed_roles_read = readRoles;
+      }
+    } else {
+      // Use explicitly provided permissions
+      if (data._allowed_roles) docData._allowed_roles = data._allowed_roles;
+      if (data._allowed_roles_read) docData._allowed_roles_read = data._allowed_roles_read;
+      if (data._allowed_users) docData._allowed_users = data._allowed_users;
+      if (data._allowed_users_read) docData._allowed_users_read = data._allowed_users_read;
+    }
+  }
+  
+  const doc = await this.collection(window.MAIN_COLLECTION).create({
+    doctype,
+    id: generatedId,
+    name: finalName,
+    data: docData
+  });
+  
+  return doc;
+};
+
+// Create new user (registration/self-provisioning)
+pb.createUser = async function(email, password, roles = ["Owner"]) {
+  try {
+    const generatedId = await pb.generateId();
+    const universalName = `User-${generatedId}`;
+    
+    // Step 1: Create user in auth collection
+    const user = await pb.collection("users").create({
+      email: email,
+      password: password,
+      passwordConfirm: password,
+      name: universalName,
+      roles: roles
+    });
+    
+    // Step 2: Create User document with schema-based permissions
+    const userDoc = await pb.createDoc("User", {
+      id: generatedId,
+      name: universalName,
+      email: email,
+      _owner: universalName
+    });
+    
+    return { user, userDoc };
+    
+  } catch (err) {
+    console.error("Error creating user:", err);
+    
+    if (err.data) {
+      if (err.data.email) {
+        console.error("Email validation error:", err.data.email);
+        throw new Error("Email already exists or is invalid");
+      }
+      if (err.data.password) {
+        console.error("Password validation error:", err.data.password);
+        throw new Error("Password does not meet requirements");
+      }
+    }
+    
+    throw err;
+  }
+};
+// ==============================================
 pb.getDoc = async function (name) {
   const records = await this.collection(window.MAIN_COLLECTION).getFullList({
     filter: `name = "${name}"`
@@ -59,35 +216,6 @@ pb.getDoc = async function (name) {
   return records.length > 0 ? records[0] : null;
 };
 
-/**
- * @func createDoc
- * @description Create a document with given doctype and data
- */
-
-/**
- * @func createDoc
- * @description Create a document with given doctype and data
- */
-pb.createDoc = async function (doctype, data = {}) {
-  // Generate unique ID
-  const generatedId = await this.generateId();
-
-  // Create final name using doctype and generated ID
-  const finalName = `${doctype.replace(/\s+/g, '-')}-${generatedId}`;
-
-  // Create document in single request with proper name and data.name
-  const doc = await this.collection(window.MAIN_COLLECTION).create({
-    doctype,
-    id: generatedId,  // Use generated ID as PocketBase ID
-    name: finalName,
-    data: {
-      ...data,
-      name: finalName  // Assign generated name to data.name
-    }
-  });
-
-  return doc;
-};
 
 
 
@@ -199,14 +327,18 @@ pb.deleteChildren = async function (childNames) {
 
 /**
  * @func getSchema
- * @description Get schema data for a given doctype
+ * @description Get schema data for a given doctype v6.
  */
 pb.getSchema = async function (doctype) {
-  const schemaResult = await this.collection(window.MAIN_COLLECTION).getList(1, 1, {
-    filter: `doctype = "Schema" && meta.for_doctype = "${doctype}"`
-  });
-
-  return schemaResult.items.length > 0 ? schemaResult.items[0].data : null;
+  try {
+    const schemaResult = await this.collection(window.MAIN_COLLECTION).getList(1, 1, {
+      filter: `doctype = "Schema" && data._schema_doctype = "${doctype}"`
+    });
+    return schemaResult.items.length > 0 ? schemaResult.items[0].data : null;
+  } catch (error) {
+    console.error(`Error fetching schema for doctype "${doctype}":`, error);
+    return null;
+  }
 };
 
 // Add this after your existing helper functions in pb-functions.js
@@ -628,18 +760,18 @@ pb.loadFormDataWithSelects = async function (doctype, recordName = null) {
 /**
  * @func createSchema
  * @description Create a Schema document for a given doctype
+ * TODO: Implement schema creation logic
  */
 pb.createSchema = async function (for_doctype, data = {}) {
   try {
     // Step 1: Create with temp name and doctype = "Schema"
     const tempDoc = await this.collection(window.MAIN_COLLECTION).create({
       doctype: "Schema",
-      name: `temp-${Date.now()}`,
-      data,
-      meta: {
+      name: `temp-${Date.now()}`, //update
+      data: {
         "doctype": "Schema",
-        "for_doctype": for_doctype,
-        "public": true
+        "_for_doctype": for_doctype,
+        "public": true   //old version
       }
     });
 

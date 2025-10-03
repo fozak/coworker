@@ -1,4 +1,72 @@
 # Architecture
+## Data and Schemas 
+- https://chatgpt.com/c/68dffcd3-d784-8325-8c8a-d0b298bca5d3
+1. Two “types” of universal fields in Frappe
+
+DB-backed system fields → always present in every DocType table
+e.g. name, owner, creation, modified, modified_by, docstatus, idx
+
+Meta/non-DB universal fields → stored in “hidden” columns (__assign, __comments, __liked_by, etc.) or just runtime defaults.
+These are not inside schema JSON, but every document can use them.
+
+2. Why Frappe didn’t just define a universal schema DocType
+
+Frappe’s schemas (DocType JSON) are per table.
+
+If they added universal fields in each schema, you’d see duplication everywhere.
+
+Instead they inject these via the BaseDocument class and ORM logic, so schemas stay “clean”.
+
+So effectively, Frappe already has something like your idea:
+
+STANDARD_FIELDS = [...]
+DEFAULT_NON_DB_FIELDS = [...]
+
+
+That’s their “universal schema.”
+
+3. What you can do
+
+Yes, you can create one more universal schema JSON and then merge it:
+
+{
+  "_schema_doctype": "_Universal",
+  "fields": [
+    { "fieldname": "name", "fieldtype": "Data" },
+    { "fieldname": "owner", "fieldtype": "Link", "options": "User" },
+    { "fieldname": "creation", "fieldtype": "Datetime" },
+    { "fieldname": "modified", "fieldtype": "Datetime" },
+    { "fieldname": "modified_by", "fieldtype": "Link", "options": "User" },
+    { "fieldname": "docstatus", "fieldtype": "Int" },
+    { "fieldname": "_assign", "fieldtype": "Data" },
+    { "fieldname": "_comments", "fieldtype": "Text" },
+    { "fieldname": "_user_tags", "fieldtype": "Data" },
+    { "fieldname": "_liked_by", "fieldtype": "Data" },
+    { "fieldname": "_seen", "fieldtype": "Data" }
+  ]
+}
+
+
+Then at runtime:
+
+function applyUniversal(schema, universal) {
+  return {
+    ...schema,
+    fields: [...schema.fields, ...universal.fields]
+  }
+}
+
+4. Advantage of doing this
+
+Keeps your Frappe schema JSONs 1:1 with upstream (no pollution).
+
+You have one place to manage universal fields.
+
+Easier for client-side UI builders: just always merge TaskSchema + UniversalSchema.
+
+✅ So yes — you can and probably should define one more universal schema, exactly like you’re suggesting.
+That’s just a more explicit version of what Frappe’s Python ORM already does behind the scenes.
+
 ## Bottom-top
 
 ### v5 Bare-bone Parent-Relationship-Child 
