@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PocketBase Data Grid</title>
+    
+    <!-- Tailwind CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    
+    <!-- PocketBase -->
+    <script src="js/pocketbase.umd.js"></script>
+    <script src="js/pb-functions.js"></script>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- TanStack Table -->
+    <script src="https://unpkg.com/@tanstack/react-table@8/build/umd/index.production.js"></script>
+    
+    <style>
+        .table-container {
+            overflow-x: auto;
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th {
+            background: #f9fafb;
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: #374151;
+            border-bottom: 2px solid #e5e7eb;
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+        }
+        th:hover {
+            background: #f3f4f6;
+        }
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #f3f4f6;
+            font-size: 0.875rem;
+            color: #1f2937;
+        }
+        tr:hover {
+            background: #f9fafb;
+        }
+        .sort-icon {
+            margin-left: 4px;
+            font-size: 10px;
+            color: #9ca3af;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .status-open { background: #dbeafe; color: #1e40af; }
+        .status-cancelled { background: #fee2e2; color: #991b1b; }
+        .status-closed { background: #f3f4f6; color: #374151; }
+    </style>
+</head>
+<body class="bg-gray-100 p-4">
+    <div class="max-w-7xl mx-auto">
+        <!-- Status Bar -->
+        <div class="bg-white rounded-lg shadow-lg p-4 mb-4">
+            <div class="flex items-center justify-between">
+                <h1 class="text-2xl font-bold text-gray-800">PocketBase Data Grid</h1>
+                <div id="status" class="px-4 py-2 rounded text-sm font-medium">
+                    Connecting...
+                </div>
+            </div>
+        </div>
+
+        <!-- DocType Selector -->
+        <div class="bg-white rounded-lg shadow-lg p-4 mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Select DocType</label>
+            <div class="flex gap-2">
+                <input 
+                    type="text" 
+                    id="doctypeInput" 
+                    placeholder="Enter DocType (e.g., Project, Customer)"
+                    value="Project"
+                    class="flex-1 p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                <button 
+                    id="loadBtn"
+                    onclick="loadDocType()"
+                    class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                    Load Data
+                </button>
+            </div>
+        </div>
+
+        <!-- Grid Container -->
+        <div id="gridRoot"></div>
+    </div>
+
+    <script>
+        const { useState, useEffect, useMemo } = React;
+        const ReactTable = window.ReactTable;
+
+        function DataGrid({ pb, doctype }) {
+            const [data, setData] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [error, setError] = useState(null);
+            const [globalFilter, setGlobalFilter] = useState('');
+            const [sorting, setSorting] = useState([]);
+
+            // Fetch data
+            useEffect(() => {
+                async function fetchData() {
+                    try {
+                        setLoading(true);
+                        setError(null);
+                        const records = await pb.listDocs(doctype);
+                        setData(records);
+                    } catch (err) {
+                        setError(err.message);
+                    } finally {
+                        setLoading(false);
+                    }
+                }
+                fetchData();
+            }, [pb, doctype]);
+
+            // Auto-generate columns from data
+            const columns = useMemo(() => {
+                if (!data || data.length === 0) return [];
+
+                const allKeys = new Set();
+                
+                data.forEach(record => {
+                    // Top-level keys
+                    ['name', 'doctype', 'created', 'updated'].forEach(key => {
+                        if (record[key] !== undefined) allKeys.add(key);
+                    });
+                    
+                    // data.* keys (limit to most common fields)
+                    if (record.data && typeof record.data === 'object') {
+                        Object.keys(record.data).forEach(key => {
+                            if (!key.startsWith('_') && record.data[key] !== null) {
+                                allKeys.add(`data.${key}`);
+                            }
+                        });
+                    }
+                });
+
+                // Prioritize important columns
+                const priorityColumns = ['name', 'data.project_name', 'data.status', 'data.priority', 
+                                        'data.customer', 'data.company', 'data.percent_complete'];
+                const orderedKeys = [
+                    ...priorityColumns.filter(k => allKeys.has(k)),
+                    ...Array.from(allKeys).filter(k => !priorityColumns.includes(k))
+                ].slice(0, 15); // Limit to 15 columns for readability
+
+                return orderedKeys.map(key => {
+                    const isNestedData = key.startsWith('data.');
+                    const displayKey = isNestedData ? key.replace('data.', '') : key;
+                    
+                    return {
+                        accessorKey: key,
+                        header: displayKey
+                            .split('_')
+                            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                            .join(' '),
+                        accessorFn: row => {
+                            if (isNestedData) {
+                                const dataKey = key.replace('data.', '');
+                                return row.data?.[dataKey];
+                            }
+                            return row[key];
+                        },
+                        cell: info => {
+                            const value = info.getValue();
+                            
+                            if (value === null || value === undefined) {
+                                return React.createElement('span', { className: 'text-gray-400' }, '-');
+                            }
+                            
+                            // Status badge
+                            if (displayKey === 'status' && typeof value === 'string') {
+                                const statusClass = `status-badge status-${value.toLowerCase()}`;
+                                return React.createElement('span', { className: statusClass }, value);
+                            }
+                            
+                            // Progress bar
+                            if (displayKey === 'percent_complete' && typeof value === 'number') {
+                                return React.createElement('div', { className: 'flex items-center gap-2' },
+                                    React.createElement('div', { 
+                                        className: 'w-24 h-2 bg-gray-200 rounded-full overflow-hidden' 
+                                    },
+                                        React.createElement('div', {
+                                            className: 'h-full bg-green-500',
+                                            style: { width: `${value}%` }
+                                        })
+                                    ),
+                                    React.createElement('span', { className: 'text-xs text-gray-600' }, `${value}%`)
+                                );
+                            }
+                            
+                            // Date formatting
+                            if (typeof value === 'string' && value.match(/^\d{4}-\d{2}-\d{2}/)) {
+                                return new Date(value).toLocaleDateString();
+                            }
+                            
+                            // Boolean
+                            if (typeof value === 'boolean') {
+                                return value ? '✓' : '✗';
+                            }
+                            
+                            // Number
+                            if (typeof value === 'number') {
+                                return value.toLocaleString();
+                            }
+                            
+                            return String(value);
+                        }
+                    };
+                });
+            }, [data]);
+
+            const table = ReactTable.useReactTable({
+                data,
+                columns,
+                state: {
+                    sorting,
+                    globalFilter,
+                },
+                onSortingChange: setSorting,
+                onGlobalFilterChange: setGlobalFilter,
+                getCoreRowModel: ReactTable.getCoreRowModel(),
+                getSortedRowModel: ReactTable.getSortedRowModel(),
+                getFilteredRowModel: ReactTable.getFilteredRowModel(),
+                getPaginationRowModel: ReactTable.getPaginationRowModel(),
+                initialState: {
+                    pagination: { pageSize: 10 }
+                },
+            });
+
+            if (loading) {
+                return React.createElement('div', { className: 'bg-white rounded-lg shadow-lg p-8 text-center' },
+                    React.createElement('div', { className: 'animate-pulse' },
+                        React.createElement('div', { className: 'text-gray-600' }, 'Loading data...')
+                    )
+                );
+            }
+
+            if (error) {
+                return React.createElement('div', { className: 'bg-red-50 border border-red-200 rounded-lg p-4' },
+                    React.createElement('p', { className: 'text-red-800' }, `Error: ${error}`)
+                );
+            }
+
+            if (data.length === 0) {
+                return React.createElement('div', { className: 'bg-white rounded-lg shadow-lg p-8 text-center' },
+                    React.createElement('p', { className: 'text-gray-500' }, `No records found for DocType: ${doctype}`)
+                );
+            }
+
+            return React.createElement('div', { className: 'bg-white rounded-lg shadow-lg' },
+                // Header
+                React.createElement('div', { className: 'p-4 border-b' },
+                    React.createElement('div', { className: 'flex justify-between items-center mb-4' },
+                        React.createElement('h2', { className: 'text-lg font-semibold text-gray-800' }, 
+                            `${doctype} (${data.length} records)`
+                        )
+                    ),
+                    React.createElement('input', {
+                        type: 'text',
+                        className: 'w-full max-w-md px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent',
+                        placeholder: 'Search all columns...',
+                        value: globalFilter ?? '',
+                        onChange: e => setGlobalFilter(e.target.value)
+                    })
+                ),
+
+                // Table
+                React.createElement('div', { className: 'table-container' },
+                    React.createElement('table', null,
+                        React.createElement('thead', null,
+                            table.getHeaderGroups().map(headerGroup =>
+                                React.createElement('tr', { key: headerGroup.id },
+                                    headerGroup.headers.map(header =>
+                                        React.createElement('th', {
+                                            key: header.id,
+                                            onClick: header.column.getToggleSortingHandler()
+                                        },
+                                            ReactTable.flexRender(
+                                                header.column.columnDef.header,
+                                                header.getContext()
+                                            ),
+                                            React.createElement('span', { className: 'sort-icon' },
+                                                header.column.getIsSorted() === 'asc' ? '▲' :
+                                                header.column.getIsSorted() === 'desc' ? '▼' : '⇅'
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        ),
+                        React.createElement('tbody', null,
+                            table.getRowModel().rows.map(row =>
+                                React.createElement('tr', { key: row.id },
+                                    row.getVisibleCells().map(cell =>
+                                        React.createElement('td', { key: cell.id },
+                                            ReactTable.flexRender(
+                                                cell.column.columnDef.cell,
+                                                cell.getContext()
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
+                ),
+
+                // Pagination
+                React.createElement('div', { className: 'p-4 border-t flex items-center justify-between' },
+                    React.createElement('div', { className: 'text-sm text-gray-600' },
+                        `Showing ${table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to ${Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize, data.length)} of ${data.length} records`
+                    ),
+                    React.createElement('div', { className: 'flex gap-2' },
+                        React.createElement('button', {
+                            onClick: () => table.setPageIndex(0),
+                            disabled: !table.getCanPreviousPage(),
+                            className: 'px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed'
+                        }, '⏮'),
+                        React.createElement('button', {
+                            onClick: () => table.previousPage(),
+                            disabled: !table.getCanPreviousPage(),
+                            className: 'px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed'
+                        }, '←'),
+                        React.createElement('span', { className: 'px-3 py-1 text-sm' },
+                            `Page ${table.getState().pagination.pageIndex + 1} of ${table.getPageCount()}`
+                        ),
+                        React.createElement('button', {
+                            onClick: () => table.nextPage(),
+                            disabled: !table.getCanNextPage(),
+                            className: 'px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed'
+                        }, '→'),
+                        React.createElement('button', {
+                            onClick: () => table.setPageIndex(table.getPageCount() - 1),
+                            disabled: !table.getCanNextPage(),
+                            className: 'px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed'
+                        }, '⏭')
+                    )
+                )
+            );
+        }
+
+        // Global functions
+        let gridRoot = null;
+
+        window.loadDocType = function() {
+            const doctype = document.getElementById('doctypeInput').value.trim();
+            if (!doctype) {
+                alert('Please enter a DocType');
+                return;
+            }
+            
+            if (!window.pb) {
+                alert('PocketBase not connected');
+                return;
+            }
+
+            if (!gridRoot) {
+                gridRoot = ReactDOM.createRoot(document.getElementById('gridRoot'));
+            }
+            
+            gridRoot.render(React.createElement(DataGrid, { pb: window.pb, doctype }));
+        };
+
+        // Auto-connect on load
+        window.onload = function() {
+            const statusEl = document.getElementById('status');
+            
+            try {
+                // Your pb-functions.js should set window.pb
+                if (window.pb) {
+                    statusEl.textContent = 'Connected';
+                    statusEl.className = 'px-4 py-2 rounded text-sm font-medium bg-green-100 text-green-800';
+                    
+                    // Auto-load Project by default
+                    setTimeout(() => loadDocType(), 500);
+                } else {
+                    statusEl.textContent = 'Not Connected';
+                    statusEl.className = 'px-4 py-2 rounded text-sm font-medium bg-red-100 text-red-800';
+                }
+            } catch (err) {
+                statusEl.textContent = `Error: ${err.message}`;
+                statusEl.className = 'px-4 py-2 rounded text-sm font-medium bg-red-100 text-red-800';
+            }
+        };
+    </script>
+</body>
+</html>

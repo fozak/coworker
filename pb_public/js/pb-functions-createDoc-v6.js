@@ -77,8 +77,11 @@ Owner has access ✓
 Users with Manager OR Editor role have access ✓ */
 
 pb.createDoc = async function (doctype, data = {}) {
-  const generatedId = await this.generateId();
-  const finalName = `${doctype.replace(/\s+/g, '-')}-${generatedId}`;
+  // Allow ID override, otherwise generate new one
+  const generatedId = data.id || await this.generateId();
+  
+  // Allow name override, otherwise generate from doctype + ID
+  const finalName = data.name || `${doctype.replace(/\s+/g, '-')}-${generatedId}`;
   
   const currentUser = window.currentUser;
   
@@ -126,7 +129,7 @@ pb.createDoc = async function (doctype, data = {}) {
   
   const doc = await this.collection(window.MAIN_COLLECTION).create({
     doctype,
-    id: generatedId,
+    id: generatedId,  // Uses provided ID or generated one
     name: finalName,
     data: docData
   });
