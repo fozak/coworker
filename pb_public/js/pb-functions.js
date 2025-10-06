@@ -271,19 +271,81 @@ pb.listDocs = async function (doctype, filter = '') {
 // ==============================================
 
 /**
- * @func createChild
- * @description Create a child document linked to a parent
+ * @func validateChildData v1
+ * @description Validate child table data against schema, including Link field existence checks
+ * @throws Error if validation fails
+ */
+pb.validateChildData = async function (childDoctype, data) {
+  const schema = await this.getSchema(childDoctype);
+  
+  if (!schema) {
+    throw new Error(`Schema not found for doctype: ${childDoctype}`);
+  }
+  
+  const fields = schema.fields || [];
+  const errors = [];
+  
+  for (const field of fields) {
+    const fieldname = field.fieldname;
+    const fieldtype = field.fieldtype;
+    const value = data[fieldname];
+    
+    if (field.reqd && !value) {
+      errors.push(`Required field missing: ${field.label || fieldname}`);
+      continue;
+    }
+    
+    if (!value) continue;
+    
+    // Validate Link fields
+    if (fieldtype === 'Link') {
+      const linkedDoctype = field.options;
+      
+      if (!linkedDoctype) {
+        errors.push(`Link field "${fieldname}" has no target doctype specified in schema`);
+        continue;
+      }
+      
+      // Query specifically by doctype AND name
+      const linkedDocs = await this.collection(window.MAIN_COLLECTION).getFullList({
+        filter: `doctype = "${linkedDoctype}" && name = "${value}"`
+      });
+      
+      if (linkedDocs.length === 0) {
+        errors.push(
+          `Invalid ${field.label || fieldname}: "${value}" does not exist in ${linkedDoctype}`
+        );
+      }
+    }
+  }
+  
+  if (errors.length > 0) {
+    throw new Error(`Validation failed for ${childDoctype}:\n- ${errors.join('\n- ')}`);
+  }
+  
+  return true;
+};
+
+/**
+ * @func createChild v2
+ * @description Create a child document linked to a parent, whith validation
+ * @ai https://claude.ai/chat/0fb0ffa0-4cde-4e16-812f-3ca8b1eaa1eb
+ * 
  */
 pb.createChild = async function (childDoctype, parentName, parentDoctype, parentField, data = {}) {
+  // Validate the data before creating
+  await this.validateChildData(childDoctype, data);  //added
+  
   const childData = {
     parent: parentName,
     parenttype: parentDoctype,
     parentfield: parentField,
     ...data
   };
-
+  
   return await this.createDoc(childDoctype, childData);
 };
+
 
 /**
  * @func listChildren
