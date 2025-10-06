@@ -259,14 +259,15 @@ pb.generateId = async function () {
 
 3) Generate user doctype in @item collection (for future User-related data, write=Admin). DO NOT use standard createDoc() as we need to use earlier created @user.name
 
-- API rules on @user collection:
+- API rules on @item collection:
 List/Search rule:   (@request.auth.name = data._owner && "Owner" ~ data._allowed_roles) || (data._allowed_roles != [] && !("Owner" ~ data._allowed_roles) && @request.auth.roles ~ data._allowed_roles)
 View rule:          same
 Update rule:        same
 Delete rule:        same
 Create rule:        id = @request.auth.id ( → anyone registed can create)
 
-- API rules on @item
+- API rules on @user collection
+
 List/Search rule:   id = @request.auth.id
 View rule:          id = @request.auth.id
 Update rule:        id = @request.auth.id

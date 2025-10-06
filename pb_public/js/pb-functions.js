@@ -166,7 +166,13 @@ pb.createDoc = async function (doctype, data = {}) {
   return doc;
 };
 
-// Create new user (registration/self-provisioning)
+/* Create new user (registration/self-provisioning)
+* @func createUser
+* @description Create a new user with auth and User document, with schema-based permissions
+* https://claude.ai/chat/84da077c-6dcd-43ee-a70c-e731ae8ca4a7 
+* @todo CREATE AND UPDATE @request.auth.id = "" && @request.data.roles = ["Owner"] && @request.data.roles:length = 1
+*/
+
 pb.createUser = async function(email, password, roles = ["Owner"]) {
   try {
     const generatedId = await pb.generateId();
