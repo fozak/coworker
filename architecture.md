@@ -1,6 +1,8 @@
 # Architecture
 ## Data and Schemas 
 - https://chatgpt.com/c/68dffcd3-d784-8325-8c8a-d0b298bca5d3
+  IMPORANT TO FINALIZE-> https://claude.ai/chat/12231623-a5b4-4d8c-8e3c-16b190f2cc79
+
 1. Two “types” of universal fields in Frappe
 
 DB-backed system fields → always present in every DocType table
