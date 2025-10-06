@@ -431,6 +431,192 @@ pb.getDisplayName = function (record, schema) {
 };
 
 
+// ====== Context building helper functions ======
+/**
+ * @func getAllChildren
+ * @description Get all children of any type for a parent
+ */
+pb.getAllChildren = async function(parentName) {
+  return await this.collection(window.MAIN_COLLECTION).getFullList({
+    filter: `data.parent = "${parentName}"`
+  });
+};
+
+
+
+/**
+ * @func getDocContextWithLinks
+ * @description Build complete document context with optimized link resolution
+ * @param {string} name - Document name (globally unique identifier)
+ * @param {Object} options - Configuration options
+ * @returns {Object} Full document with children and resolved links
+ */
+pb.getDocContextWithLinks = async function(name, options = {}) {
+  const { 
+    resolveLinks = true, 
+    maxDepth = 1,
+    _depth = 0
+  } = options;
+  
+  if (_depth >= maxDepth) return null;
+  
+  // Known reference doctypes that don't need resolution
+  const REFERENCE_DOCTYPES = new Set([
+    'Currency', 'UOM', 'Language', 'Country', 
+    'Territory', 'Fiscal Year', 'Letter Head'
+  ]);
+  
+  // Cache for deduplication
+  const linkCache = new Map();
+  
+  // 1. Get parent document - doctype comes from here
+  const parentDoc = await this.getDoc(name);
+  if (!parentDoc) throw new Error(`Document not found: ${name}`);
+  
+  const doctype = parentDoc.doctype;
+  
+  // 2. Get schema
+  const schema = await this.getSchema(doctype);
+  if (!schema) throw new Error(`Schema not found: ${doctype}`);
+  
+  // 3. Get all children in one query
+  const allChildren = await this.getAllChildren(name);
+  
+  // 4. Build base context
+  const context = {
+    doctype: doctype,
+    name: name,
+    ...parentDoc.data
+  };
+  
+  // 5. Helper to check if field should be resolved
+  const shouldResolveField = (fieldname, linkedDoctype, parentSchema) => {
+    // Skip reference doctypes
+    if (REFERENCE_DOCTYPES.has(linkedDoctype)) return false;
+    
+    // Resolve if there are fetch_from fields that reference it
+    const hasFetchFrom = parentSchema.fields.some(f => 
+      f.fetch_from && f.fetch_from.startsWith(`${fieldname}.`)
+    );
+    
+    return hasFetchFrom;
+  };
+  
+  // 6. Collect all link values to resolve (parent + children)
+  const linksToResolve = new Map(); // Map<doctype, Set<names>>
+  
+  if (resolveLinks && _depth < maxDepth) {
+    // Collect parent link fields
+    const parentLinkFields = schema.fields.filter(f => 
+      f.fieldtype === 'Link' && shouldResolveField(f.fieldname, f.options, schema)
+    );
+    
+    for (const field of parentLinkFields) {
+      const linkValue = context[field.fieldname];
+      if (linkValue) {
+        if (!linksToResolve.has(field.options)) {
+          linksToResolve.set(field.options, new Set());
+        }
+        linksToResolve.get(field.options).add(linkValue);
+      }
+    }
+    
+    // Collect child link fields from all children
+    const tableFields = schema.fields.filter(f => f.fieldtype === 'Table');
+    
+    for (const field of tableFields) {
+      const childDoctype = field.options;
+      const childSchema = await this.getSchema(childDoctype);
+      
+      if (childSchema) {
+        const childLinkFields = childSchema.fields.filter(f => 
+          f.fieldtype === 'Link' && shouldResolveField(f.fieldname, f.options, childSchema)
+        );
+        
+        const children = allChildren.filter(c => c.doctype === childDoctype);
+        
+        for (const child of children) {
+          for (const linkField of childLinkFields) {
+            const linkValue = child.data[linkField.fieldname];
+            if (linkValue) {
+              if (!linksToResolve.has(linkField.options)) {
+                linksToResolve.set(linkField.options, new Set());
+              }
+              linksToResolve.get(linkField.options).add(linkValue);
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  // 7. Batch fetch all links grouped by doctype
+  for (const [linkedDoctype, names] of linksToResolve) {
+    if (names.size === 0) continue;
+    
+    const nameArray = Array.from(names);
+    const filter = nameArray.map(n => `name = "${n}"`).join(' || ');
+    
+    const linkedDocs = await this.collection(window.MAIN_COLLECTION).getFullList({
+      filter: `doctype = "${linkedDoctype}" && (${filter})`
+    });
+    
+    // Populate cache
+    for (const doc of linkedDocs) {
+      linkCache.set(doc.name, doc.data);
+    }
+  }
+  
+  // 8. Apply resolved links to parent
+  if (resolveLinks && _depth < maxDepth) {
+    const parentLinkFields = schema.fields.filter(f => 
+      f.fieldtype === 'Link' && shouldResolveField(f.fieldname, f.options, schema)
+    );
+    
+    for (const field of parentLinkFields) {
+      const linkValue = context[field.fieldname];
+      if (linkValue && linkCache.has(linkValue)) {
+        context[`${field.fieldname}_doc`] = linkCache.get(linkValue);
+      }
+    }
+  }
+  
+  // 9. Organize and apply resolved links to children
+  const tableFields = schema.fields.filter(f => f.fieldtype === 'Table');
+  
+  for (const field of tableFields) {
+    const fieldname = field.fieldname;
+    const childDoctype = field.options;
+    
+    const children = allChildren.filter(child => child.doctype === childDoctype);
+    context[fieldname] = [];
+    
+    for (const child of children) {
+      const childData = { ...child.data };
+      
+      if (resolveLinks && _depth < maxDepth) {
+        const childSchema = await this.getSchema(childDoctype);
+        if (childSchema) {
+          const childLinkFields = childSchema.fields.filter(f => 
+            f.fieldtype === 'Link' && shouldResolveField(f.fieldname, f.options, childSchema)
+          );
+          
+          for (const linkField of childLinkFields) {
+            const linkValue = childData[linkField.fieldname];
+            if (linkValue && linkCache.has(linkValue)) {
+              childData[`${linkField.fieldname}_doc`] = linkCache.get(linkValue);
+            }
+          }
+        }
+      }
+      
+      context[fieldname].push(childData);
+    }
+  }
+  
+  return context;
+};
+
 // ==============================================
 // 🔗 Link Field Database Operations
 // ==============================================
