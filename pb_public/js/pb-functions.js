@@ -274,6 +274,7 @@ pb.listDocs = async function (doctype, filter = '') {
  * @func validateChildData v1
  * @description Validate child table data against schema, including Link field existence checks
  * @throws Error if validation fails
+ * @ai https://claude.ai/chat/0fb0ffa0-4cde-4e16-812f-3ca8b1eaa1eb 
  */
 pb.validateChildData = async function (childDoctype, data) {
   const schema = await this.getSchema(childDoctype);
