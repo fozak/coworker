@@ -3,9 +3,6 @@
 // ============================================================================
 
 window.pb = window.pb || new PocketBase("http://127.0.0.1:8090/");
-// DISABLE auto-cancellation properly in UMD build
-window.pb.autoCancellation(false);
-
 
 // Global config
 window.MAIN_COLLECTION = window.MAIN_COLLECTION || 'item';
@@ -1740,13 +1737,12 @@ pb.runCode = async function (name) {
   // EXPORT
   // ============================================================================
 
-  /* Auto-cancellation control
+  // Auto-cancellation control
   pb.autoCancellation = function(enabled) {
     if (window.pb && window.pb.autoCancellation) {
       window.pb.autoCancellation(enabled);
     }
   };
-  */
 
 
 

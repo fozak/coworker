@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PocketBase Form Renderer</title>
+    
+    <!-- Bootstrap 4.6.2 CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/css/bootstrap.min.css">
+    
+    <!-- PocketBase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/pocketbase@0.21.5/dist/pocketbase.umd.js"></script>
+    
+    <!-- Your pb-functions.js -->
+    <script src="js/pb-functions.js"></script>
+</head>
+<body class="bg-light">
+    <div class="container mt-4">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h1 class="h4 mb-0">Document Form</h1>
+            </div>
+            
+            <div class="card-body">
+                <!-- Search Section -->
+                <div class="form-group">
+                    <label class="font-weight-medium">Search Documents</label>
+                    <input 
+                        type="text" 
+                        id="searchInput" 
+                        class="form-control"
+                        placeholder="Type 3+ letters to search by name..."
+                    >
+                    <div id="searchResults" class="border rounded mt-2 d-none" style="max-height: 300px; overflow-y: auto;"></div>
+                </div>
+
+                <!-- React Form Container -->
+                <div id="form-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            window.selectedTarget = null;
+
+            // Load external scripts
+            function loadScript(src) {
+                return new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = src;
+                    script.onload = resolve;
+                    script.onerror = reject;
+                    document.head.appendChild(script);
+                });
+            }
+
+            async function loadDependencies() {
+                await Promise.all([
+                    loadScript('https://unpkg.com/react@18/umd/react.production.min.js'),
+                    loadScript('https://unpkg.com/react-dom@18/umd/react-dom.production.min.js')
+                ]);
+                
+                await loadScript('https://unpkg.com/@tanstack/react-table@8.10.7/build/umd/index.production.js');
+                
+                window.TanStackReactTable = window.ReactTable;
+                
+                return { React: window.React, ReactDOM: window.ReactDOM };
+            }
+
+            // Search functionality
+            function setupSearch() {
+                const searchInput = document.getElementById('searchInput');
+                let searchTimeout;
+                
+                searchInput.addEventListener('input', function(e) {
+                    const query = e.target.value.trim();
+                    clearTimeout(searchTimeout);
+                    
+                    if (query.length < 3) {
+                        document.getElementById('searchResults').classList.add('d-none');
+                        return;
+                    }
+                    
+                    searchTimeout = setTimeout(() => searchRecords(query), 300);
+                });
+            }
+
+            async function searchRecords(query) {
+                const searchResults = document.getElementById('searchResults');
+                
+                try {
+                    const records = await pb.collection('item').getList(1, 20, {
+                        filter: `name ~ "${query}"`
+                    });
+                    
+                    searchResults.innerHTML = '';
+                    
+                    if (records.items.length === 0) {
+                        searchResults.innerHTML = '<div class="p-3 text-muted">No records found</div>';
+                    } else {
+                        records.items.forEach(record => {
+                            const resultItem = document.createElement('div');
+                            resultItem.className = 'p-3 border-bottom';
+                            resultItem.style.cursor = 'pointer';
+                            resultItem.innerHTML = `
+                                <div class="font-weight-medium">${record.name}</div>
+                                <div class="small text-muted">${record.doctype}</div>
+                            `;
+                            
+                            resultItem.addEventListener('mouseenter', () => {
+                                resultItem.classList.add('bg-light');
+                            });
+                            resultItem.addEventListener('mouseleave', () => {
+                                resultItem.classList.remove('bg-light');
+                            });
+                            
+                            resultItem.addEventListener('click', () => {
+                                selectRecord(record);
+                            });
+                            
+                            searchResults.appendChild(resultItem);
+                        });
+                    }
+                    
+                    searchResults.classList.remove('d-none');
+                    
+                } catch (error) {
+                    console.error('Search error:', error);
+                    searchResults.innerHTML = '<div class="p-3 text-danger">Search failed</div>';
+                    searchResults.classList.remove('d-none');
+                }
+            }
+
+            async function selectRecord(record) {
+                try {
+                    window.selectedTarget = await pb.collection('item').getOne(record.id);
+                    
+                    document.getElementById('searchInput').value = record.name;
+                    document.getElementById('searchResults').classList.add('d-none');
+                    
+                    renderForm();
+                    
+                } catch (error) {
+                    console.error('Error selecting record:', error);
+                }
+            }
+
+            // Make function global for child table links
+            window.selectExistingRecord = async function(recordId) {
+                try {
+                    window.selectedTarget = await pb.collection('item').getOne(recordId);
+                    document.getElementById('searchInput').value = window.selectedTarget.name;
+                    renderForm();
+                } catch (error) {
+                    console.error('Error loading record:', error);
+                }
+            };
+
+            // React form component
+            function UniversalForm() {
+                const { createElement: e, useState, useEffect, useCallback } = React;
+                
+                const [formState, setFormState] = useState({
+                    schema: null,
+                    formData: {},
+                    linkOptions: {},
+                    selectOptions: {},
+                    loading: true,
+                    error: null
+                });
+
+                const loadData = useCallback(async () => {
+                    if (!window.selectedTarget) return;
+                    
+                    try {
+                        setFormState(prev => ({ ...prev, loading: true, error: null }));
+                        
+                        const result = await pb.loadFormDataWithSelects(
+                            window.selectedTarget.doctype,
+                            window.selectedTarget.name
+                        );
+                        
+                        setFormState({
+                            schema: result.schema,
+                            formData: result.formData,
+                            linkOptions: result.linkOptions,
+                            selectOptions: result.selectOptions,
+                            loading: false,
+                            error: null
+                        });
+                    } catch (err) {
+                        console.error('Load error:', err);
+                        setFormState(prev => ({
+                            ...prev,
+                            error: err.message,
+                            loading: false
+                        }));
+                    }
+                }, []);
+
+                useEffect(() => {
+                    loadData();
+                }, [loadData]);
+
+                if (!window.selectedTarget) {
+                    return e('div', { className: 'alert alert-info' },
+                        'Search and select a document to view its form'
+                    );
+                }
+
+                if (formState.loading) {
+                    return e('div', { className: 'd-flex justify-content-center p-4' },
+                        e('div', { className: 'spinner-border' })
+                    );
+                }
+
+                if (formState.error) {
+                    return e('div', { className: 'alert alert-danger' },
+                        'Error: ', formState.error
+                    );
+                }
+
+                if (!formState.schema) return null;
+
+                const tableFields = formState.schema.fields.filter(f => f.fieldtype === 'Table');
+
+                return e('div', {}, [
+                    // Document header
+                    e('div', { key: 'header', className: 'alert alert-primary' }, [
+                        e('h5', { key: 'title', className: 'mb-1' }, 
+                            `${window.selectedTarget.doctype}: ${window.selectedTarget.name}`
+                        ),
+                        e('small', { key: 'id' }, `ID: ${window.selectedTarget.id}`)
+                    ]),
+
+                    // Main Grid - shows all documents of this doctype
+                    e('div', { key: 'grid', className: 'mb-4' },
+                        e(pb.components.MainGrid, {
+                            doctype: window.selectedTarget.doctype,
+                            pb: window.pb
+                        })
+                    ),
+
+                    // Child Tables
+                    ...tableFields.map(field =>
+                        e('div', { key: field.fieldname, className: 'mb-4' },
+                            e(pb.components.ChildTable, {
+                                field: field,
+                                parentName: window.selectedTarget.name,
+                                pb: window.pb
+                            })
+                        )
+                    )
+                ]);
+            }
+
+            function renderForm() {
+                const container = document.getElementById('form-container');
+                if (window.ReactDOM.createRoot) {
+                    const root = window.ReactDOM.createRoot(container);
+                    root.render(React.createElement(UniversalForm));
+                } else {
+                    window.ReactDOM.render(React.createElement(UniversalForm), container);
+                }
+            }
+
+            // Initialize
+            loadDependencies().then(() => {
+                setupSearch();
+                console.log('Ready');
+            }).catch(error => {
+                console.error('Initialization failed:', error);
+                document.getElementById('form-container').innerHTML = 
+                    '<div class="alert alert-danger">Failed to load dependencies</div>';
+            });
+
+        })();
+    </script>
+</body>
+</html>
