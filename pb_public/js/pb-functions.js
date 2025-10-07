@@ -1,3 +1,5 @@
+//v7. formfield 
+
 // ============================================================================
 // POCKETBASE CLIENT INITIALIZATION
 // ============================================================================
@@ -2457,6 +2459,140 @@ pb.components.ChildTable = function({ field, parentName, pb }) {
     )
   });
 };
+
+
+// ============================================================================
+// FORM FIELD COMPONENT
+// Place this AFTER the ChildTable component and BEFORE "EXPORT TO GLOBAL NAMESPACE"
+// ============================================================================
+
+pb.components.FormField = function({ field, value, onChange, selectOptions, linkOptions, formData, parentName }) {
+  const { createElement: e } = React;
+  
+  // Handle Table fields by rendering ChildTable component
+  if (field.fieldtype === 'Table') {
+    return e(pb.components.ChildTable, {
+      field: field,
+      parentName: parentName || window.selectedTarget?.name,
+      pb: window.pb
+    });
+  }
+  
+  // Build field configuration using pb helper
+  const config = pb.createFormFieldConfig(
+    field,
+    value,
+    formData || {},
+    selectOptions || {},
+    linkOptions || {},
+    { write: true }
+  );
+  
+  // Handle field value change
+  const handleChange = (newValue) => {
+    const processedValue = pb.processFieldValue(newValue, field.fieldtype);
+    onChange(field.fieldname, processedValue);
+  };
+  
+  // Render based on input type
+  const renderInput = () => {
+    // SELECT/LINK/DYNAMIC LINK fields
+    if (config.inputType === 'select') {
+      return e('select', {
+        value: config.value || '',
+        onChange: ev => handleChange(ev.target.value),
+        disabled: config.disabled || !config.isDynamicLinkReady,
+        className: config.cssClass,
+        required: config.required
+      }, [
+        e('option', { key: 'empty', value: '' }, config.placeholder),
+        ...config.options.map(opt =>
+          e('option', { 
+            key: opt.value, 
+            value: opt.value 
+          }, opt.displayName || opt.text || opt.value)
+        )
+      ]);
+    }
+    
+    // CHECKBOX field
+    if (config.inputType === 'checkbox') {
+      return e('div', { className: pb.BS.form.check },
+        e('input', {
+          type: 'checkbox',
+          checked: !!config.value,
+          onChange: ev => handleChange(ev.target.checked),
+          disabled: config.disabled,
+          className: pb.BS.form.checkInput,
+          id: `field-${field.fieldname}`
+        }),
+        e('label', {
+          className: pb.BS.form.checkLabel,
+          htmlFor: `field-${field.fieldname}`
+        }, config.label)
+      );
+    }
+    
+    // TEXTAREA field
+    if (config.inputType === 'textarea') {
+      return e('textarea', {
+        value: config.value || '',
+        onChange: ev => handleChange(ev.target.value),
+        readOnly: config.isReadOnly,
+        className: config.cssClass,
+        rows: 3,
+        placeholder: config.placeholder,
+        required: config.required
+      });
+    }
+    
+    // TEXT/NUMBER/DATE/etc fields
+    return e('input', {
+      type: config.inputType,
+      value: config.value || '',
+      onChange: ev => handleChange(ev.target.value),
+      readOnly: config.isReadOnly,
+      className: config.cssClass,
+      placeholder: config.placeholder,
+      required: config.required,
+      step: config.inputType === 'number' ? 'any' : undefined
+    });
+  };
+  
+  // Don't show label for checkbox (it's shown inside the input rendering)
+  const showLabel = config.inputType !== 'checkbox';
+  
+  return e('div', { className: config.wrapperCss }, [
+    // Label (skip for checkbox)
+    showLabel && e('label', { 
+      key: 'label',
+      className: config.labelCss,
+      htmlFor: `field-${field.fieldname}`
+    }, [
+      config.label,
+      config.required && e('span', { 
+        key: 'req',
+        className: pb.BS.text.danger 
+      }, ' *')
+    ]),
+    
+    // Input
+    e('div', { key: 'input' }, renderInput()),
+    
+    // Help text for auto-filled fields
+    config.hasAutoFill && e('small', { 
+      key: 'help',
+      className: config.helpCss
+    }, `Auto-filled from: ${field.fetch_from}`),
+    
+    // Dependency hint for Dynamic Links
+    config.showDependencyHint && e('small', { 
+      key: 'dependency',
+      className: `${config.helpCss} ${pb.BS.text.warning}`
+    }, `Select ${config.dependentField} first`)
+  ]);
+};
+
 
 // ============================================================================
 // EXPORT TO GLOBAL NAMESPACE
